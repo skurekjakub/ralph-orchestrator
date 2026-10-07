@@ -5,7 +5,7 @@ description: "Adds, deploys, and debugs MCP servers that Ralph exposes to agent 
 
 # MCP Server Deployment
 
-MCP servers never run in the agent container. The agent gets a URL-only `mcp-config.json`; every server runs as a child process of the gateway (`shared/mcp-sidecar/src/gateway.ts`) in the `mcp-sidecar` container, which holds the credentials and has direct internet access via `ralph-sidecar-external`. The agent container stays on `ralph-internal` behind Squid. Keep that split intact: secrets go only to the sidecar, and the agent sees only what the manifest's `tools` list allows — the gateway's tool-filter proxy (`shared/mcp-sidecar/src/tool-filter-proxy.ts`) serves each filtered server's `sidecarPort`, hides other tools from `tools/list` and refuses calls to them with JSON-RPC `-32602`.
+MCP servers never run in the agent container. The agent gets a URL-only `mcp-config.json`; every server runs as a child process of the gateway (`shared/mcp-sidecar/src/gateway.ts`) in the `mcp-sidecar` container, which holds the credentials and has direct internet access via `ralph-sidecar-external`. The agent container stays on `ralph-internal` behind Squid. Keep that split intact: secrets go only to the sidecar, and the agent sees only what the manifest's `tools` list allows — the gateway's tool-filter proxy (`shared/mcp-sidecar/src/tool-filter-proxy.ts`) serves each filtered server's `sidecarPort`, hides other tools from `tools/list` and refuses calls to them with JSON-RPC `-32602`. The sidecar fails closed: `/health` (on `127.0.0.1:9000`) stays 503 until every filtered server's tools are listed and nothing but its proxy can reach it, and a custom server whose upstream port answers off loopback is refused (stopped; its proxy answers 503).
 
 Detailed reference (read the relevant section rather than re-deriving it):
 
@@ -21,9 +21,9 @@ Detailed reference (read the relevant section rather than re-deriving it):
 | Type     | Use for                   | Code                                                                                                     | Sidecar rebuild? |
 | -------- | ------------------------- | -------------------------------------------------------------------------------------------------------- | ---------------- |
 | `custom` | Our own TypeScript server | `shared/mcp-servers/<name>/` → esbuild bundle in `dist/`, mounted read-only at `/opt/mcp/servers/<name>` | No               |
-| `npm`    | Third-party package       | `npm install -g <pkg>@<pinned>` in `shared/mcp-sidecar/Dockerfile`                                       | Yes              |
+| `npm`    | Third-party stdio package | `npm install -g <pkg>@<pinned>` in `shared/mcp-sidecar/Dockerfile`; the manifest must list `tools`       | Yes              |
 
-The gateway launches `custom` servers as `<command> <containerPath>/<args...> --transport http --host <address> --port <port>`: `127.0.0.1` and `sidecarPort + 10000` behind the tool-filter proxy when the manifest lists `tools`, `0.0.0.0` and `sidecarPort` otherwise. The server must honour all three flags and serve stateless Streamable HTTP on `/mcp`; use `parseLaunchArgs` and `serveStatelessHttp` from `shared/mcp-servers/common/http-launch.ts` (pattern: `shared/mcp-servers/web-fetch/src/index.ts`). `npm` servers speak stdio and are wrapped by `supergateway --stdio "<command args>" --outputTransport streamableHttp --port <port>`; supergateway has no bind-address option, so they listen on every interface.
+The gateway launches `custom` servers as `<command> <containerPath>/<args...> --transport http --host <address> --port <port>`: `127.0.0.1` and `sidecarPort + 10000` behind the tool-filter proxy when the manifest lists `tools`, `0.0.0.0` and `sidecarPort` otherwise. The server must honour all three flags and serve stateless Streamable HTTP on `/mcp`; use `parseLaunchArgs` and `serveStatelessHttp` from `shared/mcp-servers/common/http-launch.ts` (pattern: `shared/mcp-servers/web-fetch/src/index.ts`). A filtered server that binds anything but `127.0.0.1` is refused. `npm` servers speak stdio: the gateway spawns `<command> <args>` itself, keeps one persistent stdio session per server (state such as Playwright's page survives between calls; a crash restarts it and fails the calls in flight), and serves it through the tool-filter proxy with no listener of its own (`shared/mcp-sidecar/src/stdio-upstream.ts`, `stdio-bridge.ts`). It gives the server no client capabilities (no sampling, elicitation or roots).
 
 ## Add a server
 
@@ -32,7 +32,7 @@ The gateway launches `custom` servers as `<command> <containerPath>/<args...> --
    - `custom`: set `"command": "node"`, `"args": ["dist/bundle.js"]` (relative — joined with `containerPath`), `"containerPath": "/opt/mcp/servers/<name>"`.
    - `requiredEnv` / `optionalEnv`: host `.env` vars copied into `gateway.json` (sidecar only).
    - `requiredConfig`: keys every profile using the server must supply in its `mcpServers[].env`; checked by `src/validate/profiles.ts`.
-   - `tools`: becomes the agent-side allowlist in `mcp-config.json` and the allowlist the sidecar's tool-filter proxy enforces. A tool missing here is invisible to the agent, and calls to it are refused, even if the server implements it. `/health` reports allowlisted names the server does not expose as drift. Verify real names first (see `references/troubleshooting.md`).
+   - `tools`: becomes the agent-side allowlist in `mcp-config.json` and the allowlist the sidecar's tool-filter proxy enforces. A tool missing here is invisible to the agent, and calls to it are refused, even if the server implements it. Required for `npm` servers and never empty; a `custom` server without it exposes every tool. `/health` reports allowlisted names the server does not expose as drift. Verify real names first (see `references/troubleshooting.md`).
    - `initScript` (optional): relative path to a script run by `shared/mcp-sidecar/entrypoint.sh` before the gateway starts; failures are logged and ignored. Must be idempotent and fast.
 2. **Code / install**
    - `custom`: `package.json` with `build` (esbuild), `lint` (`tsc --noEmit`) and `test` (vitest, including `tests/http-launch.test.ts`) scripts; bundle per `references/bundling.md`. The orchestrator runs `npm install && npm run build` for every custom server and the gateway at startup (`src/container/setup/mcp-builder.ts`).
@@ -48,7 +48,7 @@ Generated files in `profiles/<id>/.build/` (`mcp-config.json`, `gateway.json`, `
 
 ## Port allocation
 
-Ports come from each manifest's `sidecarPort`; 9000 is the gateway health endpoint. Current assignments: 9100 jira-kentico, 9101 ado, 9102 discord-hitl, 9103 playwright, 9104 web-fetch, 9105 microsoft-docs, 9106 ralphchives-write, 9107 ralphchives-read, 9108 codegraphcontext. Use 9109+ and re-check with:
+Ports come from each manifest's `sidecarPort`; 9000 is the gateway health endpoint, and a `custom` server with `tools` also takes `sidecarPort + 10000` on loopback (the validator checks all of them). Current assignments: 9100 jira-kentico, 9101 ado, 9102 discord-hitl, 9103 playwright, 9104 web-fetch, 9105 microsoft-docs, 9106 ralphchives-write, 9107 ralphchives-read, 9108 codegraphcontext. Use 9109+ and re-check with:
 
 ```bash
 grep -h '"sidecarPort"' shared/mcp-servers/*/mcp-server.json | sort

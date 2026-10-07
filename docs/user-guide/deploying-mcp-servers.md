@@ -42,7 +42,7 @@ Agent Container (app)                        MCP Sidecar Container
 
 ## Adding an External npm MCP Server
 
-Use this when deploying a third-party MCP package from npm (e.g. `@playwright/mcp`, `@modelcontextprotocol/server-github`).
+Use this when deploying a third-party MCP package from npm (e.g. `@playwright/mcp`, `@modelcontextprotocol/server-github`). The package must speak MCP over stdio: the sidecar gateway runs it as a child process, keeps one persistent session with it, and serves it to the agent only through its tool-filter proxy, so the manifest must list `tools`.
 
 ### Step 1: Create the manifest
 
@@ -72,7 +72,7 @@ Create `shared/mcp-servers/<name>/mcp-server.json`:
 | `args`           | Yes      | Command-line arguments (can be `[]`)                                                                    |
 | `sidecarPort`    | Yes      | Unique port — see [Port Allocation](#port-allocation)                                                   |
 | `requiredEnv`    | No       | Env vars needed in `.env` on the host                                                                   |
-| `tools`          | No       | Tool allowlist: listed in the agent's `mcp-config.json` and enforced by the sidecar's tool-filter proxy |
+| `tools`          | Yes      | Non-empty tool allowlist: listed in the agent's `mcp-config.json` and enforced by the tool-filter proxy |
 | `requiredConfig` | No       | Env var keys that profiles must provide in `mcpServers.env`                                             |
 | `initScript`     | No       | Relative path to a shell script executed at sidecar startup before the gateway (e.g. `"init.sh"`)       |
 
@@ -307,6 +307,7 @@ process.exit(0);
 - Confirm the package is installed in `shared/mcp-sidecar/Dockerfile` (check `docker exec mcp-sidecar which <binary>`)
 - Some packages need system libraries — check their install docs
 - Test locally first: `npx <package> --help`
+- `[gateway] <name> failed to start: initialize failed ...` means the process started but rejected or never answered the MCP handshake over stdio; a server that writes logs to stdout breaks the protocol
 
 ### Custom server bundle missing
 
@@ -318,6 +319,7 @@ process.exit(0);
 
 - Two servers cannot share a port — check manifests for duplicates
 - The gateway health endpoint uses port 9000 (reserved)
+- A custom server with `tools` also uses `sidecarPort + 10000` on loopback; `npm run validate` reports a collision with it
 
 ## Related Docs
 

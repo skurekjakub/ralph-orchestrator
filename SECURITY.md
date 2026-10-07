@@ -110,6 +110,16 @@ MCP server secrets (`ADO_PAT`, `JIRA_PAT_<KEY>`, `JIRA_EMAIL_<KEY>`, Discord and
 
 A prompt-injected agent can read these values. Combined with an allowlisted domain (`api.github.com`, `github.com`, Azure DevOps hosts), it can use them directly.
 
+### MCP Sidecar Tool Allowlists
+
+The MCP sidecar is the enforcement boundary for MCP tools. The agent can open connections to the sidecar from `ralph-internal`, so nothing the CLI does with `mcp-config.json` restricts it; only the sidecar does. Three rules hold it:
+
+- **Every way in goes through the tool-filter proxy.** For a server whose manifest lists `tools`, the agent-facing `sidecarPort` is served by the gateway's tool-filter proxy, which hides every other tool from `tools/list` and refuses calls to it (JSON-RPC `-32602`). It checks the bytes it forwards: only `application/json` in UTF-8 (anything else is HTTP 415), no repeated object keys, and the server receives exactly the inspected bytes under a content type the proxy sets.
+- **Upstreams are loopback-only.** A filtered custom server listens on `127.0.0.1:<sidecarPort + 10000>`; an npm (stdio) server has no listener at all, because the gateway bridges it over stdio in process. The health endpoint listens on `127.0.0.1:9000`. npm manifests must list `tools`, and a `tools` list must not be empty.
+- **The sidecar fails closed.** `/health` stays 503 until every filtered server's tools have been listed and its upstream has been probed unreachable on every non-loopback address, and compose starts the agent only on `service_healthy`. A custom server whose upstream port answers off loopback is refused: the gateway logs why, stops it for good, and its proxy answers 503.
+
+A custom server without `tools` exposes every tool it registers, on `sidecarPort` directly.
+
 ## Startup Validation
 
 The `src/validate/security.ts` module checks on every startup:
@@ -261,7 +271,7 @@ These are **by design** — the agent needs them to function:
 - Read/write the mounted workspace (`/workspace`)
 - Push the task branch and create PRs through the `ado` MCP tools (the ADO PAT stays in the sidecar)
 - Post comments and attach files to JIRA through the `jira-kentico` MCP tools
-- Call any tool of its effective MCP servers, including `web-fetch` and `playwright` where declared — these run in the sidecar, which has unrestricted internet access
+- Call the allowlisted tools (manifest `tools`) of its effective MCP servers, including `web-fetch` and `playwright` where declared — these run in the sidecar, which has unrestricted internet access
 - Read the credentials in its environment (`GH_TOKEN`, `ANTHROPIC_API_KEY`, and `ADO_PAT_XPERIENCE` for `ralph-docs`) and use them against allowlisted domains
 - Make LLM API calls (Copilot, Anthropic)
 - Install packages from the registries on its profile's allowlist (through the proxy)
@@ -271,6 +281,7 @@ These are **by design** — the agent needs them to function:
 
 - Access the Docker socket or control other containers
 - Reach a domain outside its profile's allowlist directly (MCP tools in the sidecar are not subject to the allowlist)
+- Call an MCP tool outside its server's `tools` allowlist, or reach an MCP server other than through its tool-filter proxy
 - Escalate to root (no sudo, no setuid; only `DAC_OVERRIDE` and `CHOWN` capabilities are kept)
 - Exhaust host resources beyond the limits
 - Access the host filesystem outside the mounted workspace and the read-only mounts (rendered agents, skills, MCP config, hooks, resources)

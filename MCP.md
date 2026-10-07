@@ -20,7 +20,9 @@ profile.json → mcpServers: ["jira-kentico", "ado", "playwright"]
      container    container  merge       proxy
 ```
 
-Both Copilot CLI and Claude Code CLI consume the same `mcp-config.json`. Copilot loads it via `--additional-mcp-config @/workspace/.ralph/mcp-config.json`; Claude Code loads it explicitly via `--mcp-config`. Each entry holds the server's sidecar URL (`type: "http"`, `url`) and, when the manifest lists `tools`, a `tools` allowlist — no secrets. The sidecar enforces the same allowlist whatever the CLI does with it. For a server whose manifest lists `tools`, the gateway's tool-filter proxy (`shared/mcp-sidecar/src/tool-filter-proxy.ts`) serves the agent-facing `sidecarPort`, removes every other tool from `tools/list` responses, and answers a `tools/call` for any other tool with JSON-RPC error `-32602` (`Unknown tool: <name>`) without forwarding it. The server itself listens on `127.0.0.1:<sidecarPort + 10000>` inside the sidecar. A server without `tools` is not filtered and serves every tool it registers on `sidecarPort` directly.
+Both Copilot CLI and Claude Code CLI consume the same `mcp-config.json`. Copilot loads it via `--additional-mcp-config @/workspace/.ralph/mcp-config.json`; Claude Code loads it explicitly via `--mcp-config`. Each entry holds the server's sidecar URL (`type: "http"`, `url`) and, when the manifest lists `tools`, a `tools` allowlist — no secrets. The sidecar enforces the same allowlist whatever the CLI does with it. For a server whose manifest lists `tools`, the gateway's tool-filter proxy (`shared/mcp-sidecar/src/tool-filter-proxy.ts`) serves the agent-facing `sidecarPort`, removes every other tool from `tools/list` responses, and answers a `tools/call` for any other tool with JSON-RPC error `-32602` (`Unknown tool: <name>`) without forwarding it. Nothing but the proxy can reach the server: a custom server listens on `127.0.0.1:<sidecarPort + 10000>` inside the sidecar, and an npm server has no listener at all, because the gateway runs it over stdio. A custom server without `tools` is not filtered and serves every tool it registers on `sidecarPort` directly; an npm server must list `tools`.
+
+The sidecar is the enforcement boundary, and it fails closed: `/health` stays unhealthy until every filtered server's tools have been listed and nothing but the proxy can reach it, and the gateway refuses (stops, and answers HTTP 503 for) a server whose upstream port turns out to be reachable off loopback. See [Failing closed](#failing-closed).
 
 ## Server Registry
 
@@ -40,10 +42,11 @@ shared/mcp-servers/
   common/            — Code shared by the custom servers, not a server: the launcher (http-launch.ts)
                        and the built-bundle test harness (testing/built-server.ts)
 shared/mcp-sidecar/
-  Dockerfile        — Sidecar image: supergateway, Playwright MCP + Chromium, git, Python
+  Dockerfile        — Sidecar image: Playwright MCP + Chromium, git, Python, gateway runtime dependencies
   src/gateway.ts    — Process manager + health endpoint (entry of the dist/gateway.js bundle)
   src/tool-filter-proxy.ts — Enforces each server's `tools` allowlist on its agent-facing port
-  package.json      — Gateway dependencies (MCP SDK v2 client and core)
+  src/stdio-upstream.ts, src/stdio-bridge.ts — Run npm (stdio) servers and serve them through the proxy
+  package.json      — Gateway dependencies (MCP SDK v2 client, core, server and node)
 ```
 
 ### Current Servers
@@ -64,7 +67,12 @@ shared/mcp-sidecar/
 
 ### npm (`type: "npm"`)
 
-Uses a package installed globally in the sidecar image (`shared/mcp-sidecar/Dockerfile`, pinned version). No local code — just the manifest. The gateway runs it under `supergateway --stdio "<command> <args>" --outputTransport streamableHttp --port <port>`, which bridges the stdio server to Streamable HTTP. supergateway has no bind-address option, so it listens on every interface:
+Uses a package installed globally in the sidecar image (`shared/mcp-sidecar/Dockerfile`, pinned version). No local code — just the manifest, which must list `tools`. The server speaks MCP over stdio, and the gateway bridges it itself, in process:
+
+- The gateway spawns `<command> <args>` through the MCP SDK v2 `StdioClientTransport` and completes one `initialize` handshake per process. Every request from every agent session goes over that one persistent connection, so server state (Playwright's browser page, an open repository) survives from call to call.
+- The tool-filter proxy serves it on `sidecarPort`. The bridge gives each agent session its own Streamable HTTP session (SDK `NodeStreamableHTTPServerTransport`, with an `Mcp-Session-Id`), answers `initialize` from the server's handshake, relays requests under ids and progress tokens of its own, sends progress back on the calling request's stream, broadcasts the server's other notifications (log messages, `list_changed`) to every session's GET stream, and filters `tools/list` to the allowlist. A client's `notifications/cancelled`, or a client that hangs up mid-call, cancels the request at the server. It keeps at most 64 sessions and closes the least recently used one beyond that.
+- It declares no client capabilities, so the server gets no sampling, elicitation or roots; it answers the server's `ping` and refuses its other requests.
+- When the process exits, every request in flight is answered with JSON-RPC `-32603` (`MCP server <name> exited before answering`), and the gateway restarts it (up to 3 times); agent sessions survive the restart, server state does not. A stdout line that is not a JSON-RPC message is logged as a `[bridge]` warning and ignored.
 
 ```json
 {
@@ -72,7 +80,8 @@ Uses a package installed globally in the sidecar image (`shared/mcp-sidecar/Dock
   "type": "npm",
   "command": "playwright-mcp",
   "args": ["--browser", "chromium"],
-  "sidecarPort": 9103
+  "sidecarPort": 9103,
+  "tools": ["browser_navigate", "browser_click", "browser_evaluate"]
 }
 ```
 
@@ -106,20 +115,20 @@ Custom servers use MCP SDK v2: `McpServer` from `@modelcontextprotocol/server` a
 
 ## Manifest Schema
 
-| Field            | Description                                                                                                                                                     | Required    |
-| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
-| `name`           | Server identifier (must match directory name)                                                                                                                   | Yes         |
-| `description`    | Human-readable description                                                                                                                                      | No          |
-| `type`           | `"npm"` or `"custom"`                                                                                                                                           | Yes         |
-| `command`        | Executable (`node`, `playwright-mcp`, etc.)                                                                                                                     | Yes         |
-| `args`           | Command arguments                                                                                                                                               | Yes         |
-| `sidecarPort`    | Fixed port the server listens on inside the MCP sidecar container (1–65535, must be unique)                                                                     | Yes         |
-| `containerPath`  | Absolute path inside the sidecar container where custom server code is mounted (e.g. `/opt/mcp/servers/<name>`)                                                 | Custom only |
-| `requiredEnv`    | Env vars read from the orchestrator's environment (`.env`) and embedded in gateway.json, not in the agent container                                             | No          |
-| `optionalEnv`    | Optional env vars the server supports (embedded in gateway.json when set)                                                                                       | No          |
-| `tools`          | Tool allowlist. Written into the agent's `mcp-config.json` and enforced by the sidecar's tool-filter proxy; absent or empty means every tool is exposed         | No          |
-| `requiredConfig` | Array of env var names that a profile must provide via `mcpServers` env blocks. Validated at startup — missing keys cause a descriptive error.                  | No          |
-| `initScript`     | Relative path to a shell script in the server directory, executed at sidecar startup before the gateway launches. Path must not contain `..` or start with `/`. | No          |
+| Field            | Description                                                                                                                                                      | Required    |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| `name`           | Server identifier (must match directory name)                                                                                                                    | Yes         |
+| `description`    | Human-readable description                                                                                                                                       | No          |
+| `type`           | `"npm"` or `"custom"`                                                                                                                                            | Yes         |
+| `command`        | Executable (`node`, `playwright-mcp`, etc.)                                                                                                                      | Yes         |
+| `args`           | Command arguments                                                                                                                                                | Yes         |
+| `sidecarPort`    | Fixed agent-facing port inside the MCP sidecar (1–65535). Unique; 9000 is the health endpoint, and a custom server with `tools` also takes `sidecarPort + 10000` | Yes         |
+| `containerPath`  | Absolute path inside the sidecar container where custom server code is mounted (e.g. `/opt/mcp/servers/<name>`)                                                  | Custom only |
+| `requiredEnv`    | Env vars read from the orchestrator's environment (`.env`) and embedded in gateway.json, not in the agent container                                              | No          |
+| `optionalEnv`    | Optional env vars the server supports (embedded in gateway.json when set)                                                                                        | No          |
+| `tools`          | Non-empty tool allowlist. Written into the agent's `mcp-config.json` and enforced by the sidecar's tool-filter proxy; absent on a custom server = every tool     | npm only    |
+| `requiredConfig` | Array of env var names that a profile must provide via `mcpServers` env blocks. Validated at startup — missing keys cause a descriptive error.                   | No          |
+| `initScript`     | Relative path to a shell script in the server directory, executed at sidecar startup before the gateway launches. Path must not contain `..` or start with `/`.  | No          |
 
 ## Task-Scoped Parameters (JIT)
 
@@ -275,7 +284,7 @@ Sidecar gateway configuration with commands, args, and embedded secrets. Mounted
 }
 ```
 
-(The task-scoped `JIRA_ISSUE_KEY` is merged in by JitMcpConfigWriter before each task.) `allowedTools` is the manifest's `tools`; the gateway starts a tool-filter proxy for every entry that has it.
+(The task-scoped `JIRA_ISSUE_KEY` is merged in by JitMcpConfigWriter before each task.) `allowedTools` is the manifest's `tools`; the gateway starts a tool-filter proxy for every entry that has it, and refuses an npm entry without it.
 
 ### `docker-compose.overlay.yml`
 
@@ -302,19 +311,42 @@ Copilot CLI config with `allowed_urls` derived from the domains in `squid.conf` 
 Agent container (internal-only network)
   → HTTP request to MCP sidecar (http://mcp-sidecar:PORT/mcp)
     → Tool-filter proxy on PORT (servers with a `tools` allowlist) checks the request
-      → MCP server process on 127.0.0.1:(PORT + 10000)
+      → custom server: MCP server process on 127.0.0.1:(PORT + 10000)
+      → npm server: stdio bridge in the gateway process → the server's stdin/stdout
         → Server makes API call directly (sidecar has unrestricted internet via ralph-sidecar-external)
           → External API
 ```
 
-A server without a `tools` allowlist listens on PORT itself and gets requests directly.
+A custom server without a `tools` allowlist listens on PORT itself and gets requests directly. The health endpoint listens on `127.0.0.1:9000`, so only the sidecar's own HEALTHCHECK can read it.
+
+### Tool-filter proxy rules
+
+Before anything reaches the server, the proxy reads and checks every POST:
+
+| Request                                                                                                               | Answer                                       |
+| --------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| Body over 4 MiB (the MCP SDK's default request limit)                                                                 | HTTP 413                                     |
+| `Content-Type` other than `application/json`, or a `charset` other than UTF-8                                         | HTTP 415                                     |
+| Bytes that are not valid UTF-8, a byte order mark, or not JSON                                                        | HTTP 400, `-32700`                           |
+| Not JSON-RPC 2.0 (the SDK schema; request ids must be safe integers), an empty batch, or an object that repeats a key | HTTP 400, `-32600`                           |
+| `tools/call` for a tool outside the allowlist, or without a tool name                                                 | HTTP 200, `-32602`; a batch is refused whole |
+
+An accepted body goes to the server byte for byte, with `content-type: application/json` set by the proxy, so the server parses exactly what the proxy checked; headers named in `Connection` are dropped in both directions. The gateway holds at most 16 MiB of any single message on the way back (a filtered JSON response over it becomes HTTP 502, a filtered SSE event over it cuts the stream, and a longer stdio line restarts the server), and each proxy accepts at most 128 concurrent connections.
+
+### Failing closed
+
+`GET /health` answers 200 only while every server is running and every filtered server is verified: after each (re)start the gateway lists the server's tools (through loopback for a custom server, over the bridge for an npm server) and, for a custom server, probes its upstream port on every non-loopback address of the sidecar. An unfinished check counts as not ready, and so does a listing that failed. The compose overlay starts the agent on `depends_on: mcp-sidecar: condition: service_healthy`, so a task never starts against an unverified sidecar.
+
+When the probe finds the upstream port reachable off loopback (the server ignored `--host`), the gateway refuses the server for the rest of the sidecar's life: it logs `[guard] <name>: refusing to serve <name>: its upstream port <port> accepts connections on <addresses>, ...`, stops the process without restarting it, and its proxy answers every request with HTTP 503 and that reason. `/health` then reports the server as `refused`.
+
+Allowlist drift (an allowlisted tool the server does not expose) is a warning in `/health` and the log, not a failure.
 
 The agent container has no direct internet access and no MCP credentials. The agent talks to MCP servers via HTTP URLs on the internal Docker network. MCP servers inside the sidecar reach external APIs **directly** via the `ralph-sidecar-external` bridge network — they do not route through the Squid proxy. The Squid proxy only filters the **agent container's own** outbound traffic (AI providers, package registries).
 
 ## Adding a New Server
 
 1. Create `shared/mcp-servers/<name>/mcp-server.json` with a unique `sidecarPort` (1–65535)
-2. For npm servers: set `type: "npm"`, `command`, `args` — no local code needed
+2. For npm servers: set `type: "npm"`, `command`, `args` and `tools` — no local code needed
 3. For custom servers: add `package.json` (esbuild `build`, `tsc --noEmit` `lint`, vitest `test`), `tsconfig.json`, `src/index.ts` using the shared launcher (below), and `tests/http-launch.test.ts` modelled on another server's; set `containerPath` to `/opt/mcp/servers/<name>`, build with `npm run build`
 4. Add `"<name>"` to the profile or variant `mcpServers` arrays that should use this server
 5. List `requiredEnv` / `optionalEnv` in the manifest and set them in `.env` — they're embedded in `gateway.json` (sidecar-only)

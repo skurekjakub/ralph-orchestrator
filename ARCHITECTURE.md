@@ -252,7 +252,7 @@ All Docker, agent, and hook infrastructure is centralized in the orchestrator re
 │       ├── ralphchives-write/           # Ralphchives knowledge base write path (custom, NodeBB)
 │       └── codegraphcontext/            # Code graph queries (npm, with init.sh indexing)
 ├── shared/mcp-sidecar/                  # MCP sidecar container (gateway process manager)
-│   ├── Dockerfile                       # Sidecar image (node:24-bookworm-slim, supergateway, git, python, mcp packages)
+│   ├── Dockerfile                       # Sidecar image (node:24-bookworm-slim, Playwright MCP, git, python, gateway deps)
 │   ├── entrypoint.sh                    # Sources pre-init.sh (if mounted), then exec gateway
 │   ├── src/gateway.ts                   # Gateway: spawns MCP servers, /health endpoint
 │   └── package.json
@@ -358,7 +358,7 @@ Startup files cover the union of all variants. Before each task, `ComposeOverlay
 
 The setup modules are split by responsibility: `mcp-manifest.ts` (types/loading), `mcp-config.ts` (CLI config), `compose-overlay.ts` (overlay generation), `compose-overlay-writer.ts` (per-task regeneration), `squid-config.ts` (proxy config), `url-restrictions.ts` (Copilot URL allowlist), `jit-mcp-params.ts` (per-task macro resolution), `profile-setup.ts` (orchestrator).
 
-Server types: `npm` (pre-installed packages, bridged to HTTP via supergateway) and `custom` (locally built, esbuild-bundled to `dist/`, launched with `--transport http --port <port> --host <address>`). See [MCP.md](MCP.md) for the full MCP reference.
+Server types: `npm` (pre-installed stdio packages, bridged in the gateway process behind the tool-filter proxy) and `custom` (locally built, esbuild-bundled to `dist/`, launched with `--transport http --port <port> --host <address>`). See [MCP.md](MCP.md) for the full MCP reference.
 
 ### Runtime URL Enforcement
 

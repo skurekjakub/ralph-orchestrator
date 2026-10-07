@@ -62,7 +62,7 @@ Catalog of observed failure patterns. Each entry describes the signature (what y
 - Sidecar log may contain `Error: Cannot find module` or `EADDRINUSE`
 - Agent tool calls to that server fail or the tools are missing
 
-**Root cause:** An MCP server failed to start in the sidecar. The gateway (`shared/mcp-sidecar/src/gateway.ts`) retries it up to 3 times and keeps the other servers running. npm servers run under `supergateway`.
+**Root cause:** An MCP server failed to start in the sidecar. The gateway (`shared/mcp-sidecar/src/gateway.ts`) retries it up to 3 times and keeps the other servers running, but `/health` stays 503, so a task whose sidecar never turns healthy fails before the agent starts. npm servers are stdio children of the gateway; `failed to start: initialize failed` means their MCP handshake failed. `[guard] <name>: refusing to serve` means a custom server bound an address other than `127.0.0.1`.
 
 **Fix:** See the `mcp-deployment` skill (`references/troubleshooting.md`). Typical causes are a missing `dist/` bundle, wrong `args`/`containerPath`, a package missing from the sidecar Dockerfile, or a duplicate `sidecarPort`.
 

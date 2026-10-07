@@ -358,10 +358,10 @@ The MCP sidecar has **unrestricted direct internet access** via the `ralph-sidec
 
 **Server types:**
 
-- `"npm"` — Pre-installed npm packages. No local code needed (e.g. Playwright). Bridged to HTTP via `supergateway`.
+- `"npm"` — Pre-installed npm packages that speak MCP over stdio. No local code needed (e.g. Playwright). The gateway bridges them in process, behind its tool-filter proxy, so the manifest must list `tools`.
 - `"custom"` — locally built servers with source in `src/` and bundle in `dist/`. Must honour the launch contract `--transport http --port <port> --host <address>` (default host `0.0.0.0`) for sidecar mode; `shared/mcp-servers/common/http-launch.ts` implements it. Set `containerPath` to `/opt/mcp/servers/<name>`.
 
-**Port assignment:** Each server must declare a unique `sidecarPort` in its manifest. Ports are validated at startup — duplicates or out-of-range values cause a startup error.
+**Port assignment:** Each server must declare a unique `sidecarPort` in its manifest. Ports are validated at startup — duplicates, out-of-range values, port 9000 (the sidecar health endpoint) and the `sidecarPort + 10000` upstream port of a custom server with `tools` cause a startup error.
 
 **Pre-gateway initialization:** Servers can declare `"initScript": "init.sh"` in their manifest to run a script at sidecar startup before the gateway launches (e.g. code indexing, cache warming). The script path must be relative within the server directory. Failures are logged but non-fatal.
 

@@ -30,8 +30,9 @@
     `docs/research/copilot-cli-internals.md`.
   - MCP: SDK v2 — `@modelcontextprotocol/server` + `@modelcontextprotocol/node`
     in `shared/mcp-servers/*`, `@modelcontextprotocol/client` +
-    `@modelcontextprotocol/core` in `shared/mcp-sidecar`; supergateway 4.1
-    and `@playwright/mcp` 0.0.83 (`shared/mcp-sidecar/Dockerfile`).
+    `@modelcontextprotocol/core` (plus `server` and `node` for the stdio
+    bridge) in `shared/mcp-sidecar`; `@playwright/mcp` 0.0.83
+    (`shared/mcp-sidecar/Dockerfile`).
   - Sub-projects `shared/mcp-servers/*`, `shared/mcp-sidecar`,
     `ralphchives/sync`: TypeScript 7.0 as a type-checker only
     (`moduleResolution: "bundler"`, `isolatedModules`, `noEmit`), esbuild

@@ -3,7 +3,9 @@
 > **Status:** Implemented. This document records the design; [MCP.md](../../MCP.md) is the reference for the running system, and the Migration Path and Files to Change sections record the rollout plan. Where the implementation differs from the proposal:
 >
 > - Custom servers serve **stateless per-request** Streamable HTTP (a fresh `McpServer` and `NodeStreamableHTTPServerTransport`, `sessionIdGenerator: undefined`, per request) through the shared launcher `shared/mcp-servers/common/http-launch.ts`, and bind the address the gateway passes in `--host`. See [001-ado-server-crash-session-loss.md](../past-issues/001-ado-server-crash-session-loss.md) for why they are stateless.
-> - The gateway fronts every server whose manifest lists `tools` with a **tool-filter proxy** on its `sidecarPort`; the server listens on `127.0.0.1:<sidecarPort + 10000>`. The proxy removes other tools from `tools/list` and refuses calls to them with JSON-RPC `-32602`.
+> - The gateway fronts every server whose manifest lists `tools` with a **tool-filter proxy** on its `sidecarPort`; a custom server then listens on `127.0.0.1:<sidecarPort + 10000>`. The proxy removes other tools from `tools/list` and refuses calls to them with JSON-RPC `-32602`.
+> - npm (stdio) servers run under an **in-gateway stdio bridge** instead of a stdio-to-HTTP wrapper process: the gateway holds one persistent stdio connection per server and serves it through the tool-filter proxy, with no listener of its own. npm manifests must list `tools`.
+> - The sidecar **fails closed**: `/health` (on `127.0.0.1:9000`) is unhealthy until every filtered server is verified unreachable except through its proxy, and a server whose upstream port is reachable off loopback is refused.
 > - Servers and gateway are esbuild bundles on MCP SDK v2. The gateway bundle and the server code are mounted into the image at runtime.
 > - The sidecar PID limit is 300, Playwright runs the pre-installed `playwright-mcp` binary, and the sidecar reaches the internet **directly** through `ralph-sidecar-external` (not through Squid).
 
@@ -95,7 +97,7 @@ Each MCP server manifest declares an explicit `sidecarPort` field. No auto-deriv
 
 ### 2. Health Checks: Yes
 
-The gateway process exposes `GET /health` on a dedicated port (9000). Returns `200 OK` with the status of each managed server. The compose healthcheck uses this to delay agent container startup until all MCP servers are ready.
+The gateway process exposes `GET /health` on `127.0.0.1:9000`, read only by the image's HEALTHCHECK. It returns `200 OK` with the status of each managed server once every server is running and every filtered server is verified (tools listed, and nothing but the proxy can reach it), `503` otherwise, including while a check is still pending. The compose healthcheck uses this to hold the agent container until the sidecar is safe to use.
 
 ### 3. Playwright: Pre-installed in sidecar Dockerfile
 
@@ -119,7 +121,7 @@ The sidecar starts and stops as part of the compose stack. Each profile's `gatew
 Use the MCP spec's [Streamable HTTP transport](https://modelcontextprotocol.io/specification/2025-03-26/basic/transports#streamable-http) (2025-03-26). This is the current standard, replacing the deprecated SSE transport.
 
 - **Custom servers**: native Streamable HTTP mode with `NodeStreamableHTTPServerTransport` (MCP SDK v2). Servers accept `--transport http --port <port> --host <address>`.
-- **npm servers** (playwright, codegraphcontext): [`supergateway`](https://www.npmjs.com/package/supergateway) 4.1.0 as a stdio→Streamable HTTP bridge. The gateway spawns `supergateway --stdio "<command> <args>" --outputTransport streamableHttp --port <port>`. supergateway has no bind-address option, so these listen on every interface.
+- **npm servers** (playwright, codegraphcontext): stdio servers bridged inside the gateway process. `StdioUpstream` spawns the server through the SDK's `StdioClientTransport` and keeps one persistent, handshaken connection per process; `StdioBridge` serves it to agent sessions (stateful `NodeStreamableHTTPServerTransport` per session) behind the tool-filter proxy, relaying requests, progress, cancellations and notifications. With no network listener there is no upstream port to bypass the allowlist through, and server state survives between calls. codegraphcontext's `cgc mcp start` is a sequential stdio JSON-RPC loop; its only HTTP mode (`cgc api start`) is a REST and legacy-SSE gateway, so the bridge suits it too.
 
 ## Implementation Plan
 
@@ -139,12 +141,19 @@ shared/mcp-sidecar/
 ├── entrypoint.sh
 └── src/
     ├── gateway.ts           # Entry: load gateway.json, start SidecarGateway
-    ├── sidecar-gateway.ts   # Servers, tool-filter proxies, health endpoint
-    ├── managed-server.ts    # Child process lifecycle and launch command
-    ├── tool-filter-proxy.ts # Allowlist enforcement on the agent-facing port
+    ├── gateway-config.ts    # gateway.json validation and port layout
+    ├── sidecar-gateway.ts   # Servers, tool-filter proxies, verification, health endpoint
+    ├── managed-server.ts    # Restart policy around a ServerLauncher
+    ├── http-launcher.ts     # Launches a custom server with --transport http --host --port
+    ├── stdio-upstream.ts    # Launches an npm server and holds its stdio JSON-RPC connection
+    ├── stdio-bridge.ts      # Serves a stdio upstream to agent sessions behind the proxy
+    ├── tool-filter-proxy.ts # Agent-facing listener: body checks and allowlist enforcement
+    ├── http-upstream.ts     # Relays accepted requests to a loopback HTTP server, filtering tools/list
     ├── tool-policy.ts       # JSON-RPC inspection and tools/list filtering
+    ├── sse-filter.ts        # Rewrites tools/list results inside SSE streams
     ├── upstream-monitor.ts  # Allowlist drift and upstream exposure checks
-    └── health.ts            # GET /health on port 9000
+    ├── limits.ts            # Body, message and connection caps
+    └── health.ts            # GET /health on 127.0.0.1:9000 and the readiness rule
 ```
 
 npm packages stay external in the bundle; the image installs them into `/opt/mcp/gateway/node_modules` from the lockfile, and the bundle is mounted at `/opt/mcp/gateway/dist`.
@@ -154,10 +163,10 @@ The gateway:
 1. Reads `/opt/mcp/config/gateway.json` (list of servers to start)
 2. Spawns each server as a child process with its env vars
 3. Custom servers: `node /opt/mcp/servers/<name>/dist/bundle.js --transport http --host <HOST> --port <PORT>`
-4. npm servers: `supergateway --stdio "<command> <args>" --outputTransport streamableHttp --port <PORT>`
-5. For a server with `allowedTools`, listens on its `port` with the tool-filter proxy and starts the server on `127.0.0.1:<port + 10000>`; otherwise starts the server on `0.0.0.0:<port>`
-6. Monitors child processes, restarts on crash (max 3 retries), and checks each filtered server for allowlist drift and for an upstream port reachable off loopback
-7. Exposes `GET /health` on port 9000
+4. npm servers: `<command> <args>` over stdio, bridged in the gateway process; they require `allowedTools`
+5. For a server with `allowedTools`, listens on its `port` with the tool-filter proxy, and starts a custom server on `127.0.0.1:<port + 10000>`; a custom server without it starts on `0.0.0.0:<port>`
+6. Monitors child processes, restarts on crash (max 3 retries), and after each (re)start checks each filtered server for allowlist drift and, for a custom server, for an upstream port reachable off loopback; such a server is refused (stopped, its proxy answers 503)
+7. Exposes `GET /health` on `127.0.0.1:9000`, healthy only when every filtered server is verified
 
 #### Gateway Config (generated at startup)
 
@@ -190,12 +199,12 @@ The gateway:
 
 `shared/mcp-sidecar/Dockerfile` builds from `node:24-bookworm-slim` and, as root:
 
-- installs `supergateway@4.1.0` and `@playwright/mcp@0.0.83` globally, then the Chromium build that Playwright MCP expects with `playwright-mcp install-browser --with-deps chromium` (into `/opt/playwright-browsers`);
+- installs `@playwright/mcp@0.0.83` globally, then the Chromium build that Playwright MCP expects with `playwright-mcp install-browser --with-deps chromium` (into `/opt/playwright-browsers`);
 - installs git, CA certificates (ADO git tools) and Python 3 with pip and venv (CodeGraphContext);
 - installs the gateway's npm dependencies with `npm ci --omit=dev` from `package-lock.json`;
 - hands `/opt/mcp`, the npm prefix and the browsers to `HOST_UID:HOST_GID` and switches to that user.
 
-The gateway bundle (`dist/`), `entrypoint.sh`, the server code and `gateway.json` are mounted by the compose overlay, so code changes need no image rebuild. The healthcheck polls `http://localhost:9000/health`.
+The gateway bundle (`dist/`), `entrypoint.sh`, the server code and `gateway.json` are mounted by the compose overlay, so code changes need no image rebuild. The healthcheck polls `http://127.0.0.1:9000/health`.
 
 ### 4. Compose Changes
 
@@ -307,7 +316,7 @@ Note: `containerPath` changes from `/workspace/.ralph/mcp-servers/<name>` to `/o
 
 ### Residual Risks
 
-- **Agent can send raw HTTP to sidecar**: The agent is on the same internal network and could construct HTTP requests to sidecar ports. This is the intended interface — MCP tool calls go through HTTP. The tool-filter proxy on each filtered server's port applies the manifest's `tools` allowlist to direct requests too, and the custom servers behind it listen on loopback only. npm servers run under supergateway, which listens on every interface, so their upstream ports (`sidecarPort + 10000`) are reachable from the internal network; `/health` reports them as exposed.
+- **Agent can send raw HTTP to sidecar**: The agent is on the same internal network and could construct HTTP requests to sidecar ports. This is the intended interface — MCP tool calls go through HTTP. The tool-filter proxy on each filtered server's port applies the manifest's `tools` allowlist to direct requests too. The custom servers behind it listen on loopback only, npm servers have no listener at all, and the gateway refuses a custom server whose upstream port turns out to be reachable off loopback, so the agent-facing ports are the only way in. The health endpoint listens on loopback only.
 - **Sidecar has no request authentication**: MCP Streamable HTTP supports session management but not authentication. Any container on `ralph-internal` can call the sidecar. Mitigation: only `app` and `mcp-sidecar` are on the internal network.
 
 ## Migration Path
