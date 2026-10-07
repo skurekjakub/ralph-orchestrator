@@ -47,9 +47,8 @@ export interface LocalClaudeCodeExecutorDeps {
  * Runs a `mode: "local"` stage with Claude Code on the host, inside the stage's own workspace.
  *
  * The CLI runs headless in `workspace.cwd`, a git repository of its own, with `CLAUDE_CONFIG_DIR` at the
- * workspace's private home, where the
- * stage's agents and skills are rendered, so the developer's own settings, hooks, plugins, agents, skills,
- * memory and login stay out. It loads user settings only, never the orchestrator's `CLAUDE.md` files, which sit
+ * workspace's private home, where the stage's agents and skills are rendered, so the developer's own settings,
+ * hooks, plugins, agents, skills, memory and login stay out. It loads user settings only, never the orchestrator's `CLAUDE.md` files, which sit
  * above the workspace, and no MCP server. Ralph's audit hooks run from the host's `shared/hooks` and write to
  * the workspace's logs; the result gate follows the stage's `requireResultBlock`.
  *

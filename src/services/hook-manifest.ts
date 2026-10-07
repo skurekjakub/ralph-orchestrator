@@ -45,7 +45,8 @@ const hookManifestSchema = z.object({
 export type HookManifest = z.infer<typeof hookManifestSchema>;
 
 /**
- * The manifest that replays the task's post-task hooks later, as they would run now on `run`.
+ * The manifest a replay runs the task's post-task hooks from: the task, its work item, its variant and hooks, and
+ * `run`, the run they analyse.
  *
  * @param status The task's final status.
  */
