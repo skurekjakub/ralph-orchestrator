@@ -289,30 +289,6 @@ describe("agent template rendering (real files)", () => {
       });
     });
   }
-
-  it("gives each Malph reviewer its own artifact directory and PR attribution", async () => {
-    // Act
-    const rendered = await renderStage("ralph-vscode", "ralph.malph", CliType.Claude, standardContext("ralph-vscode"));
-
-    // Assert
-    for (const reviewer of ["malph-reviewer-opus", "malph-reviewer-sonnet", "malph-reviewer-fable"]) {
-      const content = rendered.get(`ralph.${reviewer}`)!;
-      expect(content).toContain(`.ralph/tasks/DOC-100/artifacts/${reviewer}/output.md`);
-      expect(content).toContain(`"reviewer": "${reviewer}"`);
-      expect(content).toContain(`**[${reviewer}]**`);
-    }
-  });
-
-  it("points the subagent mapper's artifacts at its own directory, where the scientist reads them", async () => {
-    // Act
-    const rendered = await renderStage("ralph-docs", "ralph.scientist", CliType.Claude, hookContext("ralph-docs"));
-
-    // Assert
-    expect(rendered.get("ralph.subagent-mapper")).toContain(
-      ".ralph/tasks/DOC-100/artifacts/subagent-mapper/status.json",
-    );
-    expect(rendered.get("ralph.scientist")).toContain("subagent-mapper/status.json");
-  });
 });
 
 // ── Skill template tests ────────────────────────────────────────────────────

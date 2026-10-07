@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdtemp, mkdir, writeFile, readFile, rm, readdir, stat } from "node:fs/promises";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
 import {
   AgentTemplateRenderer,
@@ -56,8 +56,10 @@ async function setupAgents(
   await mkdir(agentsDir, { recursive: true });
   await mkdir(includesDir, { recursive: true });
   for (const [fileId, text] of Object.entries(templates)) await writeFile(join(agentsDir, `${fileId}.agent.md`), text);
-  for (const [name, text] of Object.entries(options.partials ?? {}))
+  for (const [name, text] of Object.entries(options.partials ?? {})) {
+    await mkdir(dirname(join(includesDir, `${name}.md`)), { recursive: true });
     await writeFile(join(includesDir, `${name}.md`), text);
+  }
   const cli = options.cli ?? CliType.Copilot;
   return {
     catalog: await AgentCatalog.load(agentsDir),
@@ -131,6 +133,41 @@ describe("renderAgents", () => {
     expect(await read("ralph.root.agent.md")).toContain("dir=root file=ralph.root root=true");
     expect(await read("ralph.reviewer-a.agent.md")).toContain("dir=reviewer-a file=ralph.reviewer-a root=false");
     expect(await read("ralph.reviewer-b.agent.md")).toContain("dir=reviewer-b file=ralph.reviewer-b root=false");
+  });
+
+  it("resolves self in a nested partial that sibling agents share, so each gets its own artifacts and attribution", async () => {
+    // Arrange
+    const body = "{% render 'panel/checklist' %}\n";
+    const input = await setupAgents(
+      {
+        "ralph.panel": makeAgentTemplate("panel", { subagents: ["reviewer-a", "reviewer-b"] }),
+        "ralph.reviewer-a": makeAgentTemplate("reviewer-a", { body }),
+        "ralph.reviewer-b": makeAgentTemplate("reviewer-b", { body }),
+      },
+      {
+        cli: CliType.Claude,
+        root: "ralph.panel",
+        partials: {
+          "panel/checklist":
+            "Write `{{ artifactDir }}/{{ self.name }}/output.md`. Prefix **[{{ self.name }}]**.\n{% render 'panel/findings' %}",
+          "panel/findings": '{ "reviewer": "{{ self.name }}" }',
+        },
+      },
+    );
+
+    // Act
+    await renderAgents({
+      ...input,
+      context: makeTemplateContext({ cli: CliType.Claude, artifactDir: ".ralph/tasks/DOC-7/artifacts" }),
+    });
+
+    // Assert
+    for (const reviewer of ["reviewer-a", "reviewer-b"]) {
+      const content = await readFile(join(input.target.outDir, `${reviewer}.md`), "utf-8");
+      expect(content).toContain(`.ralph/tasks/DOC-7/artifacts/${reviewer}/output.md`);
+      expect(content).toContain(`**[${reviewer}]**`);
+      expect(content).toContain(`"reviewer": "${reviewer}"`);
+    }
   });
 
   it("names a Claude Code agent file after its frontmatter name and grants the root every reachable agent", async () => {
