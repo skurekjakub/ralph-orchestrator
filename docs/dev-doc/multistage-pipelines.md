@@ -275,7 +275,7 @@ Each stage renders the agents its root can reach, with that stage's context, so 
 
 ### Skill deployment
 
-Each stage can declare its own `skills` array. Skills are re-rendered per-stage with the stage's context. The skill renderer syncs `profiles/<id>/.build/skills/` in place, so existing bind mounts keep working. Claude Code mounts that directory whole, so a stage sees only its own skills, unless the variant also runs Copilot CLI in the container: Copilot mounts each skill directory one by one, and while such a variant runs the renders keep every skill directory in place.
+Each stage can declare its own `skills` array. Skills are re-rendered per-stage with the stage's context. `renderStageSkills` syncs `profiles/<id>/.build/skills/` in place, so existing bind mounts keep working. Claude Code mounts that directory whole, so a stage sees only its own skills, unless the variant also runs Copilot CLI in the container: Copilot mounts each skill directory one by one, and while such a variant runs the renders keep every skill directory in place.
 
 There is no profile-level `skills` field. The variant's container mounts the union of all its stages' skills, but each stage renders only its own list: a stage that declares no skills (`"skills": []`) gets an empty skill set.
 
