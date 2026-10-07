@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { createCradle } from "../src/awilix-cradle";
 import { ClaudeAuthMode, CliType } from "../src/config/types";
-import { makeConfig } from "./helpers/factories";
+import { makeConfig, makeProfile } from "./helpers/factories";
 
 // Ensure built-in data source factories are registered
 import "../src/datasource/connectors/jira/factory";
@@ -105,5 +105,16 @@ describe("createCradle", () => {
 
     // Assert
     expect(cradle.claudeAuth).toBe(ClaudeAuthMode.ApiKey);
+  });
+
+  it("refuses to build a container stack for a profile whose squid.conf was never generated", () => {
+    // Arrange
+    const cradle = createCradle(makeConfig());
+    const profile = makeProfile({ id: "never-set-up" });
+
+    // Act & Assert
+    expect(() => cradle.containerFactory.create(profile)).toThrow(
+      /Profile squid.conf not found at .*never-set-up.*squid\.conf/,
+    );
   });
 });

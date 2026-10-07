@@ -1,4 +1,4 @@
-import { resolve } from "node:path";
+import { join } from "node:path";
 import { existsSync } from "node:fs";
 import { createContainer, asClass, asFunction, asValue, InjectionMode } from "awilix";
 import type { IAppConfig, IAgentProfile } from "./config/types";
@@ -35,11 +35,19 @@ import { ContinuationRunner } from "./container/continuation-runner";
 import { AgentSessionRunner } from "./container/agent-session-runner";
 import { createCliRuntimeRegistry } from "./cli/supported-runtimes";
 import { AgentCatalogProvider } from "./container/setup/agent-catalogs";
+import { profileBuildPaths } from "./container/setup/build-paths";
 
+/**
+ * The compose client of a profile's stack, whose Squid mounts the profile's generated `squid.conf`.
+ *
+ * @throws Error when profile setup has not written the profile's `squid.conf`.
+ */
 function buildComposeClient(profile: IAgentProfile): IComposeClient {
   const composeFiles = new ComposeFileResolver().resolve(profile);
-  const profileSquid = resolve(process.cwd(), "profiles", profile.id, ".build/squid.conf");
-  const squidConfPath = existsSync(profileSquid) ? profileSquid : resolve(process.cwd(), "shared/security/squid.conf");
+  const squidConfPath = join(profileBuildPaths(process.cwd(), profile.id).buildDir, "squid.conf");
+  if (!existsSync(squidConfPath)) {
+    throw new Error(`Profile squid.conf not found at ${squidConfPath}; profile setup has not run for ${profile.id}`);
+  }
   return new ComposeClient(composeFiles, {
     targetRepoPath: profile.repoPath,
     squidConfPath,
