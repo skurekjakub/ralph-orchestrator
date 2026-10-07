@@ -9,8 +9,8 @@ import { syncDirectory } from "../../util/sync-dir";
 /** File that marks a directory under `shared/skills/` as a skill. */
 export const SKILL_FILE = "SKILL.md";
 
-/** Generated output directories never searched for skills. */
-const SKIPPED_DIRS = new Set([".build", "node_modules"]);
+/** Dependency directories never searched for skills. */
+const SKIPPED_DIRS = new Set(["node_modules"]);
 
 /**
  * Every skill under `skillsDir`, keyed by folder name. Skills sit in arbitrary category folders

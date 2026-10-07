@@ -203,13 +203,13 @@ describe("renderSkills", () => {
 });
 
 describe("discoverSkills", () => {
-  it("finds skills at any depth, skipping .build and not searching inside a skill", async () => {
+  it("finds skills at any depth, skipping node_modules and not searching inside a skill", async () => {
     // Arrange
     await writeSkillFiles({
       "flat/SKILL.md": "",
       "domain/deep/nested/SKILL.md": "",
       "flat/inner/SKILL.md": "",
-      ".build/flat/SKILL.md": "",
+      "node_modules/pkg/SKILL.md": "",
     });
 
     // Act

@@ -32,9 +32,8 @@ changes.
 
 **Symptom:** a change to a rendered agent, skill, `gateway.json`, overlay
 compose file or `squid.conf` is gone after the next task.
-**Cause:** `profiles/*/.build/` and `shared/skills/.build/` are generated (and
-gitignored); `ProfileSetupService.prepareForTask` re-renders them every task
-and every stage.
+**Cause:** `profiles/*/.build/` is generated (and gitignored);
+`ProfileSetupService` re-renders it every task and every stage.
 **Fix:** edit the source — `profiles/<id>/agents/*.agent.md`,
 `shared/agent-includes/`, `shared/skills/<name>/`, `profile.json` or
 `src/container/setup/*`.

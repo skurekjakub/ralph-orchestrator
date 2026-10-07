@@ -371,7 +371,7 @@ All files in `profiles/<id>/resources/` are recursively discovered and mounted r
 
 #### Skills
 
-Stages can mount shared skill folders into the container. Skills live in `shared/skills/` (usually under a category directory, e.g. `shared/skills/workflow/<name>/SKILL.md`). Before each task they are rendered as Liquid templates into `shared/skills/.build/<name>/` and mounted read-only at `/workspace/.github/skills/<name>/` (the standard Copilot CLI skills path, sibling to `.github/agents/`).
+Stages can mount shared skill folders into the container. Skills live in `shared/skills/` (usually under a category directory, e.g. `shared/skills/workflow/<name>/SKILL.md`). Before each task and stage they are rendered as Liquid templates into `profiles/<id>/.build/skills/<name>/` and mounted read-only into the CLI's skills directory: `/workspace/.github/skills/<name>/` for Copilot CLI (the standard Copilot skills path, sibling to `.github/agents/`), `/workspace/.ralph/claude/skills/` for Claude Code.
 
 Skills are declared per stage:
 

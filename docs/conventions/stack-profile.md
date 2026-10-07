@@ -99,7 +99,7 @@
   - A credential in the agent container env, a profile compose file or any
     committed file → `.env` + the sidecar's `gateway.json` (MCP `env`,
     `$variantEnv.*`).
-  - Editing `profiles/*/.build/` or `shared/skills/.build/` → edit the source
+  - Editing `profiles/*/.build/` → edit the source
     template; `.build/` is regenerated every task.
   - A Liquid variable not declared on `TemplateContext`
     (`src/container/setup/agent-includes.ts`) → declare it and add it to the
