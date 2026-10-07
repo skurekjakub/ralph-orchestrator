@@ -26,7 +26,13 @@ import {
   makeStage,
   makeWorkItem,
 } from "../helpers/factories";
-import { createMockCliRuntime, createMockExecutor, createMockLogger, type Mocked } from "../helpers/mocks";
+import {
+  createMockCliRuntime,
+  createMockExecutor,
+  createMockLogger,
+  createMockSessionRunner,
+  type Mocked,
+} from "../helpers/mocks";
 import type { Logger } from "../../src/logger";
 import type { ResultPromise } from "execa";
 
@@ -81,10 +87,6 @@ function createMockExecutorFactory(): Mocked<ICliExecutorFactory> {
     create: vi.fn().mockImplementation(async () => createMockExecutor()),
     createLocal: vi.fn().mockImplementation(async () => createMockExecutor()),
   };
-}
-
-function createMockSessionRunner(): Mocked<IAgentSessionRunner> {
-  return { run: vi.fn().mockResolvedValue(makeResult("DF-100")) };
 }
 
 // ── Harness ──────────────────────────────────────────────────────────────────

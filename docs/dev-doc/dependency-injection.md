@@ -107,7 +107,7 @@ interface OrchestratorCradle {
 }
 ```
 
-`createCradle(config, { rootDir })` in `awilix-cradle.ts` builds the container with `InjectionMode.PROXY` and `strict: true`. It registers the root tokens below, the scoped task registrations and `containerFactory`, then builds the `connectors` and `pollers` maps with `buildDataSourceMaps(container, config)`, which runs the registered data source factories in one scope per data source, and registers both maps with `asValue(...)`. The root tokens are:
+`createCradle(config, { rootDir })` in `awilix-cradle.ts` builds the container with `InjectionMode.PROXY` and `strict: true`. It registers the root tokens below and the scoped task registrations, then builds the `connectors` and `pollers` maps with `buildDataSourceMaps(container, config)`, which runs the registered data source factories in one scope per data source, and registers both maps with `asValue(...)`. The root tokens are:
 
 - config slices with `asValue(...)`
 - service classes with `asClass(X).singleton()`

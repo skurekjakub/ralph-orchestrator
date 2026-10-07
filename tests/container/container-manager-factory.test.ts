@@ -20,8 +20,14 @@ import { CliRuntimeRegistry } from "../../src/cli/cli-runtime";
 import { CliType } from "../../src/config/types";
 import type { ICliExecutorFactory } from "../../src/container/cli-executor-factory";
 import type { IAgentSessionRunner } from "../../src/container/agent-session-runner";
-import { makeProfile } from "../helpers/factories";
-import { createMockCliRuntime, createSilentLogger, type Mocked } from "../helpers/mocks";
+import { makeProfile, makeResult, makeWorkItem } from "../helpers/factories";
+import {
+  createMockCliRuntime,
+  createMockExecutor,
+  createMockSessionRunner,
+  createSilentLogger,
+  type Mocked,
+} from "../helpers/mocks";
 
 /** Profile setup has written this profile's squid.conf in the fixture checkout. */
 const SET_UP = makeProfile({ id: "set-up" });
@@ -31,10 +37,11 @@ const NEVER_SET_UP = makeProfile({ id: "never-set-up" });
 let rootDir: string;
 
 /** A root container holding the task registrations and the root tokens the task scope reads, its services mocked. */
-function createRoot(): AwilixContainer<OrchestratorCradle> {
+function createRoot(
+  sessionRunner: IAgentSessionRunner = createMockSessionRunner(),
+): AwilixContainer<OrchestratorCradle> {
   const container = createContainer<OrchestratorCradle>({ injectionMode: InjectionMode.PROXY, strict: true });
   const executorFactory: Mocked<ICliExecutorFactory> = { create: vi.fn(), createLocal: vi.fn() };
-  const sessionRunner: Mocked<IAgentSessionRunner> = { run: vi.fn() };
   const runtimes = [createMockCliRuntime(CliType.Claude), createMockCliRuntime(CliType.Copilot)];
   container.register({
     rootDir: asValue(rootDir),
@@ -96,6 +103,19 @@ describe("createContainerManagerFactory", () => {
         SQUID_CONF_PATH: join(rootDir, "profiles", SET_UP.id, ".build", "squid.conf"),
         SHARED_HOOKS_PATH: join(rootDir, "shared", "hooks"),
       });
+    });
+
+    it("runs the task's stages through the root session runner", async () => {
+      // Arrange
+      const expected = makeResult("DF-1");
+      const sessionRunner = createMockSessionRunner({ run: vi.fn().mockResolvedValue(expected) });
+      const manager = createContainerManagerFactory(createRoot(sessionRunner)).create(SET_UP, "/workspaces/DF-1-1000");
+
+      // Act
+      const result = await manager.executeWithExecutor(createMockExecutor(), SET_UP.stages[0], makeWorkItem("DF-1"));
+
+      // Assert
+      expect(result).toBe(expected);
     });
   });
 

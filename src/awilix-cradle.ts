@@ -63,8 +63,8 @@ export const taskRegistrations: Registrations<Omit<TaskCradle, keyof Orchestrato
 };
 
 /**
- * Create the awilix DI container: register the root services, the scoped task services and the container manager
- * factory that opens their scopes, then build each data source's connector and poller in a scope of its own.
+ * Create the awilix DI container: register the root services, among them the container manager factory, and the
+ * scoped task services its scopes resolve, then build each data source's connector and poller in a scope of its own.
  *
  * The data-source scopes resolve here, together with the root services they depend on (`activityLog`, `logger`);
  * every other root service resolves on first access through the returned cradle.
@@ -84,7 +84,7 @@ export function createCradle(config: IAppConfig, { rootDir }: { rootDir: string 
   });
 
   const w = wiring<OrchestratorCradle>();
-  const root: Registrations<Omit<OrchestratorCradle, "connectors" | "pollers" | "containerFactory">> = {
+  const root: Registrations<Omit<OrchestratorCradle, "connectors" | "pollers">> = {
     rootDir: asValue(rootDir),
     sourceReposDir: asValue(repoCachePaths(rootDir).sourceReposDir),
 
@@ -119,6 +119,7 @@ export function createCradle(config: IAppConfig, { rootDir }: { rootDir: string 
     stageWorkspaces: w.service(StageWorkspaceResolver).singleton(),
     templateRenderer: w.service(AgentTemplateRenderer).singleton(),
     overlayWriter: w.service(ComposeOverlayWriter).singleton(),
+    containerFactory: asValue(createContainerManagerFactory(container)),
     workspaceManager: w.service(TaskWorkspaceManager).singleton(),
     profileSetup: w.service(ProfileSetupService).singleton(),
     pipelineExecutor: w.service(AgentPipelineExecutor).singleton(),
@@ -137,7 +138,6 @@ export function createCradle(config: IAppConfig, { rootDir }: { rootDir: string 
   };
   container.register(root);
   container.register(taskRegistrations);
-  container.register({ containerFactory: asValue(createContainerManagerFactory(container)) });
   const { connectors, pollers } = buildDataSourceMaps(container, config);
   container.register({ connectors: asValue(connectors), pollers: asValue(pollers) });
 

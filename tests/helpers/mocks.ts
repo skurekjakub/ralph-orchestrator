@@ -35,6 +35,7 @@ import type { ITaskWorkspaceManager } from "../../src/services/task-workspace-ma
 import type { AppStartupDeps } from "../../src/app-startup";
 import type { RalphResult } from "../../src/container/types";
 import type { ICliExecutor } from "../../src/container/cli-executor-factory";
+import type { IAgentSessionRunner } from "../../src/container/agent-session-runner";
 import { CliType, StageMode, type IStageConfig } from "../../src/config/types";
 import { COPILOT_CONTAINER_LAYOUT } from "../../src/cli/copilot/copilot-layout";
 import { CliDebugLogKind, type ICliRuntime } from "../../src/cli/cli-runtime";
@@ -204,6 +205,16 @@ export function createMockExecutor(): ICliExecutor & Mocked<ICliExecutor> {
     run: vi.fn().mockResolvedValue(makeExecResult()),
     continueSession: vi.fn().mockResolvedValue(makeExecResult()),
     killActive: vi.fn(),
+  };
+}
+
+/** Create a mock AgentSessionRunner whose runs complete. */
+export function createMockSessionRunner(
+  overrides: Partial<Mocked<IAgentSessionRunner>> = {},
+): Mocked<IAgentSessionRunner> {
+  return {
+    run: vi.fn().mockResolvedValue(makeResult("DF-100")),
+    ...overrides,
   };
 }
 

@@ -34,6 +34,7 @@ import {
   createMockPipelineExecutor,
   createMockWorkspaceManager,
   createMockHookRunner,
+  createMockSessionRunner,
 } from "../helpers/mocks";
 
 const DS = "jira";
@@ -61,17 +62,7 @@ function createMockFactory(container: IContainerManager): ContainerManagerFactor
         continueSession: vi.fn(),
         killActive: vi.fn(),
       },
-      sessionRunner: {
-        run: vi.fn().mockResolvedValue({
-          taskId: "MOCK-1",
-          status: TaskStatus.Completed,
-          durationMs: 0,
-          exitCode: 0,
-          stdout: "",
-          stderr: "",
-          collectedLogs: {},
-        }),
-      },
+      sessionRunner: createMockSessionRunner(),
     }),
   };
 }

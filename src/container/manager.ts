@@ -95,7 +95,7 @@ export interface IContainerManager {
  * `docker compose` directly.
  *
  * Each ContainerManager is bound to one {@link IAgentProfile} (compose file, stages,
- * timeout) and one task's workspace. The Orchestrator creates one per task.
+ * timeout) and one task's workspace. One instance per task.
  *
  * Delegates low-level concerns to:
  * - {@link ComposeClient} — docker compose process spawning and env injection

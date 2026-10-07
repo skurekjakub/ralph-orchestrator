@@ -9,7 +9,13 @@ import { StageWorkspaceResolver } from "../../src/services/stage-workspace";
 import { TaskStatus, type ContainerManagerFactory, type RalphResult } from "../../src/container/types";
 import type { IAgentSessionRunner } from "../../src/container/agent-session-runner";
 import { makeProfile, makeResult, makeStage, makeTaskContext } from "../helpers/factories";
-import { createMockExecutor, createMockLogger, createMockProfileSetupService, type Mocked } from "../helpers/mocks";
+import {
+  createMockExecutor,
+  createMockLogger,
+  createMockProfileSetupService,
+  createMockSessionRunner,
+  type Mocked,
+} from "../helpers/mocks";
 
 /** A run without logs whose one stage ran Claude Code. */
 const NO_RUN = { collectedLogs: {}, clis: [CliType.Claude] };
@@ -27,7 +33,7 @@ function sessionRunnerEnding(...statuses: TaskStatus[]): Mocked<IAgentSessionRun
   const run = vi.fn();
   for (const status of statuses) run.mockResolvedValueOnce(makeResult("DF-100", { status }));
   run.mockResolvedValue(makeResult("DF-100"));
-  return { run };
+  return createMockSessionRunner({ run });
 }
 
 describe("PostTaskHookRunner", () => {
@@ -172,12 +178,12 @@ describe("PostTaskHookRunner", () => {
 
   it("runs the next hook after one throws, without throwing itself", async () => {
     // Arrange
-    const sessionRunner: Mocked<IAgentSessionRunner> = {
+    const sessionRunner = createMockSessionRunner({
       run: vi
         .fn<() => Promise<RalphResult>>()
         .mockRejectedValueOnce(new Error("hook-a exploded"))
         .mockResolvedValue(makeResult("DF-100")),
-    };
+    });
     const { runner, containerFactory } = createRunner(sessionRunner);
     const hookA = hook("hook-a", "a");
     const hookB = hook("hook-b", "b");

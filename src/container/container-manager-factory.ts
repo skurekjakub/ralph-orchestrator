@@ -5,16 +5,20 @@ import { repoCachePaths } from "../services/task-workspace-manager";
 import { deriveStageProfile, type ContainerManagerFactory } from "./types";
 
 /**
- * Open a task's scope of the root container. The scoped task registrations, registered at the root, resolve in it.
+ * Open a task's scope of the root container, in which the scoped task registrations resolve.
  *
- * @param values The task's variant and its workspace on the host.
+ * @param container The root container, holding the scoped task registrations.
+ * @param values The task's variant and its workspace on the host, registered in the scope as values.
  */
 export function openTaskScope(
   container: AwilixContainer<OrchestratorCradle>,
-  { profile, workspacePath }: TaskValues,
+  values: TaskValues,
 ): AwilixContainer<TaskCradle> {
-  const values: Registrations<TaskValues> = { profile: asValue(profile), workspacePath: asValue(workspacePath) };
-  return container.createScope<TaskCradle>().register(values);
+  const registrations: Registrations<TaskValues> = {
+    profile: asValue(values.profile),
+    workspacePath: asValue(values.workspacePath),
+  };
+  return container.createScope<TaskCradle>().register(registrations);
 }
 
 /**
