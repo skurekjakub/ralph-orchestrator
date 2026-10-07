@@ -47,7 +47,7 @@ const PID = "ralph-docs";
 
 beforeEach(() => {
   tempDir = mkdtempSync(join(tmpdir(), "trigger-scanner-"));
-  ledger = new OperationLedger({ outputConfig: { logDir: tempDir, handoffDir: "" } });
+  ledger = new OperationLedger({ outputConfig: { logDir: tempDir } });
   vi.clearAllMocks();
 });
 

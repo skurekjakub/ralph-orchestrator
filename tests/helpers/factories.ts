@@ -153,7 +153,6 @@ export function makeDataSourceConfig(overrides: Partial<IDataSourceConfig> = {})
       apiToken: "test-jira-pat",
     },
     pollIntervalMs: 60000,
-    maxResults: 100,
     ...overrides,
   };
 }
@@ -242,7 +241,6 @@ export function makeConfig(profiles?: IAgentProfile[]): IAppConfig {
     profiles: profiles ?? [makeProfile()],
     output: {
       logDir: "/tmp/test-output/logs",
-      handoffDir: "/tmp/test-output/handoffs",
     },
     dashboard: {
       enabled: false,

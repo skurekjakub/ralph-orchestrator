@@ -126,7 +126,7 @@ function createOrchestrator(
     ledger: createMockLedger(pendingOps),
     heartbeat: null,
     ralphchivesConfig: { enabled: false, nodebbApiUrl: "", neo4jUri: "", neo4jUser: "" },
-    outputConfig: { logDir: "/tmp/test-logs", handoffDir: "/tmp/test-handoffs" },
+    outputConfig: { logDir: "/tmp/test-logs" },
   });
 
   return { orchestrator, taskRunner, profile };

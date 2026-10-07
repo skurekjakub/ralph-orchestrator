@@ -504,11 +504,6 @@ describe("shared agent includes (real files)", () => {
     expect(rendered.length).toBeGreaterThan(10);
   });
 
-  it("renders ado-api include", async () => {
-    const rendered = await renderInclude("ado-api", standardContext("ralph-docs"));
-    expect(rendered.length).toBeGreaterThan(10);
-  });
-
   it("renders source-references include", async () => {
     const rendered = await renderInclude("source-references", standardContext("ralph-docs"));
     expect(rendered.length).toBeGreaterThan(10);

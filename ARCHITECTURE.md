@@ -295,7 +295,6 @@ All Docker, agent, and hook infrastructure is centralized in the orchestrator re
 │   │   ├── lib/                         # Payload adapters, record layout, redact.pl
 │   │   └── ralph-audit.json             # Copilot CLI hook configuration
 │   ├── agent-includes/                  # Shared Liquid partials for agent templates
-│   │   ├── ado-api.md               # ADO MCP tool reference (PR creation, threads, replies)
 │   │   ├── ado-pr-format.md         # PR description template
 │   │   ├── agent-as-function-contract.md  # Subagent artifact contract (status.json, manifest.json)
 │   │   ├── headless-contract.md     # No questions to a human during a run

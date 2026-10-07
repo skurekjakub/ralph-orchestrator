@@ -18,13 +18,11 @@ export const dataSourceConfigSchema = z.object({
   type: z.string().min(1, "Data source type must not be empty"),
   connection: z.record(z.string(), z.unknown()),
   pollIntervalMs: z.number().positive().default(60_000),
-  maxResults: z.number().positive().default(100),
 });
 
 export const rawOutputSchema = z
   .object({
     logDir: z.string().default("./output/logs"),
-    handoffDir: z.string().default("./output/handoffs"),
   })
   .optional();
 

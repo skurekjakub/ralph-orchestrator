@@ -8,7 +8,6 @@ How agent templates are authored, rendered, and parameterized at runtime. The op
 profiles/<id>/agents/*.agent.md      — Profile-specific agent templates (canonical frontmatter + Liquid body)
 profiles/<id>/.build/<cli>/agents/   — Rendered output of container stages per CLI (gitignored, mounted read-only)
 shared/agent-includes/               — Shared Liquid partials
-  ├── ado-api.md                     — ADO MCP tool reference
   ├── ado-pr-format.md               — PR description template
   ├── agent-as-function-contract.md  — Subagent artifact contract
   ├── headless-contract.md           — Never ask questions or wait for human input

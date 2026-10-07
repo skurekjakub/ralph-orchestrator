@@ -18,7 +18,7 @@ let ledger: OperationLedger;
 
 beforeEach(() => {
   tempDir = mkdtempSync(join(tmpdir(), "ledger-test-"));
-  ledger = new OperationLedger({ outputConfig: { logDir: tempDir, handoffDir: "" } });
+  ledger = new OperationLedger({ outputConfig: { logDir: tempDir } });
 });
 
 afterEach(() => {
@@ -296,7 +296,7 @@ describe("OperationLedger", () => {
     it("survives re-instantiation", () => {
       ledger.plan(KEY, { dataSource: DS, variant: VARIANT, triggerCommentId: CID100, commentTimestamp: TS });
 
-      const ledger2 = new OperationLedger({ outputConfig: { logDir: tempDir, handoffDir: "" } });
+      const ledger2 = new OperationLedger({ outputConfig: { logDir: tempDir } });
       expect(ledger2.getOperations(DS, KEY)).toHaveLength(1);
     });
 

@@ -224,12 +224,11 @@ The JIRA connector in `src/datasource/connectors/jira/` is the reference impleme
 
 The `dataSources` block in `config.json` is a keyed map. Each entry has:
 
-| Field            | Type     | Description                                                                                                                    |
-| ---------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `type`           | `string` | Registered factory type (e.g. `"jira"`)                                                                                        |
-| `connection`     | `object` | Type-specific connection properties (validated by the connector, not the orchestrator)                                         |
-| `pollIntervalMs` | `number` | Polling interval in milliseconds (default `60000`)                                                                             |
-| `maxResults`     | `number` | Loaded into `IDataSourceConfig.maxResults` (default `100`); the JIRA connector does not read it and pages 100 issues at a time |
+| Field            | Type     | Description                                                                            |
+| ---------------- | -------- | -------------------------------------------------------------------------------------- |
+| `type`           | `string` | Registered factory type (e.g. `"jira"`)                                                |
+| `connection`     | `object` | Type-specific connection properties (validated by the connector, not the orchestrator) |
+| `pollIntervalMs` | `number` | Polling interval in milliseconds (default `60000`)                                     |
 
 The `type` field is a plain string — not a closed enum. Any value is accepted as long as a matching factory is registered before startup.
 

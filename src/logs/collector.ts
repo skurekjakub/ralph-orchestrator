@@ -77,7 +77,7 @@ export interface ILogCollector {
 /**
  * Saves execution summaries and manages the output directory structure.
  *
- * Creates the log and handoff directories on instantiation.
+ * Creates the log directory on instantiation.
  * Each execution produces a `<key>-<timestamp>-summary.json` file.
  */
 export class LogCollector implements ILogCollector {
@@ -86,7 +86,6 @@ export class LogCollector implements ILogCollector {
   constructor({ outputConfig }: { outputConfig: IOutputConfig }) {
     this.config = outputConfig;
     mkdirSync(this.config.logDir, { recursive: true });
-    mkdirSync(this.config.handoffDir, { recursive: true });
   }
 
   /**

@@ -13,7 +13,7 @@ describe("LogCollector", () => {
   beforeEach(() => {
     root = mkdtempSync(join(tmpdir(), "log-collector-"));
     collector = new LogCollector({
-      outputConfig: { logDir: join(root, "logs"), handoffDir: join(root, "handoffs") },
+      outputConfig: { logDir: join(root, "logs") },
     });
   });
 

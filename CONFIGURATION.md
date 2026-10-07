@@ -84,7 +84,6 @@ Each entry in `dataSources` defines a connection to an external work item source
 | `type`           | `string` | Registered data source type (e.g. `"jira"`). Must match a factory registered via `registerDataSourceFactory()`.                                                                                                                                                                                                                             |
 | `connection`     | `object` | Type-specific connection properties. For JIRA: `baseUrl`, `cloudId`, `excludeFields` (custom field IDs to exclude from agent prompts), `allowedUsers` (Atlassian account IDs allowed to trigger invocations; empty = unrestricted). Credentials are injected by the connector factory from `JIRA_PAT_<KEY>` / `JIRA_EMAIL_<KEY>` in `.env`. |
 | `pollIntervalMs` | `number` | How often to poll for new work items (milliseconds). Default: `60000`.                                                                                                                                                                                                                                                                      |
-| `maxResults`     | `number` | Accepted by the schema (default `100`) but not used by the JIRA connector, which pages searches at 100 results per request.                                                                                                                                                                                                                 |
 
 **Finding your JIRA Cloud ID:** Visit `https://<your-site>.atlassian.net/_edge/tenant_info` — the `cloudId` field is what you need.
 
@@ -435,15 +434,13 @@ Templates are rendered JIT before each task and stage by `AgentTemplateRenderer`
 
 ```json
 "output": {
-  "logDir": "./output/logs",
-  "handoffDir": "./output/handoffs"
+  "logDir": "./output/logs"
 }
 ```
 
-| Field        | Description                                                                 | Default               |
-| ------------ | --------------------------------------------------------------------------- | --------------------- |
-| `logDir`     | Directory for execution logs, audit trails, and activity logs               | `"./output/logs"`     |
-| `handoffDir` | Created at startup but unused — Ralph attaches its handoff directly to JIRA | `"./output/handoffs"` |
+| Field    | Description                                                   | Default           |
+| -------- | ------------------------------------------------------------- | ----------------- |
+| `logDir` | Directory for execution logs, audit trails, and activity logs | `"./output/logs"` |
 
 ### Dashboard Settings
 
@@ -515,7 +512,7 @@ An organisation can deliver server-managed settings with either Claude Code cred
       "pollIntervalMs": 60000
     }
   },
-  "output": { "logDir": "./output/logs", "handoffDir": "./output/handoffs" },
+  "output": { "logDir": "./output/logs" },
   "dashboard": { "enabled": false }
 }
 ```

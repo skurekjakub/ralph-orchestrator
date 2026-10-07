@@ -402,4 +402,3 @@ main().catch((err) => {
 Agents learn each MCP tool from the description its server registers. Agent templates and partials name a tool by its manifest name (`ado_push_progress`) at the workflow phase that uses it; each CLI shows that tool under its own prefix (see [mcp-tool-naming.md](docs/dev-doc/mcp-tool-naming.md)).
 
 - `shared/agent-includes/ralphchives.md` — when and how to use the `ralphchives-read` and `ralphchives-write` tools; renders only when `ralphchivesEnabled`
-- `shared/agent-includes/ado-api.md` — error handling for the `ado` server's tools; no bundled agent template renders it

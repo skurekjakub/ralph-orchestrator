@@ -13,7 +13,7 @@ function makeTmpDir(): string {
 
 /** Minimal output config stub for ActivityLog. */
 function outputConfigWithLogDir(logDir: string): IOutputConfig {
-  return { logDir, handoffDir: "" };
+  return { logDir };
 }
 
 describe("ActivityLog", () => {

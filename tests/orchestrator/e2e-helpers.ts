@@ -69,9 +69,9 @@ export function buildMockDeps(
   const historyDir = join(logDir, "history");
   mkdirSync(historyDir, { recursive: true });
 
-  const activityLog = new ActivityLog({ outputConfig: { logDir, handoffDir: "" } });
+  const activityLog = new ActivityLog({ outputConfig: { logDir } });
   const router = new ProfileRouter({ profiles: [profile] });
-  const ledger = new OperationLedger({ outputConfig: { logDir, handoffDir: "" } });
+  const ledger = new OperationLedger({ outputConfig: { logDir } });
 
   const itemsToDrain = [...(options.issues ?? [])];
   const commentsMap = options.comments ?? {};
@@ -146,7 +146,7 @@ export function buildMockDeps(
     ledger,
     heartbeat: null,
     logger: silentLogger,
-    outputConfig: { logDir, handoffDir: "" },
+    outputConfig: { logDir },
   };
 }
 
@@ -191,7 +191,7 @@ export function buildBaseDeps(
   const historyDir = join(logDir, "history");
   mkdirSync(historyDir, { recursive: true });
 
-  const ledger = new OperationLedger({ outputConfig: { logDir, handoffDir: "" } });
+  const ledger = new OperationLedger({ outputConfig: { logDir } });
   const router = new ProfileRouter({ profiles: options.profiles });
   const issueManager = createMockIssueManager(options.issueManager);
   const taskRunner = createMockTaskRunner(options.taskRunner);
@@ -208,7 +208,7 @@ export function buildBaseDeps(
   return {
     dataSources: config.dataSources,
     profiles: config.profiles,
-    activityLog: new ActivityLog({ outputConfig: { logDir, handoffDir: "" } }),
+    activityLog: new ActivityLog({ outputConfig: { logDir } }),
     issueManager,
     resources: createMockResources(),
     vcsSourceClient: createMockVcsSourceClient(),
@@ -225,6 +225,6 @@ export function buildBaseDeps(
     ledger,
     heartbeat: null,
     logger: silentLogger,
-    outputConfig: { logDir, handoffDir: "" },
+    outputConfig: { logDir },
   };
 }

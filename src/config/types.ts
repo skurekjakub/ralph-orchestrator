@@ -74,7 +74,6 @@ export interface IDataSourceConfig {
   /** Type-specific connection properties (validated by the connector). */
   readonly connection: Readonly<Record<string, unknown>>;
   readonly pollIntervalMs: number;
-  readonly maxResults: number;
 }
 
 /** JIRA-specific connection properties inside `IDataSourceConfig.connection`. */
@@ -196,7 +195,6 @@ export interface IAgentProfile {
 
 export interface IOutputConfig {
   readonly logDir: string;
-  readonly handoffDir: string;
 }
 
 /** Credentials read from the environment. An unset variable is an empty string; startup validation decides which are required. */

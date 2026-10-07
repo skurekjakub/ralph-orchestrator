@@ -39,7 +39,7 @@ const CID = "C1";
 
 beforeEach(() => {
   tempDir = mkdtempSync(join(tmpdir(), "trigger-cache-"));
-  ledger = new OperationLedger({ outputConfig: { logDir: tempDir, handoffDir: "" } });
+  ledger = new OperationLedger({ outputConfig: { logDir: tempDir } });
   vi.clearAllMocks();
 });
 

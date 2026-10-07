@@ -22,8 +22,7 @@
     "neo4jUser": "neo4j"
   },
   "output": {
-    "logDir": "./output/logs",
-    "handoffDir": "./output/handoffs"
+    "logDir": "./output/logs"
   },
   "promptAudit": {
     "mode": "warn"

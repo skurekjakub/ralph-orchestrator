@@ -15,8 +15,7 @@ Global orchestrator settings. Located at `config.json` in the project root.
         "excludeFields": [],
         "allowedUsers": []
       },
-      "pollIntervalMs": 60000,
-      "maxResults": 100
+      "pollIntervalMs": 60000
     }
   }
 }
@@ -26,12 +25,11 @@ Each key (e.g. `kentico-jira`) is referenced by profiles via `dataSource`. Crede
 
 ### Data Source Fields
 
-| Field            | Type     | Default | Description                                                                           |
-| ---------------- | -------- | ------- | ------------------------------------------------------------------------------------- |
-| `type`           | `string` | —       | Registered data source type. Built-in: `"jira"`                                       |
-| `connection`     | `object` | —       | Type-specific connection config (see below)                                           |
-| `pollIntervalMs` | `number` | `60000` | Poll interval in milliseconds                                                         |
-| `maxResults`     | `number` | `100`   | Accepted but unused: the JIRA connector fetches every matching issue, 100 per request |
+| Field            | Type     | Default | Description                                     |
+| ---------------- | -------- | ------- | ----------------------------------------------- |
+| `type`           | `string` | —       | Registered data source type. Built-in: `"jira"` |
+| `connection`     | `object` | —       | Type-specific connection config (see below)     |
+| `pollIntervalMs` | `number` | `60000` | Poll interval in milliseconds                   |
 
 Data source connectors are built into the orchestrator. Adding a new type is a code change: see [Data Source Registration](../dev-doc/data-source-registration.md).
 
@@ -49,16 +47,14 @@ Data source connectors are built into the orchestrator. Adding a new type is a c
 ```json
 {
   "output": {
-    "logDir": "./output/logs",
-    "handoffDir": "./output/handoffs"
+    "logDir": "./output/logs"
   }
 }
 ```
 
-| Field        | Type     | Default               | Description                                                                                        |
-| ------------ | -------- | --------------------- | -------------------------------------------------------------------------------------------------- |
-| `logDir`     | `string` | `"./output/logs"`     | Per-task log directories, the activity logs and the operation ledger (`history/`)                  |
-| `handoffDir` | `string` | `"./output/handoffs"` | Created at startup, but nothing is written to it: the agent attaches its handoff to the JIRA issue |
+| Field    | Type     | Default           | Description                                                                       |
+| -------- | -------- | ----------------- | --------------------------------------------------------------------------------- |
+| `logDir` | `string` | `"./output/logs"` | Per-task log directories, the activity logs and the operation ledger (`history/`) |
 
 The repository clones are not configured here: the orchestrator keeps its clone of each profile's `repoUrl` in `cache/repos/<profileId>` and each task's workspace in `cache/workspaces/<key>-<startTs>`, both under the orchestrator checkout. See [Task Workspaces](profiles.md#task-workspaces).
 

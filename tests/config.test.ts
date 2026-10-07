@@ -142,6 +142,25 @@ describe("loadConfig", () => {
     expect(config.claudeAuth).toBe(ClaudeAuthMode.ApiKey);
   });
 
+  it("still loads a config.json that sets the removed maxResults and output.handoffDir keys", () => {
+    // Arrange
+    setRequiredEnv();
+    const raw = JSON.parse(VALID_GLOBAL_CONFIG);
+    raw.dataSources["test-source"].maxResults = 50;
+    raw.output = { logDir: "./logs", handoffDir: "./handoffs" };
+    const legacyConfig = JSON.stringify(raw);
+    vi.mocked(readFileSync).mockImplementation((p) =>
+      String(p).endsWith("config.json") ? legacyConfig : VALID_PROFILE,
+    );
+
+    // Act
+    const config = loadConfig();
+
+    // Assert
+    expect(config.output).toEqual({ logDir: expect.stringMatching(/logs$/) });
+    expect(config.dataSources["test-source"]).not.toHaveProperty("maxResults");
+  });
+
   it("loads config with profiles from profiles/ directory", () => {
     setRequiredEnv();
 

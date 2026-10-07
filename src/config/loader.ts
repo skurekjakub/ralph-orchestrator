@@ -71,7 +71,6 @@ export function loadConfig(): IAppConfig {
       type: raw.type,
       connection: raw.connection as Readonly<Record<string, unknown>>,
       pollIntervalMs: raw.pollIntervalMs,
-      maxResults: raw.maxResults,
     };
   }
 
@@ -113,7 +112,6 @@ export function loadConfig(): IAppConfig {
     profiles,
     output: {
       logDir: resolve(process.cwd(), parsed.output?.logDir ?? "./output/logs"),
-      handoffDir: resolve(process.cwd(), parsed.output?.handoffDir ?? "./output/handoffs"),
     },
     dashboard,
     promptAudit: {

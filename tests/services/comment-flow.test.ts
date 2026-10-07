@@ -18,7 +18,7 @@ let ledger: OperationLedger;
 
 beforeEach(() => {
   tempDir = mkdtempSync(join(tmpdir(), "comment-flow-"));
-  ledger = new OperationLedger({ outputConfig: { logDir: tempDir, handoffDir: "" } });
+  ledger = new OperationLedger({ outputConfig: { logDir: tempDir } });
 });
 
 afterEach(() => {
@@ -169,7 +169,7 @@ describe("Comment-driven orchestration flow", () => {
       });
       ledger.transition(DS, KEY, opId, OperationStatus.Active);
 
-      const newLedger = new OperationLedger({ outputConfig: { logDir: tempDir, handoffDir: "" } });
+      const newLedger = new OperationLedger({ outputConfig: { logDir: tempDir } });
       const recovered = newLedger.recoverActiveOperations();
 
       expect(recovered).toHaveLength(1);
@@ -185,7 +185,7 @@ describe("Comment-driven orchestration flow", () => {
         commentTimestamp: TS,
       });
 
-      const newLedger = new OperationLedger({ outputConfig: { logDir: tempDir, handoffDir: "" } });
+      const newLedger = new OperationLedger({ outputConfig: { logDir: tempDir } });
       const pending = newLedger.getAllPending();
 
       expect(pending).toHaveLength(1);
