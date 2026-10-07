@@ -30,9 +30,13 @@ Resolved from the current JIRA issue.
 
 ### $task.branch Details
 
-By default, computed as `ralph/<taskId>-<slugified-title>` (max 80-char slug, lowercase, non-alphanumeric replaced with hyphens).
+The task branch, resolved in this order:
 
-If the `branch` trigger parameter is set (e.g. `@Ralph(branch=code/my-branch)`), `$task.branch` resolves to that value instead.
+1. The `branch` trigger parameter, when set (e.g. `@Ralph(branch=code/my-branch)`).
+2. The source branch of the existing PR that preflight found for a revision, when the profile's `vcsProvider` supports the lookup.
+3. `ralph/<taskId>-<slugified-title>` (max 80-char slug, lowercase, non-alphanumeric replaced with hyphens).
+
+It is the same branch the task's workspace checks out.
 
 ## $trigger.&lt;key&gt; — Trigger Parameter Macros
 

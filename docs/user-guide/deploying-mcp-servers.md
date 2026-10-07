@@ -19,7 +19,7 @@ Agent Container (app)                        MCP Sidecar Container
 │  │ }                  │  │                 │   ├─ ralphchives-w  :9106      │
 │  └────────────────────┘  │                 │   └─ ralphchives-r  :9107      │
 │                          │                 │                                 │
-│  Copilot / Claude CLI    │                 │  gateway.json (has secrets)     │
+│  Claude Code / Copilot   │                 │  gateway.json (has secrets)     │
 │  (reads mcp-config.json) │                 │  /opt/mcp/servers/ (code)       │
 └──────────────────────────┘                 └─────────────────────────────────┘
 ```
@@ -55,10 +55,9 @@ Create `shared/mcp-servers/<name>/mcp-server.json`:
   "type": "npm",
   "command": "my-mcp-server",
   "args": [],
-  "sidecarPort": 9108,
+  "sidecarPort": 9109,
   "requiredEnv": ["API_KEY"],
-  "tools": ["tool_a", "tool_b"],
-  "requiredConfig": []
+  "tools": ["tool_a", "tool_b"]
 }
 ```
 
@@ -73,7 +72,7 @@ Create `shared/mcp-servers/<name>/mcp-server.json`:
 | `sidecarPort`    | Yes      | Unique port — see [Port Allocation](#port-allocation)                                                   |
 | `requiredEnv`    | No       | Env vars needed in `.env` on the host                                                                   |
 | `tools`          | Yes      | Non-empty tool allowlist: listed in the agent's `mcp-config.json` and enforced by the tool-filter proxy |
-| `requiredConfig` | No       | Env var keys that profiles must provide in `mcpServers.env`                                             |
+| `requiredConfig` | No       | Env var keys that profiles must provide in `mcpServers.env`; omit it rather than leave it empty         |
 | `initScript`     | No       | Relative path to a shell script executed at sidecar startup before the gateway (e.g. `"init.sh"`)       |
 
 > **Tip:** Don't trust documentation for tool names — verify them by querying the server directly. See [Verifying Tool Names](#verifying-tool-names).
@@ -148,9 +147,9 @@ Or just start the orchestrator — Docker Compose rebuilds if the Dockerfile cha
 
 ### What happens automatically
 
-The orchestrator generates three config files at startup in `profiles/<id>/.build/`:
+The orchestrator generates three config files in `profiles/<id>/.build/` at startup, and again before each task for the matched variant's servers:
 
-1. **`mcp-config.json`** — URLs for the agent CLI (mounted read-only into agent container)
+1. **`mcp-config.json`** — URLs and tool allowlists for the agent CLI (mounted read-only into agent container)
 2. **`gateway.json`** — Launch commands + secrets for the sidecar (mounted read-only into sidecar)
 3. **`docker-compose.overlay.yml`** — Sidecar service definition merged into the compose stack
 
@@ -248,21 +247,23 @@ Scripts can read `sidecarEnv` variables since they run in the same container. Fa
 
 ### Example: CodeGraphContext indexing
 
+`shared/mcp-servers/codegraphcontext/init.sh` installs CodeGraphContext with pip, then indexes the directory the variant's `sidecarEnv` names:
+
 ```bash
 #!/bin/bash
-# shared/mcp-servers/codegraphcontext/init.sh
-if [ -z "$CGC_INDEX_PATH" ]; then
-  echo "CGC_INDEX_PATH not set — skipping indexing"
+pip install --break-system-packages --no-cache-dir codegraphcontext
+
+if [ -z "${CGC_INDEX_PATH:-}" ]; then
+  echo "CGC_INDEX_PATH not set, skipping indexing"
   exit 0
 fi
 
 if [ ! -d "$CGC_INDEX_PATH" ]; then
-  echo "Index path not found: $CGC_INDEX_PATH — skipping"
+  echo "CGC_INDEX_PATH=$CGC_INDEX_PATH not found, skipping indexing"
   exit 0
 fi
 
-echo "Indexing $CGC_INDEX_PATH ..."
-cgc index --path "$CGC_INDEX_PATH"
+cgc index "$CGC_INDEX_PATH"
 ```
 
 ### Constraints
@@ -298,9 +299,12 @@ process.exit(0);
 
 ### Server doesn't appear in agent tools
 
-- Verify `profile.json` lists the server in `mcpServers`
+- Verify `profile.json` lists the server in `mcpServers`, at profile level or in the matched variant
 - Check `mcp-server.json` exists in `shared/mcp-servers/<name>/`
 - If `requiredConfig` is set, the profile must provide those keys in `env`
+- Check the tool is in the manifest's `tools`: the sidecar hides every other tool
+- Claude Code: the rendered agent in `profiles/<id>/.build/claude/agents/<name>.md` must list the tool as `mcp__<server>__<tool>` in its `tools`
+- The stage must run in a container: host (`mode: "local"`) stages run no MCP servers
 
 ### npm server won't start in the sidecar
 

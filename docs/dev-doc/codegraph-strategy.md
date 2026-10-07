@@ -8,6 +8,8 @@ CodeGraphContext (CGC) indexes source code into a graph database using Tree-sitt
 
 **Key constraint:** agent containers are ephemeral — they start, execute a task, and stop. Any in-process state is lost between tasks.
 
+The `codegraphcontext` MCP server (`shared/mcp-servers/codegraphcontext/`) is an npm-type manifest whose `init.sh` installs CodeGraphContext with pip when the sidecar starts. No bundled profile declares it; a variant opts in through `mcpServers`.
+
 ## Database Options
 
 ### FalkorDB Lite (Embedded)
@@ -72,27 +74,17 @@ A CodeGraphContext MCP server is available. Before using structural queries
 **Pros:** Simple. Agent controls when indexing happens. No sidecar lifecycle hooks needed.
 **Cons:** Agent must remember to index. Consumes ~60-120s of the agent's task time.
 
-### Phase 2: Sidecar Auto-Index (Future Enhancement)
+### Phase 2: Sidecar Pre-Index (`initScript`)
 
-Move indexing into the sidecar startup, so the graph is ready before the agent starts.
+Indexing runs at sidecar startup, so the graph is ready before the agent starts.
 
-**Approach:** Add a startup script in the sidecar that:
+**How it works:** the manifest's `initScript` (`init.sh`) runs from the sidecar's generated `pre-init.sh` before the gateway launches. It installs CodeGraphContext, then, when the variant sets `CGC_INDEX_PATH` through `sidecarEnv` and that directory exists, runs `cgc index "$CGC_INDEX_PATH"`. A missing path skips indexing, and a failed index never stops the gateway:
 
-1. Checks if `/workspace` is mounted
-2. Runs `cgc index /workspace` before launching the gateway process
-3. Optionally starts `cgc watch /workspace` for live updates during the task
-
-**Sidecar entrypoint change:**
-
-```bash
-#!/bin/bash
-# Index workspace if present
-if [ -d /workspace ]; then
-  cgc index /workspace 2>&1 | tail -5
-fi
-# Start the gateway
-exec node /opt/mcp/gateway/dist/gateway.js /opt/mcp/config/gateway.json
+```json
+{ "name": "codegraphcontext", "sidecarEnv": { "CGC_INDEX_PATH": "/workspace/resources/repositories/xperience" } }
 ```
+
+A live `cgc watch` during the task is not part of it.
 
 **Pros:** Agent gets a pre-built graph. No wasted agent time. Transparent.
 **Cons:** Adds to container startup time. Sidecar needs workspace mount. Indexing failures shouldn't block the gateway.
@@ -130,7 +122,7 @@ Notes:
 
 - `CACHE_ENABLED=false` — no point caching in ephemeral containers
 - `IGNORE_TESTS=true` — reduces indexing time, focuses on production code structure
-- `PARALLEL_WORKERS=2` — conservative for container resource limits (4 CPU cap)
+- `PARALLEL_WORKERS=2` — conservative next to the sidecar's other servers (8 CPU cap)
 - No Neo4j env vars needed (FalkorDB Lite is the default)
 
 ## .cgcignore for Target Repos
@@ -160,7 +152,7 @@ This can be:
 | Memory (FalkorDB Lite) | ~200-400 MB              |
 | Disk                   | Minimal (in-memory)      |
 
-Within Ralph's container limits (8G memory, 4 CPU). The MCP sidecar has no explicit resource cap, so memory is not a concern for the sidecar.
+CGC runs in the MCP sidecar, whose limits are 24G memory, 8 CPUs and 300 PIDs, shared with the variant's other MCP servers.
 
 ## Decision Summary
 
@@ -170,4 +162,4 @@ Within Ralph's container limits (8G memory, 4 CPU). The MCP sidecar has no expli
 | Index timing     | Per-task, agent-initiated (Phase 1) | Simplest, no sidecar changes needed                |
 | Persistence      | None (re-index each task)           | Avoids stale data from prior tasks                 |
 | .cgcignore       | In target repo                      | Repo owner controls exclusions                     |
-| Future path      | Sidecar auto-index (Phase 2)        | When CGC is proven and startup cost matters        |
+| Pre-indexing     | `initScript` with `CGC_INDEX_PATH`  | Graph ready before the agent starts                |

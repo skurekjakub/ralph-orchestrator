@@ -102,23 +102,31 @@ This creates missing categories, users, and tokens without touching existing one
 
 Two MCP servers expose Ralphchives to agents via the standard sidecar pattern:
 
-| Server              | Port | Tools                                                   | Purpose                   |
-| ------------------- | ---- | ------------------------------------------------------- | ------------------------- |
-| `ralphchives-write` | 9106 | `post_task_report`, `post_observation`                  | Agents write knowledge    |
-| `ralphchives-read`  | 9107 | `search_ralphchives`, `get_topic`, `list_recent_topics` | Agents retrieve knowledge |
+| Server              | Port | Tools                                                     | Purpose                   |
+| ------------------- | ---- | --------------------------------------------------------- | ------------------------- |
+| `ralphchives-write` | 9106 | `post_task_report`, `post_observation`, `reply_to_thread` | Agents write knowledge    |
+| `ralphchives-read`  | 9107 | `search_ralphchives`, `get_topic`, `list_recent_topics`   | Agents retrieve knowledge |
 
-Both are category-scoped via `NODEBB_CATEGORY_ID` (injected per-profile). Agents only see their own profile's knowledge.
+Both are scoped to one NodeBB category, named by `NODEBB_CATEGORY_NAME`, and authenticate with `NODEBB_API_TOKEN`; both are required per profile entry. Agents only see their own profile's knowledge. `NODEBB_API_URL` comes from the orchestrator's `.env`.
 
 Add to a profile's `mcpServers` array:
 
 ```json
 {
   "mcpServers": [
-    { "name": "ralphchives-write", "env": { "NODEBB_CATEGORY_ID": "6" } },
-    { "name": "ralphchives-read", "env": { "NODEBB_CATEGORY_ID": "6" } }
+    {
+      "name": "ralphchives-write",
+      "env": { "NODEBB_API_TOKEN": "$variantEnv.NODEBB_TOKEN", "NODEBB_CATEGORY_NAME": "ralph-docs" }
+    },
+    {
+      "name": "ralphchives-read",
+      "env": { "NODEBB_API_TOKEN": "$variantEnv.NODEBB_TOKEN", "NODEBB_CATEGORY_NAME": "ralph-docs" }
+    }
   ]
 }
 ```
+
+`$variantEnv.NODEBB_TOKEN` resolves to `NODEBB_TOKEN_<PROFILEID>_<DISPLAYNAME>` per variant (see `docs/user-guide/runtime-macros.md`).
 
 ## Neo4j Schema
 

@@ -7,7 +7,9 @@
 > - npm (stdio) servers run under an **in-gateway stdio bridge** instead of a stdio-to-HTTP wrapper process: the gateway holds one persistent stdio connection per server and serves it through the tool-filter proxy, with no listener of its own. npm manifests must list `tools`.
 > - The sidecar **fails closed**: `/health` (on `127.0.0.1:9000`) is unhealthy until every filtered server is verified unreachable except through its proxy, and a server whose upstream port is reachable off loopback is refused.
 > - Servers and gateway are esbuild bundles on MCP SDK v2. The gateway bundle and the server code are mounted into the image at runtime.
-> - The sidecar PID limit is 300, Playwright runs the pre-installed `playwright-mcp` binary, and the sidecar reaches the internet **directly** through `ralph-sidecar-external` (not through Squid).
+> - The per-task compose overlay, not the security overlay, defines the `mcp-sidecar` service, with limits of 24G memory, 8 CPUs and 300 PIDs. Playwright runs the pre-installed `playwright-mcp` binary, and the sidecar reaches the internet **directly** through `ralph-sidecar-external` (not through Squid).
+> - `gateway.json` and `mcp-config.json` hold the matched variant's servers: the profile-level `mcpServers` plus the variant's own.
+> - Claude Code, the default CLI, gets each allowlisted tool as `mcp__<server>__<tool>` in its agents' `tools` and loads the config with `--mcp-config … --strict-mcp-config`; Copilot applies the `tools` of each `mcp-config.json` entry. Host (`mode: "local"`) stages run no MCP server.
 
 ## Problem
 
@@ -31,7 +33,7 @@ Replace stdio-based MCP server invocation with HTTP-based (Streamable HTTP trans
 ┌──────────────────────────────────────┐    ┌──────────────────────────────────────┐
 │       Agent Container (vscode)       │    │     MCP Sidecar Container (mcp)      │
 │                                      │    │                                      │
-│  CLI (copilot/claude)                │    │  Gateway (gateway.ts): tool filter   │
+│  CLI (claude/copilot)                │    │  Gateway (gateway.ts): tool filter   │
 │    ├── mcp-config.json               │    │    ├── jira-kentico  :9100 (HTTP)    │
 │    │   { "jira-kentico": {           │    │    ├── ado           :9101 (HTTP)    │
 │    │       "type": "http",           │    │    ├── discord-hitl  :9102 (HTTP)    │
@@ -57,8 +59,8 @@ The [Streamable HTTP transport](https://modelcontextprotocol.io/specification/20
 
 Both CLIs support remote MCP servers:
 
+- **Claude Code CLI**: `"type": "http", "url": "http://mcp-sidecar:PORT/mcp"` in `--mcp-config`
 - **Copilot CLI**: `"type": "http", "url": "http://mcp-sidecar:PORT/mcp"` in `--additional-mcp-config`
-- **Claude Code CLI**: `"url": "http://mcp-sidecar:PORT/mcp"` in `--mcp-config`
 
 The custom servers use MCP SDK v2: `McpServer` from `@modelcontextprotocol/server` and `NodeStreamableHTTPServerTransport` from `@modelcontextprotocol/node` for Streamable HTTP on Node. The gateway's tool-filter proxy and upstream monitor use `@modelcontextprotocol/client` and `@modelcontextprotocol/core`.
 
@@ -79,7 +81,7 @@ The custom servers use MCP SDK v2: `McpServer` from `@modelcontextprotocol/serve
 - Security overlay — `cap_drop: ALL`, `no-new-privileges`, resource limits apply to sidecar too
 - MCP sidecar has direct internet access via `ralph-sidecar-external` network (does not route through Squid)
 - Profile's `mcpServers` declaration — still controls which servers are available
-- Tool allowlists in manifests — written into `mcp-config.json` for the CLI and enforced in the sidecar by the gateway's tool-filter proxy
+- Tool allowlists in manifests — written into `mcp-config.json` for Copilot and into each Claude Code agent's `tools`, and enforced in the sidecar by the gateway's tool-filter proxy
 - Compose three-file merge — overlay now generates sidecar config too
 
 ## Design Decisions
@@ -109,12 +111,12 @@ The gateway acts as a lightweight process manager. If an MCP server process exit
 
 1. Log the crash with server name, exit code, and stderr
 2. Wait 1 second (backoff)
-3. Respawn the process (up to 3 retries per task)
+3. Respawn the process (up to 3 restarts per server; the sidecar lives for one task)
 4. Update health endpoint status
 
-### 5. Sidecar Lifecycle: Per-profile, per-task
+### 5. Sidecar Lifecycle: Per-task, per-variant
 
-The sidecar starts and stops as part of the compose stack. Each profile's `gateway.json` contains only the servers declared in that profile's `mcpServers` array, so the sidecar only starts the servers the profile needs. This enforces least-privilege at the process level — a profile declaring `["jira-kentico", "ado"]` never spawns `discord-hitl` or `playwright`.
+The sidecar starts and stops as part of the task's compose stack. Before each task, `gateway.json` is regenerated with only the matched variant's servers (the profile-level `mcpServers` plus the variant's own), so the sidecar only starts the servers the variant needs. This enforces least-privilege at the process level — a variant whose servers are `["jira-kentico", "ado"]` never spawns `discord-hitl` or `playwright`.
 
 ### 6. Transport: Streamable HTTP
 
@@ -278,12 +280,10 @@ Generates the sidecar's gateway config with the actual commands, args, and embed
 
 ### 6. CLI Executor Changes
 
-**No code changes required.** Both CLIs already support `url` in mcp-config.json:
+Both CLIs read `{ type: "http", url }` entries from `/workspace/.ralph/mcp-config.json`:
 
-- **Copilot**: `--additional-mcp-config @/workspace/.ralph/mcp-config.json` — unchanged, file now has `{ type: "http", url }` entries
-- **Claude Code**: `--mcp-config /workspace/.ralph/mcp-config.json --strict-mcp-config` — unchanged, file now has `{ url }` entries
-
-The config path stays at `/workspace/.ralph/mcp-config.json`. Only the content changes from `{command}` to `{url}`.
+- **Claude Code**: `--mcp-config /workspace/.ralph/mcp-config.json --strict-mcp-config`
+- **Copilot**: `--additional-mcp-config @/workspace/.ralph/mcp-config.json`
 
 ### 7. Manifest Changes
 

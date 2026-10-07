@@ -20,9 +20,11 @@ profile.json → mcpServers: ["jira-kentico", "ado", "playwright"]
      container    container  merge       proxy
 ```
 
-Both Copilot CLI and Claude Code CLI consume the same `mcp-config.json`. Copilot loads it via `--additional-mcp-config @/workspace/.ralph/mcp-config.json`; Claude Code loads it explicitly via `--mcp-config`. Each entry holds the server's sidecar URL (`type: "http"`, `url`) and, when the manifest lists `tools`, a `tools` allowlist — no secrets. The sidecar enforces the same allowlist whatever the CLI does with it. For a server whose manifest lists `tools`, the gateway's tool-filter proxy (`shared/mcp-sidecar/src/tool-filter-proxy.ts`) serves the agent-facing `sidecarPort`, removes every other tool from `tools/list` responses, and answers a `tools/call` for any other tool with JSON-RPC error `-32602` (`Unknown tool: <name>`) without forwarding it. Nothing but the proxy can reach the server: a custom server listens on `127.0.0.1:<sidecarPort + 10000>` inside the sidecar, and an npm server has no listener at all, because the gateway runs it over stdio. A custom server without `tools` is not filtered and serves every tool it registers on `sidecarPort` directly; an npm server must list `tools`.
+Claude Code, the default CLI, and Copilot CLI read the same `mcp-config.json`. A Claude Code session loads it with `--mcp-config /workspace/.ralph/mcp-config.json --strict-mcp-config`, so no other MCP server reaches it, and runs with `ENABLE_TOOL_SEARCH=false`, so every MCP tool is loaded up front. Copilot loads it with `--additional-mcp-config @/workspace/.ralph/mcp-config.json`. Each entry holds the server's sidecar URL (`type: "http"`, `url`) and, when the manifest lists `tools`, a `tools` allowlist that Copilot applies itself — no secrets. Claude Code names an MCP tool `mcp__<server>__<tool>`, and the Claude Code agent writer adds `mcp__<server>__<tool>` for each allowlisted tool, or `mcp__<server>` for a server whose manifest lists no `tools`, to the `tools` line of every agent it renders (see [mcp-tool-naming.md](docs/dev-doc/mcp-tool-naming.md)). The sidecar enforces the same allowlist whatever the CLI does with it. For a server whose manifest lists `tools`, the gateway's tool-filter proxy (`shared/mcp-sidecar/src/tool-filter-proxy.ts`) serves the agent-facing `sidecarPort`, removes every other tool from `tools/list` responses, and answers a `tools/call` for any other tool with JSON-RPC error `-32602` (`Unknown tool: <name>`) without forwarding it. Nothing but the proxy can reach the server: a custom server listens on `127.0.0.1:<sidecarPort + 10000>` inside the sidecar, and an npm server has no listener at all, because the gateway runs it over stdio. A custom server without `tools` is not filtered and serves every tool it registers on `sidecarPort` directly; an npm server must list `tools`.
 
 The sidecar is the enforcement boundary, and it fails closed: `/health` stays unhealthy until every filtered server's tools have been listed and nothing but the proxy can reach it, and the gateway refuses (stops, and answers HTTP 503 for) a server whose upstream port turns out to be reachable off loopback. See [Failing closed](#failing-closed).
+
+Only container stages reach the sidecar. A host (`mode: "local"`) stage runs no Ralph MCP server: a host Claude Code session gets no `--mcp-config`, and `--strict-mcp-config` keeps every other server out; a host Copilot session gets no `--additional-mcp-config` and a private `--config-dir`. Copilot's bundled GitHub MCP server stays off (`--disable-builtin-mcps`) in both modes unless the profile's `githubMcpTools` lists tools.
 
 ## Server Registry
 
@@ -67,7 +69,7 @@ shared/mcp-sidecar/
 
 ### npm (`type: "npm"`)
 
-Uses a package installed globally in the sidecar image (`shared/mcp-sidecar/Dockerfile`, pinned version). No local code — just the manifest, which must list `tools`. The server speaks MCP over stdio, and the gateway bridges it itself, in process:
+Runs a third-party command installed in the sidecar. Playwright MCP is installed globally in the sidecar image (`shared/mcp-sidecar/Dockerfile`, pinned version); CodeGraphContext is a Python package that its `initScript` installs with pip each time the sidecar starts. No local code — just the manifest, which must list `tools`. The server speaks MCP over stdio, and the gateway bridges it itself, in process:
 
 - The gateway spawns `<command> <args>` through the MCP SDK v2 `StdioClientTransport` and completes one `initialize` handshake per process. Every request from every agent session goes over that one persistent connection, so server state (Playwright's browser page, an open repository) survives from call to call.
 - The tool-filter proxy serves it on `sidecarPort`. The bridge gives each agent session its own Streamable HTTP session (SDK `NodeStreamableHTTPServerTransport`, with an `Mcp-Session-Id`), answers `initialize` from the server's handshake, relays requests under ids and progress tokens of its own, sends progress back on the calling request's stream, broadcasts the server's other notifications (log messages, `list_changed`) to every session's GET stream, and filters `tools/list` to the allowlist. A client's `notifications/cancelled`, or a client that hangs up mid-call, cancels the request at the server. It keeps at most 64 sessions and closes the least recently used one beyond that.
@@ -169,14 +171,14 @@ Profile `mcpServers` entries can include `env` blocks with per-server configurat
 
 ### Available macros
 
-| Macro                  | Resolves to                                                                                                                 | Example                                                               |
-| ---------------------- | --------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| `$task.id`             | JIRA issue key                                                                                                              | `DOC-3143`                                                            |
-| `$task.project`        | Project key derived from issue key                                                                                          | `DOC`                                                                 |
-| `$task.branch`         | Resolved task branch: the branch from preflight/PR metadata, else the `branch` trigger parameter, else `ralph/<key>-<slug>` | `ralph/DOC-3143-update-getting-started`                               |
-| `$task.title`          | JIRA issue summary                                                                                                          | `Update getting started guide`                                        |
-| `$trigger.<key>`       | Value of trigger parameter `<key>` from the JIRA comment (returns empty string if missing)                                  | `$trigger.branch` → `feature-xyz`                                     |
-| `$variantEnv.<PREFIX>` | Value of the env var `<PREFIX>_<PROFILEID>_<DISPLAYNAME>` (uppercase; `-`, `.`, `/` → `_`)                                  | `$variantEnv.NODEBB_TOKEN` → value of `NODEBB_TOKEN_RALPH_DOCS_RALPH` |
+| Macro                  | Resolves to                                                                                                                                      | Example                                                               |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------- |
+| `$task.id`             | JIRA issue key                                                                                                                                   | `DOC-3143`                                                            |
+| `$task.project`        | Project key derived from issue key                                                                                                               | `DOC`                                                                 |
+| `$task.branch`         | Resolved task branch: the `branch` trigger parameter, else for a revision the source branch of the PR preflight found, else `ralph/<key>-<slug>` | `ralph/DOC-3143-update-getting-started`                               |
+| `$task.title`          | JIRA issue summary                                                                                                                               | `Update getting started guide`                                        |
+| `$trigger.<key>`       | Value of trigger parameter `<key>` from the JIRA comment (returns empty string if missing)                                                       | `$trigger.branch` → `feature-xyz`                                     |
+| `$variantEnv.<PREFIX>` | Value of the env var `<PREFIX>_<PROFILEID>_<DISPLAYNAME>` (uppercase; `-`, `.`, `/` → `_`)                                                       | `$variantEnv.NODEBB_TOKEN` → value of `NODEBB_TOKEN_RALPH_DOCS_RALPH` |
 
 ### Manifest `requiredConfig`
 
@@ -290,14 +292,14 @@ Sidecar gateway configuration with commands, args, and embedded secrets. Mounted
 
 Compose overlay merged as the third file. Generates:
 
-- **Agent container** — the credential and env of each CLI a container stage runs, read-only mounts for `mcp-config.json`, that CLI's settings, rendered agents, skills and resources, the shared `attachments/` directory, and `depends_on: mcp-sidecar`
+- **Agent container** — the pinned CLI versions and host UID/GID as image build args, the credential and env of each CLI a container stage runs, read-only mounts for `mcp-config.json`, that CLI's settings, rendered agents, skills and resources, and, when the variant runs MCP servers, the shared `attachments/` directory and `depends_on: mcp-sidecar` (`condition: service_healthy`)
 - **MCP sidecar container** (when servers declared) — builds from `shared/mcp-sidecar/Dockerfile`, mounts server code read-only at `/opt/mcp/servers`, mounts `gateway.json`, joins `ralph-internal` and `ralph-sidecar-external`, hardened with `no-new-privileges`, `cap_drop: ALL`, resource limits (24G memory, 8 CPUs, 300 PIDs), mounts the task's workspace (its clone of the target repo) at `/workspace` for git-powered tools (`REPO_ROOT` env var), plus `sidecarEnv` values and the optional `pre-init.sh`
 
 No MCP server code, secrets, or gateway config is mounted into the agent container. Only the credential of a CLI some container stage runs reaches it; see [SECURITY.md](SECURITY.md#credentials-in-the-agent-container).
 
 ### `squid.conf`
 
-Profile-specific squid proxy configuration: the shared baseline `shared/security/squid.conf` (AI/LLM backends, host loopback ports) plus the profile's `allowlistDomains`.
+Task-specific Squid proxy configuration: the shared baseline `shared/security/squid.conf`, which allows no AI provider and only the host loopback ports it lists, plus the model API domains of each CLI the variant's container stages run (`api.anthropic.com` for Claude Code; `.githubcopilot.com`, `api.github.com` and `github.com` for Copilot) and the profile's `allowlistDomains`.
 
 The MCP sidecar has **direct internet access** via the `ralph-sidecar-external` Docker network and bypasses Squid entirely. MCP servers need no Squid entries.
 
@@ -397,8 +399,7 @@ main().catch((err) => {
 
 ## Agent Include Files
 
-Agent templates reference MCP tools via `shared/agent-includes/`:
+Agents learn each MCP tool from the description its server registers. Agent templates and partials name a tool by its manifest name (`ado_push_progress`) at the workflow phase that uses it; each CLI shows that tool under its own prefix (see [mcp-tool-naming.md](docs/dev-doc/mcp-tool-naming.md)).
 
-- `ado-api.md` — Documents `ado_create_pull_request`, `ado_list_pull_requests`, `ado_list_pull_request_threads`, `ado_create_pull_request_thread`, `ado_reply_to_comment` tools
-
-These files live in `shared/agent-includes/` but are no longer inlined into all agent prompts — tool descriptions registered via MCP provide the same information. Agent templates reference specific tools by name at the relevant workflow phase instead.
+- `shared/agent-includes/ralphchives.md` — when and how to use the `ralphchives-read` and `ralphchives-write` tools; renders only when `ralphchivesEnabled`
+- `shared/agent-includes/ado-api.md` — error handling for the `ado` server's tools; no bundled agent template renders it

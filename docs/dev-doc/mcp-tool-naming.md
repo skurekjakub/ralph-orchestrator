@@ -1,108 +1,77 @@
-# MCP Tool Naming Convention in Copilot CLI
+# MCP Tool Names per CLI
 
-## How Copilot CLI names MCP tools
+An MCP server's manifest names its tools (`jira_add_comment`). Each agent CLI shows the agent those tools under a name of its own, built from the server key in `mcp-config.json` and the tool name. Audit records, debug logs and transcripts carry the CLI's name, not the manifest's.
 
-When Copilot CLI loads MCP servers from `mcp-config.json`, it **prefixes each tool name with the server key and a dash**:
+## Claude Code
+
+Claude Code, the default CLI, names an MCP tool `mcp__<server-key>__<tool_name>`:
+
+```
+mcp__jira-kentico__jira_add_comment
+```
+
+- Built-in tools (`Read`, `Write`, `Edit`, `Bash`, `Skill`, `Agent`, `TaskCreate`, `WebFetch`, …) keep their bare names.
+- The audit hooks split an `mcp__` name into `mcpServer` and `mcpTool` and record `toolKind: "mcp"` (`shared/hooks/lib/record.jq`).
+- `claudeMcpToolName` (`src/cli/claude/claude-tools.ts`) builds these names; `mcp__<server-key>` alone stands for every tool of the server.
+
+## Copilot CLI
+
+Copilot CLI prefixes each MCP tool with the server key and a dash, as the tool call events in its `pre-tool.log` show:
 
 ```
 <server-key>-<tool_name>
-```
-
-For example, a server registered as `"jira-kentico"` exposing a tool named `jira_add_comment` becomes:
-
-```
 jira-kentico-jira_add_comment
 ```
 
-This was confirmed from actual execution logs (`pre-tool.log`) which show the prefixed names in tool call events.
+- Built-in tools (`bash`, `edit`, `create`, `view`, `grep`, `glob`, `task`, `skill`, …) keep their bare names.
+- Tools of Copilot's bundled GitHub MCP server, enabled only by `githubMcpTools` (`--add-github-mcp-tool`), also keep their bare names (`get_file_contents`).
+- The audit hooks record a Copilot MCP call with `toolKind: "other"` and `mcpServer` and `mcpTool` set to `null`.
 
-### Built-in tools
+## Which tools an agent gets
 
-Copilot CLI's own built-in tools (`bash`, `edit`, `create`, `view`, `grep`, `glob`, `lsp`, `agent`, `skill`, `todo`, etc.) are **not prefixed** — they use their bare name.
+The sidecar's tool-filter proxy enforces each manifest's `tools` allowlist for every CLI ([MCP.md](../../MCP.md)). On top of it:
 
-### GitHub MCP tools
+- **Claude Code.** The canonical agent frontmatter's `tools` lists built-in tools only. The Claude Code agent writer (`src/cli/claude/claude-agent-writer.ts`) appends the MCP tools of the variant's servers to every agent's `tools` line: `mcp__<server>__<tool>` for each tool in the manifest's `tools`, or `mcp__<server>` for a server whose manifest lists none. Every agent of the variant gets the same MCP tools; the agent's own `tools` narrows only the built-in ones.
+- **Copilot CLI.** Copilot agent files carry no `tools` key, so an agent sees every tool of its session. Copilot applies the `tools` list of each `mcp-config.json` entry itself.
 
-GitHub MCP tools (controlled by `githubMcpTools` / `--add-github-mcp-tool`) also use **bare names** without a server prefix (e.g., `get_file_contents`).
+## Naming tools in templates
 
-## Tool reference for `ralph-vscode` profile
+Agent templates and skills render for whichever CLI a stage runs. Name an MCP tool by its manifest name and server ("the `ado_push_progress` tool of the ado MCP server"), never by one CLI's prefixed name. Built-in tools have per-CLI names in the template variable `cliTools` (`{{ cliTools.subagent }}` is `Agent` on Claude Code and `task` on Copilot); see [template variables](../user-guide/template-variables.md).
 
-The profile mounts 4 MCP servers plus one GitHub MCP tool. Below is the full mapping.
+## Tool reference for the `ralph-vscode` profile
+
+The profile runs four MCP servers and no GitHub MCP tools.
 
 ### `jira-kentico`
 
-| Manifest tool name    | Copilot CLI tool ID                |
-| --------------------- | ---------------------------------- |
-| `jira_add_comment`    | `jira-kentico-jira_add_comment`    |
-| `jira_add_attachment` | `jira-kentico-jira_add_attachment` |
+| Manifest tool name    | Claude Code name                         | Copilot CLI name                   |
+| --------------------- | ---------------------------------------- | ---------------------------------- |
+| `jira_add_comment`    | `mcp__jira-kentico__jira_add_comment`    | `jira-kentico-jira_add_comment`    |
+| `jira_add_attachment` | `mcp__jira-kentico__jira_add_attachment` | `jira-kentico-jira_add_attachment` |
 
 ### `ado`
 
-| Manifest tool name               | Copilot CLI tool ID                  |
-| -------------------------------- | ------------------------------------ |
-| `ado_create_pull_request`        | `ado-ado_create_pull_request`        |
-| `ado_list_pull_requests`         | `ado-ado_list_pull_requests`         |
-| `ado_list_pull_request_threads`  | `ado-ado_list_pull_request_threads`  |
-| `ado_create_pull_request_thread` | `ado-ado_create_pull_request_thread` |
-| `ado_reply_to_comment`           | `ado-ado_reply_to_comment`           |
-| `ado_push_progress`              | `ado-ado_push_progress`              |
+| Manifest tool name               | Claude Code name                           | Copilot CLI name                     |
+| -------------------------------- | ------------------------------------------ | ------------------------------------ |
+| `ado_create_pull_request`        | `mcp__ado__ado_create_pull_request`        | `ado-ado_create_pull_request`        |
+| `ado_list_pull_requests`         | `mcp__ado__ado_list_pull_requests`         | `ado-ado_list_pull_requests`         |
+| `ado_list_pull_request_threads`  | `mcp__ado__ado_list_pull_request_threads`  | `ado-ado_list_pull_request_threads`  |
+| `ado_create_pull_request_thread` | `mcp__ado__ado_create_pull_request_thread` | `ado-ado_create_pull_request_thread` |
+| `ado_reply_to_comment`           | `mcp__ado__ado_reply_to_comment`           | `ado-ado_reply_to_comment`           |
+| `ado_push_progress`              | `mcp__ado__ado_push_progress`              | `ado-ado_push_progress`              |
 
 ### `ralphchives-write`
 
-| Manifest tool name | Copilot CLI tool ID                  |
-| ------------------ | ------------------------------------ |
-| `post_task_report` | `ralphchives-write-post_task_report` |
-| `post_observation` | `ralphchives-write-post_observation` |
-| `reply_to_thread`  | `ralphchives-write-reply_to_thread`  |
+| Manifest tool name | Claude Code name                           | Copilot CLI name                     |
+| ------------------ | ------------------------------------------ | ------------------------------------ |
+| `post_task_report` | `mcp__ralphchives-write__post_task_report` | `ralphchives-write-post_task_report` |
+| `post_observation` | `mcp__ralphchives-write__post_observation` | `ralphchives-write-post_observation` |
+| `reply_to_thread`  | `mcp__ralphchives-write__reply_to_thread`  | `ralphchives-write-reply_to_thread`  |
 
 ### `ralphchives-read`
 
-| Manifest tool name   | Copilot CLI tool ID                   |
-| -------------------- | ------------------------------------- |
-| `search_ralphchives` | `ralphchives-read-search_ralphchives` |
-| `get_topic`          | `ralphchives-read-get_topic`          |
-| `list_recent_topics` | `ralphchives-read-list_recent_topics` |
-
-### GitHub MCP (built-in, no prefix)
-
-| Tool name           |
-| ------------------- |
-| `get_file_contents` |
-
-## Per-agent tool allocation
-
-Each agent should only have access to the tools it actually needs. The `tools` array in agent YAML frontmatter controls this.
-
-| Tool                                  | `ralph` (orchestrator) | `ralph-analyst` | `ralph-coder` | `ralph-reviewer` | `ralph-scribe`      |
-| ------------------------------------- | ---------------------- | --------------- | ------------- | ---------------- | ------------------- |
-| **Built-in: filesystem**              |                        |                 |               |                  |                     |
-| `bash`                                | ✅ git commit          | ✅ explore      | ✅ build/test | ✅ build/test    | ✅ read artifacts   |
-| `edit`                                | ✅ handoff             | —               | ✅ implement  | —                | —                   |
-| `create`                              | ✅ handoff             | ✅ artifacts    | ✅ implement  | ✅ artifacts     | ✅ artifacts        |
-| `view`                                | ✅ status.json         | ✅ research     | ✅ read code  | ✅ review code   | ✅ read artifacts   |
-| `grep`                                | —                      | ✅ research     | ✅ search     | ✅ search        | ✅ search artifacts |
-| `glob`                                | —                      | ✅ research     | ✅ search     | ✅ search        | ✅ find artifacts   |
-| **Built-in: agent**                   |                        |                 |               |                  |                     |
-| `agent`                               | ✅ dispatch            | —               | —             | —                | —                   |
-| `skill`                               | ✅ workflow            | ✅ research     | ✅ implement  | —                | ✅ ralphchives      |
-| `todo`                                | ✅ planning            | ✅ planning     | ✅ planning   | ✅ planning      | ✅ planning         |
-| `report_intent`                       | ✅                     | ✅              | ✅            | ✅               | ✅                  |
-| **GitHub MCP**                        |                        |                 |               |                  |                     |
-| `get_file_contents`                   | —                      | ✅ research     | —             | —                | —                   |
-| **JIRA**                              |                        |                 |               |                  |                     |
-| `jira-kentico-jira_add_comment`       | ✅ greeting/status     | —               | —             | —                | —                   |
-| `jira-kentico-jira_add_attachment`    | ✅ handoff attach      | —               | —             | —                | —                   |
-| **ADO**                               |                        |                 |               |                  |                     |
-| `ado-ado_push_progress`               | ✅ push                | —               | —             | —                | —                   |
-| `ado-ado_create_pull_request`         | ✅ PR                  | —               | —             | —                | —                   |
-| `ado-ado_list_pull_requests`          | ✅ PR check            | —               | —             | —                | —                   |
-| `ado-ado_list_pull_request_threads`   | —                      | ✅ revision     | —             | —                | —                   |
-| `ado-ado_create_pull_request_thread`  | —                      | —               | —             | —                | —                   |
-| `ado-ado_reply_to_comment`            | —                      | —               | —             | —                | —                   |
-| **Ralphchives write**                 |                        |                 |               |                  |                     |
-| `ralphchives-write-post_task_report`  | —                      | —               | —             | —                | ✅ task report      |
-| `ralphchives-write-post_observation`  | —                      | —               | —             | —                | ✅ observations     |
-| `ralphchives-write-reply_to_thread`   | —                      | —               | —             | —                | ✅ general obs      |
-| **Ralphchives read**                  |                        |                 |               |                  |                     |
-| `ralphchives-read-search_ralphchives` | —                      | ✅ prior work   | —             | —                | ✅ find threads     |
-| `ralphchives-read-get_topic`          | —                      | ✅ prior work   | —             | —                | ✅ read threads     |
-| `ralphchives-read-list_recent_topics` | —                      | —               | —             | —                | ✅ recent context   |
+| Manifest tool name   | Claude Code name                            | Copilot CLI name                      |
+| -------------------- | ------------------------------------------- | ------------------------------------- |
+| `search_ralphchives` | `mcp__ralphchives-read__search_ralphchives` | `ralphchives-read-search_ralphchives` |
+| `get_topic`          | `mcp__ralphchives-read__get_topic`          | `ralphchives-read-get_topic`          |
+| `list_recent_topics` | `mcp__ralphchives-read__list_recent_topics` | `ralphchives-read-list_recent_topics` |

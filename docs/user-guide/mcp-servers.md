@@ -67,9 +67,11 @@ MCP server process (direct internet access): custom on 127.0.0.1:<sidecarPort + 
 - **Agent** runs on `ralph-internal` (internal Docker network, proxied through Squid)
 - **MCP sidecar** bridges both networks — receives tool calls from agent, runs server processes with direct internet
 - Agent sees tools via `mcp-config.json` (URL-only). Credentials live in `gateway.json` inside the sidecar
+- Claude Code, the default CLI, loads it with `--mcp-config` and `--strict-mcp-config`, and names each tool `mcp__<server>__<tool>`; every rendered Claude Code agent lists the allowlisted tools that way in its `tools`. Copilot CLI loads it with `--additional-mcp-config` and names each tool `<server>-<tool>`. See [MCP tool names per CLI](../dev-doc/mcp-tool-naming.md)
 - The tool-filter proxy enforces the manifest's `tools`: other tools are dropped from `tools/list` and calls to them get JSON-RPC error `-32602`
 - Custom servers serve Streamable HTTP themselves; npm servers speak stdio, and the gateway bridges them in process with one persistent session per server, so their state (a browser page) survives between calls
 - The sidecar fails closed: it reports healthy, and the agent container starts, only once every filtered server is reachable through its proxy alone
+- Only container stages reach the sidecar. Host (`mode: "local"`) stages, post-task hooks included, run none of the profile's MCP servers
 
 ## Server Manifests
 
@@ -85,8 +87,10 @@ Each server has a `mcp-server.json` manifest in `shared/mcp-servers/<name>/`.
 | `containerPath`  | `string`                  | No       | Mount path inside sidecar (for `"custom"` type)                                     |
 | `sidecarPort`    | `number`                  | Yes      | Fixed port (1–65535), unique; 9000 and other servers' upstream ports are taken      |
 | `requiredEnv`    | `string[]`                | No       | Env vars that must be in `.env` for the server to work                              |
+| `optionalEnv`    | `string[]`                | No       | Env vars the server reads when they are set in `.env`                               |
 | `tools`          | `string[]`                | npm only | Non-empty tool allowlist: given to the CLI and enforced by the tool-filter proxy    |
 | `requiredConfig` | `string[]`                | No       | Env var names that profiles must provide via `mcpServers.env`. Validated at startup |
+| `initScript`     | `string`                  | No       | Script in the server directory that runs at sidecar startup, before the gateway     |
 
 ## Available Servers
 
@@ -125,4 +129,4 @@ Copilot CLI ships with a built-in GitHub MCP server. The `githubMcpTools` profil
 | `false` (default)                      | Server disabled (`--disable-builtin-mcps` flag)              |
 | `["get_file_contents", "search_code"]` | Only listed tools enabled (`--add-github-mcp-tool` per tool) |
 
-No effect on `cli: "claude"` profiles. Empty array is invalid.
+It affects only stages that run Copilot CLI, in a container or on the host; startup validation rejects a `githubMcpTools` list on a profile where no stage runs `cli: "copilot"`. Empty array is invalid.
