@@ -8,6 +8,7 @@ import { copilotHostEnv } from "../cli/copilot/copilot-host-env";
 import { hostCliEnv } from "../cli/host-env";
 import { CliType, StageMode, type IAgentProfile } from "../config/types";
 import { toErrorMessage } from "../util/error";
+import { locateStages } from "./stages";
 import type { ValidationCollector } from "./types";
 
 /** How long a host tool may take to exit. */
@@ -22,12 +23,9 @@ const VERSION_IN_OUTPUT = /\d+\.\d+\.\d+/;
 /** Each CLI some `mode: "local"` stage runs, variant and post-task hook stages alike, with the profiles running it. */
 function hostStageClis(profiles: readonly IAgentProfile[]): Map<CliType, Set<string>> {
   const usedBy = new Map<CliType, Set<string>>();
-  for (const profile of profiles) {
-    const stages = [...profile.stages, ...profile.postTaskHooks.flatMap((hook) => hook.stages)];
-    for (const { cli, mode } of stages) {
-      if (mode !== StageMode.Local) continue;
-      usedBy.set(cli, (usedBy.get(cli) ?? new Set<string>()).add(`profiles/${profile.id}`));
-    }
+  for (const { stage, variant } of locateStages(profiles)) {
+    if (stage.mode !== StageMode.Local) continue;
+    usedBy.set(stage.cli, (usedBy.get(stage.cli) ?? new Set<string>()).add(`profiles/${variant.id}`));
   }
   return usedBy;
 }

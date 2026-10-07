@@ -611,6 +611,26 @@ describe("validateProfiles", () => {
       ]);
     });
 
+    it("rejects a hook stage role that names the artifact directory the hook's stages share", async () => {
+      // Arrange
+      writeValidProfile("test", {
+        profileJson: profileWithStages([{ agent: "ralph", role: "artifacts", mode: "local" }], {
+          hookStages: [{ agent: "ralph", role: "artifacts", mode: "local" }],
+        }),
+      });
+      const c = collector();
+
+      // Act
+      await validateProfiles(c);
+
+      // Assert
+      expect(c.errors.filter((e) => e.includes("shares between its stages"))).toEqual([
+        expect.stringContaining(
+          'variants[0]/postTaskHooks[0]/stages[0]: role "artifacts" names the directory hook analysis',
+        ),
+      ]);
+    });
+
     it("rejects claude.loadRepoInstructions when no container stage runs claude", async () => {
       // Arrange
       writeValidProfile("test", {

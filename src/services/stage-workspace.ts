@@ -20,11 +20,14 @@ export interface IStageWorkspaceResolver {
    * The workspace of `stage`, a stage of the post-task hook `hookName`: `<outputDir>/hooks/<hook>/<role>` on the
    * host, with an artifact directory all the hook's stages share.
    *
-   * @throws Error when `stage` is not a local stage, its role is unsafe as a directory name, or the task has no
-   *   absolute output dir.
+   * @throws Error when `stage` is not a local stage, its role is unsafe as a directory name or names the shared
+   *   artifact directory, or the task has no absolute output dir.
    */
   forHookStage(ctx: TaskContext, hookName: string, stage: IStageConfig): HostStageWorkspace;
 }
+
+/** The directory under `<outputDir>/hooks/<hook>` that holds the artifacts all the hook's stages share. */
+export const HOOK_ARTIFACTS_DIR = "artifacts";
 
 /** `<outputDir>/hooks/<hookName>`: the output directory of one post-task hook (`hook.outputDir`). */
 export function hookOutputDir(outputDir: string, hookName: string): string {
@@ -71,10 +74,15 @@ export class StageWorkspaceResolver implements IStageWorkspaceResolver {
       throw new Error(`Post-task hook ${hookName} stage ${stage.role} must run in mode "local"`);
     }
     assertSafeName(hookName, "hook name");
+    if (stage.role === HOOK_ARTIFACTS_DIR) {
+      throw new Error(
+        `Post-task hook ${hookName} stage role "${HOOK_ARTIFACTS_DIR}" names the hook's artifact directory`,
+      );
+    }
     const hookDir = hookOutputDir(ctx.outputDir, hookName);
     return this.hostWorkspace(ctx, stage, {
       stageDir: join(hookDir, stage.role),
-      artifactDir: join(hookDir, "artifacts"),
+      artifactDir: join(hookDir, HOOK_ARTIFACTS_DIR),
       extraDirs: [],
     });
   }

@@ -1,12 +1,18 @@
 import { modelPolicyFor } from "../cli/model-catalog";
 import type { ProfileFile } from "../config/schemas";
 import { CliType, StageMode, type IAgentProfile, type IStageConfig } from "../config/types";
+import { HOOK_ARTIFACTS_DIR } from "../services/stage-workspace";
 import { isSafeName } from "../util/safe-id";
 
 /** A resolved stage with its location in profile.json (`variants[0]/postTaskHooks[1]/stages[2]`). */
 export interface LocatedStage {
   readonly stage: IStageConfig;
+  /** The variant the stage belongs to. */
+  readonly variant: IAgentProfile;
+  /** The variant's index in the list {@link locateStages} was given. */
   readonly variantIndex: number;
+  /** The post-task hook the stage belongs to; undefined for a variant stage. */
+  readonly hookName?: string;
   readonly path: string;
 }
 
@@ -22,11 +28,18 @@ const CLAUDE_ONLY_STAGE_OPTIONS = ["effort"] as const;
 /** Every variant and post-task hook stage of `variants`, in profile.json order. */
 export function locateStages(variants: readonly IAgentProfile[]): LocatedStage[] {
   return variants.flatMap((variant, variantIndex) => [
-    ...variant.stages.map((stage, si) => ({ stage, variantIndex, path: `variants[${variantIndex}]/stages[${si}]` })),
+    ...variant.stages.map((stage, si) => ({
+      stage,
+      variant,
+      variantIndex,
+      path: `variants[${variantIndex}]/stages[${si}]`,
+    })),
     ...variant.postTaskHooks.flatMap((hook, hi) =>
       hook.stages.map((stage, si) => ({
         stage,
+        variant,
         variantIndex,
+        hookName: hook.name,
         path: `variants[${variantIndex}]/postTaskHooks[${hi}]/stages[${si}]`,
       })),
     ),
@@ -35,17 +48,24 @@ export function locateStages(variants: readonly IAgentProfile[]): LocatedStage[]
 
 /**
  * Validate the role of every `mode: "local"` stage, variant and post-task hook stages alike: it names the stage's
- * workspace directory on the host, so it must be a safe directory name.
+ * workspace directory on the host, so it must be a safe directory name, and a hook stage's must not name the
+ * artifact directory the hook's stages share.
  *
  * @param variants The profile's variants as `resolveProfileVariants` expands them.
  * @param prefix Location prefix for messages (`profiles/<id>`).
  */
 export function validateHostStageRoles(variants: readonly IAgentProfile[], prefix: string, errors: string[]): void {
-  for (const { stage, path } of locateStages(variants)) {
-    if (stage.mode === StageMode.Local && !isSafeName(stage.role)) {
+  for (const { stage, hookName, path } of locateStages(variants)) {
+    if (stage.mode !== StageMode.Local) continue;
+    if (!isSafeName(stage.role)) {
       errors.push(
         `${prefix}/${path}: role ${JSON.stringify(stage.role)} names the stage's workspace directory on the host\n` +
           "  Use letters, digits, _ and -, starting with a letter or digit",
+      );
+    } else if (hookName !== undefined && stage.role === HOOK_ARTIFACTS_DIR) {
+      errors.push(
+        `${prefix}/${path}: role "${HOOK_ARTIFACTS_DIR}" names the directory hook ${hookName} shares between its stages\n` +
+          "  Choose another role",
       );
     }
   }

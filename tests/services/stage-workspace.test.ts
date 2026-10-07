@@ -171,6 +171,17 @@ describe("StageWorkspaceResolver", () => {
       expect(analyzer.cwd).not.toBe(improver.cwd);
     });
 
+    it("rejects a hook stage whose role names the hook's shared artifact directory", () => {
+      // Act & Assert
+      expect(() =>
+        createResolver().forHookStage(
+          taskContext(),
+          "run-analysis",
+          makeStage({ role: "artifacts", mode: StageMode.Local }),
+        ),
+      ).toThrow('stage role "artifacts" names the hook\'s artifact directory');
+    });
+
     it("rejects a hook stage that would run in the container", () => {
       // Act & Assert
       expect(() => createResolver().forHookStage(taskContext(), "run-analysis", makeStage())).toThrow(

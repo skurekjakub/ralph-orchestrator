@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   ClaudePermissionMode,
   ClaudeSessionIds,
+  ClaudeSettingSources,
   claudeSessionArgs,
   claudeSessionEnv,
   claudeSessionTools,
@@ -11,7 +12,7 @@ import { ReasoningEffort } from "../../../src/config/types";
 describe("claudeSessionArgs", () => {
   const options = {
     agentName: "scientist",
-    settingSources: "user",
+    settingSources: ClaudeSettingSources.User,
     settingsPath: "/ws/claude-settings.json",
     permissionMode: ClaudePermissionMode.DontAsk,
     tools: ["Read", "Edit"],

@@ -26,14 +26,21 @@ export enum ClaudePermissionMode {
   DontAsk = "dontAsk",
 }
 
+/** The setting sources a session loads (`--setting-sources`). */
+export enum ClaudeSettingSources {
+  /** The user settings of the session's private home only. */
+  User = "user",
+  /** The user settings and the target repository's own `.claude/` settings and `CLAUDE.md` files. */
+  UserAndProject = "user,project",
+}
+
 /** How one headless Claude Code session of a stage runs, in a container or on the host. */
 export interface ClaudeSessionOptions {
   /** Frontmatter `name` of the stage's root agent, which `--agent` resolves. */
   readonly agentName: string;
   readonly model?: string;
   readonly effort?: ReasoningEffort;
-  /** The setting sources Claude Code loads (`--setting-sources`): `user`, or `user,project` for the repo's own. */
-  readonly settingSources: string;
+  readonly settingSources: ClaudeSettingSources;
   /** Ralph's settings file (`--settings`): hooks, attribution and, for host sessions, permission rules. */
   readonly settingsPath: string;
   /** The MCP config (`--mcp-config`); without one the session runs no MCP server at all. */

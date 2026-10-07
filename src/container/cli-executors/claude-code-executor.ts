@@ -3,6 +3,7 @@ import { CLAUDE_SESSION_SETTINGS_PATH } from "../../cli/claude/claude-layout";
 import {
   ClaudePermissionMode,
   ClaudeSessionIds,
+  ClaudeSettingSources,
   claudeSessionArgs,
   claudeSessionEnv,
   claudeSessionTools,
@@ -90,7 +91,9 @@ export class ClaudeCodeExecutor implements ICliExecutor {
         agentName: this.agentName,
         model: this.profile.model,
         effort,
-        settingSources: this.profile.claude.loadRepoInstructions ? "user,project" : "user",
+        settingSources: this.profile.claude.loadRepoInstructions
+          ? ClaudeSettingSources.UserAndProject
+          : ClaudeSettingSources.User,
         settingsPath: CLAUDE_SESSION_SETTINGS_PATH,
         mcpConfigPath: MCP_CONFIG_CONTAINER_PATH,
         permissionMode: ClaudePermissionMode.BypassPermissions,

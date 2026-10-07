@@ -1,5 +1,6 @@
 import { credentialPolicyFor } from "../cli/credential-catalog";
 import type { ClaudeAuthMode, CliType, IAgentProfile } from "../config/types";
+import { locateStages } from "./stages";
 import type { ValidationCollector } from "./types";
 
 /**
@@ -19,13 +20,8 @@ export function validateCliCredentials(
   { errors }: ValidationCollector,
 ): void {
   const profileIdsByCli = new Map<CliType, Set<string>>();
-  for (const profile of profiles) {
-    const stages = [...profile.stages, ...profile.postTaskHooks.flatMap((hook) => hook.stages)];
-    for (const { cli } of stages) {
-      const ids = profileIdsByCli.get(cli) ?? new Set<string>();
-      ids.add(profile.id);
-      profileIdsByCli.set(cli, ids);
-    }
+  for (const { stage, variant } of locateStages(profiles)) {
+    profileIdsByCli.set(stage.cli, (profileIdsByCli.get(stage.cli) ?? new Set<string>()).add(variant.id));
   }
 
   for (const [cli, profileIds] of profileIdsByCli) {
