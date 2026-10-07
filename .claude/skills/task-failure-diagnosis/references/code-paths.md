@@ -8,6 +8,7 @@ Use this to locate where a failure happened when the logs alone don't explain it
 Orchestrator.executeOperation()            # src/orchestrator.ts — resolve profile, refresh issue, preflight
   → Orchestrator.runTask()                 # builds taskId = <issueKey>-<startTs>, starts per-task log, ledger → active
     → TaskRunner.run(ctx)                  # src/services/task-runner.ts
+      containerFactory.create()                                       # src/container/container-manager-factory.ts — ContainerManager + compose client in a task scope
       1. prepareProfile   → ProfileSetupService.prepareForTask()     # src/services/profile-setup-service.ts
       2. transitionIssue  → IssueManager.transitionWorkItem() + postStartComment()
       3. prepareContainer → TaskWorkspaceManager.prepare()           # src/services/task-workspace-manager.ts
@@ -34,7 +35,9 @@ Orchestrator.executeOperation()            # src/orchestrator.ts — resolve pro
       7. TaskWorkspaceManager.cleanup()                               # deletes the workspace on success, keeps it otherwise
 ```
 
-The stage executor factory (`src/container/stage-executor-factory.ts`) dispatches on each stage's `cli`: `ClaudeCodeExecutor` or `CopilotExecutor` in the container, `LocalClaudeCodeExecutor` or `LocalCopilotExecutor` on the host. Credentials are checked by startup validation, not by the factory.
+The stage executor factory (`src/container/stage-executor-factory.ts`) dispatches on each stage's `cli`: `ClaudeCodeExecutor` or `CopilotExecutor` in the container, `LocalClaudeCodeExecutor` or `LocalCopilotExecutor` on the host, each resolved in a stage scope of its own. Credentials are checked by startup validation, not by the factory.
+
+`containerFactory.create()` throws `Profile squid.conf not found at …` when startup profile setup never wrote the profile's `.build/squid.conf`. The throw comes before the first phase, so no logs are collected: `Orchestrator.runTask()` logs `Error processing <key>: …`, records the message as the ledger's `reason` and posts it as the error comment, and the safety-net teardown then warns `Fallback teardown failed` with the same message.
 
 ## Where things are logged or decided
 

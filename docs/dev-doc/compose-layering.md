@@ -132,4 +132,4 @@ The workspace's `origin` is the profile's `repoUrl`, which carries no credential
 2. Security: `shared/security/docker-compose.security.yml` (always)
 3. Overlay: `profiles/<id>/.build/docker-compose.overlay.yml` (if exists)
 
-`ComposeClient` receives the resolved paths and uses them as `-f` arguments for all `docker compose` commands.
+The task scope's `composeFiles` registration calls it, and `ComposeClient` takes the result as its `composeFiles` dep and passes each file as an `-f` argument to every `docker compose` command.

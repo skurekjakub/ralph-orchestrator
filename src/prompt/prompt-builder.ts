@@ -32,9 +32,8 @@ export interface BuiltPrompt {
  *
  * @example
  * ```ts
- * const builder = new PromptBuilder(AuditMode.Warn, logger);
- * const { text, audit } = builder.build(issue, context);
- * if (!audit.safe) throw new Error("Blocked");
+ * const builder = new PromptBuilder({ promptAuditConfig: { mode: AuditMode.Block }, logger });
+ * const { text } = builder.build(workItem, context);
  * await executor.run(text);
  * ```
  */
@@ -52,13 +51,13 @@ export class PromptBuilder {
    *
    * Normalizes content, appends trigger-param nudges, and runs the
    * prompt injection auditor. In {@link AuditMode.Warn} mode, findings are
-   * logged but execution continues. In {@link AuditMode.Block} mode, the
-   * result's `audit.safe` will be `false` for critical findings — the caller
-   * is responsible for throwing.
+   * logged but execution continues. In {@link AuditMode.Block} mode, findings
+   * are logged and a critical one throws.
    *
    * @param workItem Work item to process.
    * @param context Pre-fetched issue context (comments, revision handoff).
    * @returns The assembled prompt text and audit result.
+   * @throws Error `Prompt audit blocked execution` in {@link AuditMode.Block} mode when a finding is critical.
    */
   build(workItem: WorkItem, context?: IssueContext): BuiltPrompt {
     const { prompt, sections } = buildPromptWithSections(workItem, context);

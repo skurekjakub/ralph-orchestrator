@@ -3,8 +3,8 @@
  *
  * Registers data source connector/poller factories.
  * Each data source type (e.g. `"jira"`, `"github"`) registers a factory
- * via {@link registerDataSourceFactory}. The awilix cradle calls
- * {@link buildDataSourceMaps} to instantiate connectors from config —
+ * via {@link registerDataSourceFactory}. `createRootContainer` calls
+ * {@link buildDataSourceMaps} to build connectors from config —
  * it never imports connector-specific code directly.
  *
  * To add a new data source:

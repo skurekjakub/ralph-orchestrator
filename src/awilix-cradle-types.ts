@@ -46,12 +46,10 @@ import type { Orchestrator } from "./orchestrator";
 import type { DashboardServer } from "./services/dashboard-server";
 
 /**
- * Typed registration map for the orchestrator-level awilix container.
+ * The cradle of the root awilix container: each key is a registered token, its type what the token resolves to.
  *
- * Each key is a registered token; the value type is what the container resolves
- * when that token is requested. Used as the generic parameter for
- * `createContainer<OrchestratorCradle>()` to get full type inference on
- * `container.cradle` and `container.register()`.
+ * It types `container.cradle` and `resolve`. awilix's `register` accepts any resolvers, so the root registrations are
+ * checked against this type through `Registrations` (`src/di/registration.ts`).
  */
 export interface OrchestratorCradle {
   // Orchestrator checkout
