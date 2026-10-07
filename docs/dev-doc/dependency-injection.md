@@ -91,11 +91,13 @@ interface OrchestratorCradle {
   overlayWriter: IComposeOverlayWriter;
   containerFactory: ContainerManagerFactory;
   workspaceManager: ITaskWorkspaceManager;
+  stageWorkspaces: IStageWorkspaceResolver;
   profileSetup: IProfileSetupService;
   pipelineExecutor: IAgentPipelineExecutor;
 
   // Task runner
   resultWriter: ITaskResultWriter;
+  hookRunner: IPostTaskHookRunner;
   taskRunner: ITaskRunner;
 
   // Optional
@@ -107,7 +109,7 @@ interface OrchestratorCradle {
 
 - config slices with `asValue(...)`
 - service classes with `asClass(X).singleton()`
-- values that need custom construction with `asFunction(...)` — the two loggers (created by `activityLog`), `vcsSourceClient`, `containerFactory` (`buildContainerFactory`), and `heartbeat` (`null` unless the dashboard is enabled)
+- values that need custom construction with `asFunction(...)` — the two loggers (created by `activityLog`), `vcsSourceClient`, `executorFactory` and `stageWorkspaces` (which take the orchestrator checkout, `process.cwd()`), `containerFactory` (`buildContainerFactory`), and `heartbeat` (`null` unless the dashboard is enabled)
 
 The orchestrator and all services destructure their dependencies from the cradle — they never know which classes were instantiated.
 
