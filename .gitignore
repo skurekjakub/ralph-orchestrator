@@ -47,3 +47,6 @@ todo.md
 .ai/followups/*
 !.ai/followups/README.md
 .ai/**/*-handoff.md
+
+# Vitest JSON report written by the RTK test wrapper
+.vitest/
