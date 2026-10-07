@@ -21,10 +21,11 @@ export class JiraClient implements IJiraClient {
 
 1. **Consumers depend on the interface** — never the concrete class. All constructor parameters, `OrchestratorCradle` entries, and function arguments use `IJiraClient`, `ITaskRunner`, etc.
 
-2. **The cradle factory is the composition root for services** — `src/awilix-cradle.ts` imports the concrete service classes (`TaskRunner`, `OperationLedger`, …) and registers them with awilix. Service code imports only the `I`-prefixed interfaces. Code outside the cradle that still constructs concrete classes:
+2. **The cradle factory is the composition root for services** — `src/awilix-cradle.ts` imports the concrete service classes (`TaskRunner`, `OperationLedger`, …) and registers them with awilix. Service code imports only the `I`-prefixed interfaces. Code outside the cradle that constructs concrete classes:
    - `src/index.tsx` wires the top level: `AppStartup`, `Orchestrator` (`new Orchestrator(cradle)`, not registered in the cradle) and `DashboardServer`.
    - Data source connector factories build their own connector and poller (`src/datasource/connectors/jira/factory.ts` creates `JiraClient`, `JiraConnector`, `JiraWorkItemPoller`).
-   - `*Factory` classes and the per-task container factory build their products (`CliExecutorFactory` creates executors; `buildContainerFactory` in `awilix-cradle.ts` creates `ContainerManager` and its collaborators per task).
+   - `createCliRuntimeRegistry(claudeAuth)` (`src/cli/supported-runtimes.ts`) builds the `CliRuntimeRegistry` over `ClaudeCodeRuntime` and `CopilotRuntime`. The cradle registers its result as `cliRuntimes`; `AppStartup` builds its own for startup profile setup, which also builds its own `AgentCatalogProvider`.
+   - `*Factory` classes and the per-task container factory build their products. `CliExecutorFactory` creates the container executors (`ClaudeCodeExecutor`, `CopilotExecutor`) and the host executors (`LocalClaudeCodeExecutor`, `LocalCopilotExecutor`). `buildContainerFactory` in `awilix-cradle.ts` returns a `ContainerManagerFactory`: `create` builds a `ContainerManager` and its per-task collaborators (`ComposeClient`, `ContainerLogCollector`, `ContainerWorkspaceCleaner`, `LogSourceRegistry`, `ContinuationRunner`, `AgentSessionRunner`), `createLocalSession` builds a host stage's executor and session runner for `PostTaskHookRunner`, and `forceDown` tears a profile's stack down without a manager.
 
 3. **No re-exports** — if a consumer needs the interface, import it directly from the file that defines it. Never re-export interfaces through barrel files or intermediaries.
 
@@ -48,7 +49,7 @@ This eliminates `as any` casts in tests and ensures mocks are type-safe.
 
 ## OrchestratorCradle
 
-The `OrchestratorCradle` interface (defined in `src/awilix-cradle-types.ts`) is the type of the awilix container cradle. It contains all config slices and service interfaces (abridged):
+The `OrchestratorCradle` interface (defined in `src/awilix-cradle-types.ts`) is the type of the awilix container cradle. It contains all config slices and service interfaces:
 
 ```typescript
 interface OrchestratorCradle {
@@ -61,6 +62,7 @@ interface OrchestratorCradle {
   promptAuditConfig: IPromptAuditConfig;
   ralphchivesConfig: IRalphchivesConfig;
   enableContinuation: boolean;
+  claudeAuth: ClaudeAuthMode;
 
   // Infrastructure
   activityLog: IActivityLog;
@@ -82,8 +84,10 @@ interface OrchestratorCradle {
   triggerScanner: ITriggerScanner;
 
   // Execution infrastructure
+  cliRuntimes: ICliRuntimeRegistry;
   logCollector: ILogCollector;
   promptBuilder: PromptBuilder;
+  agentCatalogs: IAgentCatalogProvider;
   executorFactory: ICliExecutorFactory;
   templateRenderer: IAgentTemplateRenderer;
   skillRenderer: ISkillTemplateRenderer;
@@ -96,6 +100,8 @@ interface OrchestratorCradle {
   pipelineExecutor: IAgentPipelineExecutor;
 
   // Task runner
+  textRedactor: ITextRedactor;
+  runArtifacts: IRunArtifactsDeriver;
   resultWriter: ITaskResultWriter;
   hookRunner: IPostTaskHookRunner;
   taskRunner: ITaskRunner;
@@ -109,7 +115,7 @@ interface OrchestratorCradle {
 
 - config slices with `asValue(...)`
 - service classes with `asClass(X).singleton()`
-- values that need custom construction with `asFunction(...)` — the two loggers (created by `activityLog`), `vcsSourceClient`, `executorFactory` and `stageWorkspaces` (which take the orchestrator checkout, `process.cwd()`), `containerFactory` (`buildContainerFactory`), and `heartbeat` (`null` unless the dashboard is enabled)
+- values that need custom construction with `asFunction(...)` — the two loggers (created by `activityLog`), `vcsSourceClient`, `cliRuntimes` (`createCliRuntimeRegistry(claudeAuth)`), `agentCatalogs`, `executorFactory`, `stageWorkspaces` and `workspaceManager` (which take the orchestrator checkout, `process.cwd()`, or a path under it), `containerFactory` (`buildContainerFactory`), `textRedactor` (`HookRulesRedactor` with its defaults), and `heartbeat` (`null` unless the dashboard is enabled)
 
 The orchestrator and all services destructure their dependencies from the cradle — they never know which classes were instantiated.
 
@@ -131,7 +137,7 @@ Configuration is split into **config slices** rather than a monolithic `IAppConf
 
 ## Adding a New Service
 
-1. Define the `I`-prefixed interface and the implementation class in the same file. The constructor takes a single destructured deps object whose keys are cradle names.
+1. Define the `I`-prefixed interface and the implementation class in the same file. The constructor takes a single destructured deps object whose keys are cradle names. Depend on interfaces and config slices, never on the whole `IAppConfig`.
 2. Add the interface to `OrchestratorCradle` in `src/awilix-cradle-types.ts` (if other services need it).
 3. Import the concrete class **only** in `awilix-cradle.ts` and register it with `asClass(...).singleton()`.
-4. Add a `createMock<Service>()` factory in `tests/helpers/mocks.ts` returning `Mocked<IService>`.
+4. Tests construct the class directly with mocks, not through the cradle. When more than one suite needs a mock of it, add a `createMock<Service>()` factory in `tests/helpers/mocks.ts` returning `Mocked<IService>`.

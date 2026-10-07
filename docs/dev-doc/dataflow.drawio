@@ -22,7 +22,7 @@
         </mxCell>
 
         <!-- LLM APIs -->
-        <mxCell id="llm" value="&lt;b&gt;LLM APIs&lt;/b&gt;&lt;br&gt;GitHub Copilot / Anthropic" style="shape=cloud;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+        <mxCell id="llm" value="&lt;b&gt;LLM APIs&lt;/b&gt;&lt;br&gt;Anthropic / GitHub Copilot" style="shape=cloud;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
           <mxGeometry x="1320" y="600" width="180" height="100" as="geometry" />
         </mxCell>
 
@@ -73,7 +73,7 @@
           <mxGeometry x="310" y="350" width="130" height="55" as="geometry" />
         </mxCell>
 
-        <mxCell id="phase3" value="&lt;b&gt;3. prepareContainer&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;compose up + setup.sh&lt;br&gt;log sources + hooks&lt;br&gt;(git exclude + sync)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+        <mxCell id="phase3" value="&lt;b&gt;3. prepareContainer&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;compose up + setup.sh&lt;br&gt;log sources + hooks&lt;br&gt;(task workspace clone)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="470" y="350" width="130" height="55" as="geometry" />
         </mxCell>
 
@@ -82,7 +82,7 @@
         </mxCell>
 
         <!-- TaskResultWriter -->
-        <mxCell id="resultwriter" value="&lt;b&gt;TaskResultWriter&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;log collection&lt;br&gt;JIRA attachment&lt;br&gt;execution summary&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+        <mxCell id="resultwriter" value="&lt;b&gt;TaskResultWriter&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;logs + telemetry&lt;br&gt;transcript → JIRA&lt;br&gt;execution summary&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="760" y="350" width="120" height="55" as="geometry" />
         </mxCell>
 
@@ -92,7 +92,7 @@
         </mxCell>
 
         <!-- Profile Setup (startup) -->
-        <mxCell id="profilesetup" value="&lt;b&gt;ProfileSetup&lt;/b&gt; (startup)&lt;br&gt;&lt;font size=&quot;1&quot;&gt;mcp-config.json (URL-only)&lt;br&gt;gateway.json (secrets)&lt;br&gt;compose overlay&lt;br&gt;squid.conf (baseline + allowlistDomains)&lt;br&gt;copilot-settings.json&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+        <mxCell id="profilesetup" value="&lt;b&gt;ProfileSetup&lt;/b&gt; (startup)&lt;br&gt;&lt;font size=&quot;1&quot;&gt;mcp-config.json (URL-only)&lt;br&gt;gateway.json (secrets)&lt;br&gt;compose overlay&lt;br&gt;squid.conf (baseline + allowlistDomains)&lt;br&gt;per-CLI settings files&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="160" y="440" width="160" height="85" as="geometry" />
         </mxCell>
 
@@ -118,7 +118,7 @@
         </mxCell>
 
         <!-- Agent Container -->
-        <mxCell id="agent" value="&lt;b&gt;app&lt;/b&gt; (Agent Container)&lt;br&gt;&lt;hr&gt;&lt;font size=&quot;1&quot;&gt;• Copilot CLI or Claude Code CLI&lt;br&gt;• reads mcp-config.json (URL-only)&lt;br&gt;• reads rendered agent templates&lt;br&gt;• HTTPS_PROXY=egress-proxy:3128&lt;br&gt;• cap_drop: ALL, no-new-privileges&lt;br&gt;• no Docker socket, no sudo&lt;br&gt;• 8GB RAM, 4 CPU, 500 PIDs&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#333333;fontSize=11;verticalAlign=top;strokeWidth=2;" vertex="1" parent="1">
+        <mxCell id="agent" value="&lt;b&gt;app&lt;/b&gt; (Agent Container)&lt;br&gt;&lt;hr&gt;&lt;font size=&quot;1&quot;&gt;• Claude Code CLI or Copilot CLI&lt;br&gt;• reads mcp-config.json (URL-only)&lt;br&gt;• reads rendered agent templates&lt;br&gt;• HTTPS_PROXY=egress-proxy:3128&lt;br&gt;• cap_drop: ALL, no-new-privileges&lt;br&gt;• no Docker socket, no sudo&lt;br&gt;• 8GB RAM, 4 CPU, 500 PIDs&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#333333;fontSize=11;verticalAlign=top;strokeWidth=2;" vertex="1" parent="1">
           <mxGeometry x="175" y="655" width="230" height="150" as="geometry" />
         </mxCell>
 
@@ -138,12 +138,12 @@
         </mxCell>
 
         <!-- ===== OUTPUT / STORAGE ===== -->
-        <mxCell id="output" value="&lt;b&gt;output/logs/&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;• &amp;lt;key&amp;gt;-&amp;lt;ts&amp;gt;/ per-task dir&lt;br&gt;• audit.jsonl, transcript.md&lt;br&gt;• proxy.log, sidecar.log&lt;br&gt;• summary.json&lt;br&gt;• activity-YYYY-MM-DD.log&lt;br&gt;• history/&amp;lt;dataSource&amp;gt;/&amp;lt;key&amp;gt;.json (ledger)&lt;/font&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;verticalAlign=middle;" vertex="1" parent="1">
+        <mxCell id="output" value="&lt;b&gt;output/logs/&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;• &amp;lt;key&amp;gt;-&amp;lt;ts&amp;gt;/ per-task dir&lt;br&gt;• audit.jsonl, transcript.md, telemetry&lt;br&gt;• proxy.log, sidecar.log&lt;br&gt;• summary.json&lt;br&gt;• activity-YYYY-MM-DD.log&lt;br&gt;• history/&amp;lt;dataSource&amp;gt;/&amp;lt;key&amp;gt;.json (ledger)&lt;/font&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;verticalAlign=middle;" vertex="1" parent="1">
           <mxGeometry x="1050" y="120" width="170" height="150" as="geometry" />
         </mxCell>
 
         <!-- .build directory -->
-        <mxCell id="builddir" value="&lt;b&gt;profiles/&amp;lt;id&amp;gt;/.build/&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;• gateway.json (JIT-mutated)&lt;br&gt;• mcp-config.json (URL-only)&lt;br&gt;• docker-compose.overlay.yml&lt;br&gt;• squid.conf, copilot-settings.json&lt;br&gt;• rendered agent templates&lt;/font&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;verticalAlign=middle;" vertex="1" parent="1">
+        <mxCell id="builddir" value="&lt;b&gt;profiles/&amp;lt;id&amp;gt;/.build/&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;• gateway.json (JIT-mutated)&lt;br&gt;• mcp-config.json (URL-only)&lt;br&gt;• docker-compose.overlay.yml&lt;br&gt;• squid.conf, per-CLI settings files&lt;br&gt;• rendered agent templates&lt;/font&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;verticalAlign=middle;" vertex="1" parent="1">
           <mxGeometry x="1050" y="310" width="180" height="140" as="geometry" />
         </mxCell>
 
