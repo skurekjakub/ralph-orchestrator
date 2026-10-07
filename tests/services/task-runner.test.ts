@@ -11,7 +11,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { TaskRunner } from "../../src/services/task-runner";
 import { TaskStatus, type ContainerManagerFactory } from "../../src/container/types";
-import { StageMode } from "../../src/config/types";
+import { CliType, StageMode } from "../../src/config/types";
+import { COPILOT_CONTAINER_LAYOUT } from "../../src/cli/copilot/copilot-layout";
 import { TransitionPhase } from "../../src/orchestrator-types";
 import type { IContainerManager } from "../../src/container/manager";
 import { makeWorkItem, makeProfile, makeResult, makeStage, makeTaskContext, makeConfig } from "../helpers/factories";
@@ -47,7 +48,7 @@ function createMockFactory(container: IContainerManager): ContainerManagerFactor
     forceDown: vi.fn().mockResolvedValue(undefined),
     createLocalSession: vi.fn().mockReturnValue({
       executor: {
-        paths: { configDir: "", writableDirs: [], transcriptPath: "", logDir: "" },
+        cli: CliType.Copilot,
         run: vi.fn(),
         continueSession: vi.fn(),
         killActive: vi.fn(),
@@ -112,6 +113,31 @@ describe("TaskRunner", () => {
     expect(resultWriter.collectResults).toHaveBeenCalled();
     expect(result.status).toBe(TaskStatus.Completed);
     expect(result.taskId).toBe(KEY);
+  });
+
+  it("prepares the config directory of every CLI the container stages run", async () => {
+    // Arrange
+    const { container, spies } = createMockContainer();
+    const claudeLayout = { ...COPILOT_CONTAINER_LAYOUT, configDir: "/workspace/.ralph/claude", writableDirs: ["/w/a"] };
+    const withTwoClis = { ...container, layouts: [claudeLayout, COPILOT_CONTAINER_LAYOUT] };
+    const runner = new TaskRunner({
+      logger: createMockLogger(),
+      containerFactory: createMockFactory(withTwoClis),
+      resources: createMockResources(),
+      issueManager: createMockIssueManager(),
+      resultWriter: createMockResultWriter(),
+      profileSetup: createMockProfileSetupService(),
+      pipelineExecutor: createMockPipelineExecutor(),
+    });
+
+    // Act
+    await runner.run(makeTaskContext());
+
+    // Assert
+    expect(spies.prepareConfigDir.mock.calls).toEqual([
+      ["/workspace/.ralph/claude", ["/w/a"]],
+      [COPILOT_CONTAINER_LAYOUT.configDir, COPILOT_CONTAINER_LAYOUT.writableDirs],
+    ]);
   });
 
   it("calls execution order: renderTemplates → start → checkPrerequisites → clean → registerLogs → setup → execute → collectResults", async () => {
@@ -664,7 +690,7 @@ describe("TaskRunner", () => {
 
       vi.mocked(factory.createLocalSession).mockReturnValueOnce({
         executor: {
-          paths: { configDir: "", writableDirs: [], transcriptPath: "", logDir: "" },
+          cli: CliType.Copilot,
           run: vi.fn(),
           continueSession: vi.fn(),
           killActive: vi.fn(),
@@ -712,7 +738,7 @@ describe("TaskRunner", () => {
 
       vi.mocked(factory.createLocalSession).mockReturnValueOnce({
         executor: {
-          paths: { configDir: "", writableDirs: [], transcriptPath: "", logDir: "" },
+          cli: CliType.Copilot,
           run: vi.fn(),
           continueSession: vi.fn(),
           killActive: vi.fn(),
@@ -757,7 +783,7 @@ describe("TaskRunner", () => {
 
       vi.mocked(factory.createLocalSession).mockReturnValueOnce({
         executor: {
-          paths: { configDir: "", writableDirs: [], transcriptPath: "", logDir: "" },
+          cli: CliType.Copilot,
           run: vi.fn(),
           continueSession: vi.fn(),
           killActive: vi.fn(),
@@ -822,7 +848,7 @@ describe("TaskRunner", () => {
       const factory = createMockFactory(container);
       vi.mocked(factory.createLocalSession).mockReturnValue({
         executor: {
-          paths: { configDir: "", writableDirs: [], transcriptPath: "", logDir: "" },
+          cli: CliType.Copilot,
           run: vi.fn(),
           continueSession: vi.fn(),
           killActive: vi.fn(),

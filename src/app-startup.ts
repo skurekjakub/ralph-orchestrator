@@ -1,5 +1,6 @@
 import type { Logger } from "./logger";
 import { resolveAllProfileSetup } from "./container/setup/profile-setup";
+import { createCliRuntimeRegistry } from "./cli/supported-runtimes";
 import { buildCustomMcpServers } from "./container/setup/mcp-builder";
 import { loadConfig } from "./config/loader";
 import type { IAppConfig } from "./config/types";
@@ -30,7 +31,7 @@ export interface AppStartupDeps {
   loadConfig(): IAppConfig;
   loadDataSourceConnectors(connectors: readonly DataSourceConnectorModule[], logger: Logger): Promise<void>;
   buildMcpServers(logger: Logger): Promise<void>;
-  resolveMcpConfigs(logger?: Logger): void;
+  resolveMcpConfigs(config: IAppConfig, logger: Logger): Promise<void>;
   startRalphchives(logger: Logger): Promise<void>;
 }
 
@@ -84,7 +85,8 @@ function defaultDeps(): AppStartupDeps {
     loadConfig,
     loadDataSourceConnectors: loadDataSourceConnectorModules,
     buildMcpServers: buildCustomMcpServers,
-    resolveMcpConfigs: (logger) => resolveAllProfileSetup(undefined, logger),
+    resolveMcpConfigs: (config, logger) =>
+      resolveAllProfileSetup({ cliRuntimes: createCliRuntimeRegistry(config.claudeAuth), logger }),
     startRalphchives: startRalphchivesStack,
   };
 }
@@ -127,7 +129,7 @@ export class AppStartup implements IAppStartup {
       await this.deps.startRalphchives(log);
     }
 
-    await this.initializeProfiles(log);
+    await this.initializeProfiles(config, log);
     return config;
   }
 
@@ -137,11 +139,11 @@ export class AppStartup implements IAppStartup {
    * Agent template rendering is deferred to task execution time (JIT)
    * so templates have access to runtime context like `isRevision`.
    */
-  private async initializeProfiles(logger: Logger): Promise<void> {
+  private async initializeProfiles(config: IAppConfig, logger: Logger): Promise<void> {
     await this.deps.buildMcpServers(logger);
     logger.info("Built custom MCP servers");
 
-    this.deps.resolveMcpConfigs(logger);
+    await this.deps.resolveMcpConfigs(config, logger);
     logger.info("Resolved MCP server configs");
   }
 }

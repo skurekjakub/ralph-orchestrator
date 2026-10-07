@@ -1,110 +1,133 @@
-import { mkdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { randomUUID } from "node:crypto";
 import type { ResultPromise } from "execa";
-import type { IAgentProfile } from "../../config/types";
-import type { ContainerExecResult, CliPaths } from "../types";
+import { CLAUDE_CONTAINER_BINARY } from "../../cli/claude/claude-layout";
+import { CLAUDE_BUILTIN_TOOLS, CLAUDE_SUBAGENT_TOOL } from "../../cli/claude/claude-tools";
+import type { ICliRuntime } from "../../cli/cli-runtime";
+import { CliType, type IAgentProfile, type IStageConfig } from "../../config/types";
 import type { Logger } from "../../logger";
+import type { ICliExecutor } from "../cli-executor-factory";
 import type { IComposeClient } from "../compose-client";
-import { ICliExecutor } from "../cli-executor-factory";
-import { executeCliCommand, killActiveProcess } from "./shared-exec";
+import { MCP_CONFIG_CONTAINER_PATH } from "../setup/compose-overlay";
+import type { ContainerExecResult } from "../types";
+import { executeCliCommand, killActiveProcess, writePromptFile } from "./shared-exec";
+
+/** Permission mode of container sessions: the container, egress proxy, sidecar tool filter, managed deny rules and hooks are the boundary. */
+const CONTAINER_PERMISSION_MODE = "bypassPermissions";
+
+/** Dependencies of one stage's Claude Code executor. */
+export interface ClaudeCodeExecutorDeps {
+  readonly compose: IComposeClient;
+  /** The variant with the stage's overrides applied (`deriveStageProfile`): repo path, model, timeout. */
+  readonly profile: IAgentProfile;
+  /** The stage: effort, budget cap and whether the result gate is on. */
+  readonly stage: IStageConfig;
+  /** Frontmatter `name` of the stage's root agent, which `--agent` resolves. */
+  readonly agentName: string;
+  /** Length of the longest subagent chain below the stage's root agent; 0 when it spawns none. */
+  readonly subagentDepth: number;
+  /** The Claude Code runtime: container layout and output decoder. */
+  readonly runtime: ICliRuntime;
+  readonly logger: Logger;
+}
 
 /**
- * Executes the Claude Code CLI inside a running container.
+ * Runs one pipeline stage with Claude Code inside the running `app` container.
  *
- * Invocation: `claude -p <prompt> --dangerously-skip-permissions [--model <model>]`
- *
- * Handles:
- * - Building the `docker compose exec` command with Claude Code flags
- * - Streaming stdout/stderr to the container logger in real-time
- * - Timeout enforcement and error recovery
- * - Active process tracking for graceful shutdown
+ * The CLI runs headless (`-p`) as the `vscode` user, takes its prompt on stdin from the host prompt file and
+ * prints stream-json, which the runtime's decoder turns into log lines and the agent's text. Each `run`
+ * starts a session with a fresh id; `continueSession` resumes that exact session. The `--tools` list caps the
+ * built-in tools, adding `Agent` and the spawn depth only for a stage root with subagents; the agents'
+ * frontmatter narrows the tools per agent. With `requireResultBlock`, the managed `Stop` hook keeps the
+ * session going until the agent prints its result block.
  */
 export class ClaudeCodeExecutor implements ICliExecutor {
-  /** Prompt file path inside the container — avoids passing large prompts as CLI args. */
-  static readonly PROMPT_FILE = "/workspace/.ralph/prompt.txt";
-
+  readonly cli = CliType.Claude;
   activeProcess: ResultPromise | null = null;
 
-  /** Filesystem paths specific to the Claude Code CLI. */
-  readonly paths: CliPaths = {
-    configDir: "/workspace/.ralph",
-    writableDirs: ["/workspace/.ralph/logs", "/workspace/.ralph/logs/cli-debug", "/workspace/.ralph/session-state"],
-    transcriptPath: "/workspace/.ralph/logs/session-transcript.md",
-    logDir: "/workspace/.ralph/logs/cli-debug",
-  };
+  private readonly compose: IComposeClient;
+  private readonly profile: IAgentProfile;
+  private readonly stage: IStageConfig;
+  private readonly agentName: string;
+  private readonly subagentDepth: number;
+  private readonly runtime: ICliRuntime;
+  private readonly logger: Logger;
+  private sessionId: string | undefined;
 
-  constructor(
-    private readonly compose: IComposeClient,
-    private readonly profile: IAgentProfile,
-    private readonly containerLogger: Logger,
-  ) {}
+  constructor({ compose, profile, stage, agentName, subagentDepth, runtime, logger }: ClaudeCodeExecutorDeps) {
+    this.compose = compose;
+    this.profile = profile;
+    this.stage = stage;
+    this.agentName = agentName;
+    this.subagentDepth = subagentDepth;
+    this.runtime = runtime;
+    this.logger = logger;
+  }
 
   /** Kill the active claude process if one is running. */
   killActive(): void {
     killActiveProcess(this);
   }
 
-  /**
-   * Execute Claude Code CLI with the given prompt.
-   *
-   * Streams stdout/stderr to the container logger with `[claude]` prefix.
-   *
-   * @param prompt The fully-built prompt string to pass to Claude Code.
-   * @returns Raw {@link ContainerExecResult} with exit code and captured output.
-   */
+  /** Start a new session with `prompt`. */
   async run(prompt: string): Promise<ContainerExecResult> {
-    return this.exec(["-p"], prompt);
+    this.sessionId = randomUUID();
+    return this.exec(prompt, ["--session-id", this.sessionId]);
   }
 
-  /**
-   * Resume the previous Claude Code session with a continuation prompt.
-   *
-   * Uses `--continue` to resume the last session, preserving conversation context.
-   */
+  /** Resume the session `run` started with `prompt`, or start one when there is none. */
   async continueSession(prompt: string): Promise<ContainerExecResult> {
-    return this.exec(["--continue", "-p"], prompt);
+    if (this.sessionId === undefined) return this.run(prompt);
+    return this.exec(prompt, ["--resume", this.sessionId]);
   }
 
-  /**
-   * Write the prompt to a file on the host, visible inside the container via
-   * the target-repo bind mount.
-   */
-  private writePromptFile(prompt: string): void {
-    const dir = join(this.profile.repoPath, ".ralph");
-    mkdirSync(dir, { recursive: true });
-    writeFileSync(join(dir, "prompt.txt"), prompt, "utf-8");
-  }
+  private async exec(prompt: string, sessionArgs: readonly string[]): Promise<ContainerExecResult> {
+    const promptPath = writePromptFile(this.profile.repoPath, prompt);
+    const { model } = this.profile;
+    const { effort, maxBudgetUsd, requireResultBlock } = this.stage;
+    const spawnsSubagents = this.subagentDepth > 0;
+    const tools = spawnsSubagents ? [...CLAUDE_BUILTIN_TOOLS, CLAUDE_SUBAGENT_TOOL] : [...CLAUDE_BUILTIN_TOOLS];
 
-  /**
-   * Internal: build and execute a Claude Code command with shared flags.
-   *
-   * The prompt is written to a file and read inside the container via
-   * `$(cat /workspace/.ralph/prompt.txt)`.
-   *
-   * @param promptFlags Flag(s) preceding the prompt value (e.g. `["-p"]` or `["--continue", "-p"]`).
-   * @param prompt The full prompt text.
-   */
-  private async exec(promptFlags: string[], prompt: string): Promise<ContainerExecResult> {
-    this.writePromptFile(prompt);
-
-    const cliArgs = [
-      "claude",
-      ...promptFlags,
-      `"$(cat ${ClaudeCodeExecutor.PROMPT_FILE})"`,
-      "--dangerously-skip-permissions",
+    const args = [
+      "-T",
+      "--user",
+      "vscode",
+      "-e",
+      `RALPH_REQUIRE_RESULT_BLOCK=${requireResultBlock ? "1" : "0"}`,
+      ...(spawnsSubagents ? ["-e", `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH=${this.subagentDepth}`] : []),
+      "app",
+      CLAUDE_CONTAINER_BINARY,
+      "-p",
+      "--output-format",
+      "stream-json",
+      "--verbose",
+      "--agent",
+      this.agentName,
+      ...(model === undefined ? [] : ["--model", model]),
+      ...(effort === undefined ? [] : ["--effort", effort]),
+      ...(maxBudgetUsd === undefined ? [] : ["--max-budget-usd", String(maxBudgetUsd)]),
+      "--setting-sources",
+      this.profile.claude.loadRepoInstructions ? "user,project" : "user",
       "--mcp-config",
-      "/workspace/.ralph/mcp-config.json",
+      MCP_CONFIG_CONTAINER_PATH,
       "--strict-mcp-config",
+      "--permission-mode",
+      CONTAINER_PERMISSION_MODE,
+      "--tools",
+      tools.join(","),
+      ...sessionArgs,
+      "--debug-file",
+      this.runtime.layout.debugLog.path,
     ];
 
-    if (this.profile.model) {
-      cliArgs.push("--model", this.profile.model);
-    }
-
-    const shellCmd = `exec ${cliArgs.join(" ")}`;
-
-    const args = ["--user", "vscode", "app", "sh", "-c", shellCmd];
-
-    return executeCliCommand(this.compose, args, this.profile.timeoutMs, this.containerLogger, "claude", this);
+    return executeCliCommand({
+      compose: this.compose,
+      args,
+      timeoutMs: this.profile.timeoutMs,
+      logger: this.logger,
+      tag: "claude",
+      tracker: this,
+      decoder: this.runtime.createOutputDecoder(),
+      inputFile: promptPath,
+    });
   }
 }

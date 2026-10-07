@@ -177,7 +177,8 @@ describe("validateProfiles", () => {
     expect(c.errors.some((e) => e.includes("repo path does not exist"))).toBe(true);
   });
 
-  it("errors when cli is set to claude", () => {
+  it("accepts cli claude for a profile whose stages run in the container", () => {
+    // Arrange
     writeValidProfile("test", {
       profileJson: {
         repo: tempDir,
@@ -188,8 +189,12 @@ describe("validateProfiles", () => {
       },
     });
     const c = collector();
+
+    // Act
     validateProfiles(c);
-    expect(c.errors.some((e) => e.includes("claude") && e.includes("not supported"))).toBe(true);
+
+    // Assert
+    expect(c.errors.filter((e) => e.includes("claude"))).toEqual([]);
   });
 
   it("errors when docker-compose.yml is missing", () => {
@@ -500,7 +505,7 @@ describe("validateProfiles", () => {
   });
 
   describe("stage cli", () => {
-    it("rejects claude once per profile, naming every stage that runs it", () => {
+    it("accepts claude for a container stage but rejects it for a host stage", () => {
       // Arrange
       writeValidProfile("test", {
         profileJson: profileWithStages([{ agent: "ralph", role: "primary", cli: "claude" }], {
@@ -514,10 +519,47 @@ describe("validateProfiles", () => {
 
       // Assert
       const claudeErrors = c.errors.filter((e) => e.includes('cli "claude"'));
-      expect(claudeErrors).toHaveLength(1);
-      expect(claudeErrors[0]).toContain("not supported yet");
-      expect(claudeErrors[0]).toContain("variants[0]/stages[0]");
-      expect(claudeErrors[0]).toContain("variants[0]/postTaskHooks[0]/stages[0]");
+      expect(claudeErrors).toEqual([
+        expect.stringContaining(
+          'variants[0]/postTaskHooks[0]/stages[0]: runs cli "claude" in mode "local", but host stages run only Copilot CLI',
+        ),
+      ]);
+    });
+
+    it("rejects claude.loadRepoInstructions when no container stage runs claude", () => {
+      // Arrange
+      writeValidProfile("test", {
+        profileJson: {
+          ...profileWithStages([{ agent: "ralph", role: "primary", cli: "copilot" }]),
+          claude: { loadRepoInstructions: true },
+        },
+      });
+      const c = collector();
+
+      // Act
+      validateProfiles(c);
+
+      // Assert
+      expect(c.errors).toContainEqual(
+        expect.stringContaining("claude.loadRepoInstructions only affects container stages"),
+      );
+    });
+
+    it("accepts claude.loadRepoInstructions for a profile with a claude container stage", () => {
+      // Arrange
+      writeValidProfile("test", {
+        profileJson: {
+          ...profileWithStages([{ agent: "ralph", role: "primary", cli: "claude" }]),
+          claude: { loadRepoInstructions: true },
+        },
+      });
+      const c = collector();
+
+      // Act
+      validateProfiles(c);
+
+      // Assert
+      expect(c.errors.filter((e) => e.includes("loadRepoInstructions"))).toEqual([]);
     });
 
     it("reports an unknown stage cli", () => {

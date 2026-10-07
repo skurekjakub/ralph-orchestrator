@@ -101,6 +101,21 @@ export interface IProfileMatch {
   readonly revisionStatuses: readonly string[];
 }
 
+/** Claude Code options of a profile, from `claude` in profile.json. */
+export interface IClaudeProfileConfig {
+  /**
+   * Load the target repo's own CLAUDE.md files and `.claude/` project settings into container sessions.
+   * When false, Claude Code reads only the orchestrator's settings, agents and skills.
+   */
+  readonly loadRepoInstructions: boolean;
+}
+
+/** Resource files auto-discovered in `profiles/<id>/resources/`, from `resources` in profile.json. */
+export interface IResourceMountConfig {
+  /** Container path prefix, relative to `/workspace`, the resource files are mounted under. */
+  readonly mountBase: string;
+}
+
 /** Optional JIRA transition to execute before or after agent work. Empty = no transition (observer). */
 export interface IAgentTransition {
   readonly targetStatus?: string;
@@ -152,6 +167,12 @@ export interface IAgentProfile {
    * - `["get_file_contents", ...]`: enable only the listed tools (`--add-github-mcp-tool`)
    */
   readonly githubMcpTools: false | readonly string[];
+  /** Claude Code options for the profile's container stages that run cli "claude". */
+  readonly claude: IClaudeProfileConfig;
+  /** Domains the profile's agent container may reach through the egress proxy, besides those its CLIs need. */
+  readonly allowlistDomains: readonly string[];
+  /** Resource files mounted read-only into the agent container; absent when the profile mounts none. */
+  readonly resources?: IResourceMountConfig;
   readonly match: IProfileMatch;
   /** JIRA transition to execute before agent work. Empty = no transition. */
   readonly beforeAgent: IAgentTransition;

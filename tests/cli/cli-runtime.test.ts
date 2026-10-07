@@ -1,31 +1,33 @@
 import { describe, it, expect } from "vitest";
-import { CliRuntimeRegistry, CliDebugLogKind, type ICliRuntime } from "../../src/cli/cli-runtime";
-import { CLAUDE_MODEL_POLICY, COPILOT_MODEL_POLICY } from "../../src/cli/model-catalog";
+import { CliRuntimeRegistry, mergeComposeContributions } from "../../src/cli/cli-runtime";
 import { CliType } from "../../src/config/types";
+import { createMockCliRuntime } from "../helpers/mocks";
 
-/** A runtime whose layout paths are tagged with the CLI name, so tests can tell runtimes apart. */
-function fakeRuntime(cli: CliType): ICliRuntime {
-  return {
-    cli,
-    layout: {
-      configDir: `/cfg/${cli}`,
-      writableDirs: [],
-      agentsDir: `/agents/${cli}`,
-      skillsDir: `/skills/${cli}`,
-      debugLog: { kind: CliDebugLogKind.File, path: `/log/${cli}` },
-      transcriptPath: null,
-    },
-    models: cli === CliType.Claude ? CLAUDE_MODEL_POLICY : COPILOT_MODEL_POLICY,
-    credentials: { required: [] },
-  };
-}
+describe("mergeComposeContributions", () => {
+  it("lists each volume once, in order, and merges the environments", () => {
+    // Arrange
+    const claude = { volumes: ["/a:/x:ro", "/b:/y:ro"], env: { A: "1" } };
+    const copilot = { volumes: ["/b:/y:ro", "/c:/z:ro"], env: { B: "2" } };
+
+    // Act
+    const merged = mergeComposeContributions([claude, copilot]);
+
+    // Assert
+    expect(merged).toEqual({ volumes: ["/a:/x:ro", "/b:/y:ro", "/c:/z:ro"], env: { A: "1", B: "2" } });
+  });
+
+  it("is empty for no contributions", () => {
+    // Act & Assert
+    expect(mergeComposeContributions([])).toEqual({ volumes: [], env: {} });
+  });
+});
 
 describe("CliRuntimeRegistry", () => {
   describe("get", () => {
     it("returns the runtime registered for the CLI", () => {
       // Arrange
-      const claude = fakeRuntime(CliType.Claude);
-      const copilot = fakeRuntime(CliType.Copilot);
+      const claude = createMockCliRuntime(CliType.Claude);
+      const copilot = createMockCliRuntime(CliType.Copilot);
       const registry = new CliRuntimeRegistry({ runtimes: [claude, copilot] });
 
       // Act & Assert
@@ -34,7 +36,7 @@ describe("CliRuntimeRegistry", () => {
 
     it("throws for a CLI without a registered runtime", () => {
       // Arrange
-      const registry = new CliRuntimeRegistry({ runtimes: [fakeRuntime(CliType.Copilot)] });
+      const registry = new CliRuntimeRegistry({ runtimes: [createMockCliRuntime(CliType.Copilot)] });
 
       // Act & Assert
       expect(() => registry.get(CliType.Claude)).toThrow('No CLI runtime registered for cli "claude"');
@@ -44,8 +46,8 @@ describe("CliRuntimeRegistry", () => {
   describe("forClis", () => {
     it("returns each requested runtime once, in registration order", () => {
       // Arrange
-      const claude = fakeRuntime(CliType.Claude);
-      const copilot = fakeRuntime(CliType.Copilot);
+      const claude = createMockCliRuntime(CliType.Claude);
+      const copilot = createMockCliRuntime(CliType.Copilot);
       const registry = new CliRuntimeRegistry({ runtimes: [claude, copilot] });
 
       // Act
@@ -57,7 +59,7 @@ describe("CliRuntimeRegistry", () => {
 
     it("returns no runtimes for no CLIs", () => {
       // Arrange
-      const registry = new CliRuntimeRegistry({ runtimes: [fakeRuntime(CliType.Copilot)] });
+      const registry = new CliRuntimeRegistry({ runtimes: [createMockCliRuntime(CliType.Copilot)] });
 
       // Act & Assert
       expect(registry.forClis([])).toEqual([]);
@@ -65,7 +67,7 @@ describe("CliRuntimeRegistry", () => {
 
     it("throws when a requested CLI has no registered runtime", () => {
       // Arrange
-      const registry = new CliRuntimeRegistry({ runtimes: [fakeRuntime(CliType.Copilot)] });
+      const registry = new CliRuntimeRegistry({ runtimes: [createMockCliRuntime(CliType.Copilot)] });
 
       // Act & Assert
       expect(() => registry.forClis([CliType.Copilot, CliType.Claude])).toThrow(
@@ -77,7 +79,10 @@ describe("CliRuntimeRegistry", () => {
   it("rejects two runtimes for the same CLI", () => {
     // Act & Assert
     expect(
-      () => new CliRuntimeRegistry({ runtimes: [fakeRuntime(CliType.Copilot), fakeRuntime(CliType.Copilot)] }),
+      () =>
+        new CliRuntimeRegistry({
+          runtimes: [createMockCliRuntime(CliType.Copilot), createMockCliRuntime(CliType.Copilot)],
+        }),
     ).toThrow('Two CLI runtimes registered for cli "copilot"');
   });
 });

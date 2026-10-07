@@ -65,7 +65,7 @@ export class AgentPipelineExecutor implements IAgentPipelineExecutor {
         });
       }
 
-      const executor = container.createExecutorForStage(stage);
+      const executor = await container.createExecutorForStage(stage);
 
       const timeoutSec = Math.round((stage.timeoutMs ?? ctx.profile.timeoutMs) / 1000);
       this.logger.info(`${stageLabel}: executing ${stage.agent} for ${ctx.workItem.id} (timeout: ${timeoutSec}s)...`);

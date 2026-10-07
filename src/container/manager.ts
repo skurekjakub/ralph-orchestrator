@@ -1,10 +1,11 @@
 import { execa } from "execa";
 import { toErrorMessage } from "../util/error";
-import { appendFileSync } from "node:fs";
+import { appendFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
+import type { CliContainerLayout, ICliRuntime, ICliRuntimeRegistry } from "../cli/cli-runtime";
 import { StageMode, type IAgentProfile, type IStageConfig } from "../config/types";
 import type { WorkItem } from "../datasource/types";
-import { deriveStageProfile, type RalphResult, type CliPaths } from "./types";
+import { deriveStageProfile, type RalphResult } from "./types";
 import type { Logger } from "../logger";
 import type { IssueContext } from "../prompt/prompt";
 import type { IComposeClient } from "./compose-client";
@@ -14,6 +15,7 @@ import type { IContainerLogCollector, CollectedLog } from "./log-collector";
 import type { IContainerWorkspaceCleaner } from "./workspace-cleaner";
 import type { ILogSourceRegistry } from "./log-source-registry";
 import type { IAgentSessionRunner } from "./agent-session-runner";
+import { hostWorkspacePath } from "./workspace-paths";
 
 /** Public contract for log collection on a container. */
 export interface IContainerLogs {
@@ -47,20 +49,20 @@ export interface IContainerManager {
   execInSidecar(args: string[]): Promise<{ stdout: string; stderr: string }>;
   /** Register standard log sources for a task and start streaming. */
   registerLogSources(taskId: string, workItemId: string, outputDir: string): void;
-  /** Execute the agent CLI inside the running container. */
+  /** Execute the variant's first stage. */
   execute(workItem: WorkItem, context?: IssueContext): Promise<RalphResult>;
   /** Execute with a specific CLI executor (for per-stage agent switching). */
   executeWithExecutor(executor: ICliExecutor, workItem: WorkItem, context?: IssueContext): Promise<RalphResult>;
-  /** Create a CLI executor configured for a specific pipeline stage. */
-  createExecutorForStage(stage: IStageConfig): ICliExecutor;
+  /** Create the executor of a pipeline stage's CLI. */
+  createExecutorForStage(stage: IStageConfig): Promise<ICliExecutor>;
   /** Tear down all containers and associated resources. */
   stop(): Promise<void>;
   /** Per-task log collector. */
   readonly logs: IContainerLogs;
   /** Handles cleanup of workspace paths and log directories inside the container. */
   readonly cleaner: IContainerWorkspaceCleaner;
-  /** Filesystem paths specific to the chosen CLI. */
-  readonly cliPaths: CliPaths;
+  /** Container layouts of the CLIs the variant's container stages run, each once. */
+  readonly layouts: readonly CliContainerLayout[];
   /** Optional callback invoked for each line of real-time tool output. */
   onToolOutput?: (line: string) => void;
   /** Optional callback invoked for each line of real-time pre-tool invocation output. */
@@ -72,11 +74,11 @@ export interface IContainerManager {
  * `docker compose` directly.
  *
  * Each ContainerManager is bound to one {@link IAgentProfile} (repo, compose file,
- * agent name, timeout). The Orchestrator creates one per task.
+ * stages, timeout). The Orchestrator creates one per task.
  *
  * Delegates low-level concerns to:
  * - {@link ComposeClient} — docker compose process spawning and env injection
- * - {@link ICliExecutorFactory} — CLI executor creation based on available credentials
+ * - {@link ICliExecutorFactory} — the executor of each stage's CLI
  * - {@link LogSourceRegistry} — standard log source registration
  *
  * 1. **start()** — `docker compose up -d --build`
@@ -87,7 +89,6 @@ export interface IContainerManager {
  */
 export class ContainerManager implements IContainerManager {
   private readonly compose: IComposeClient;
-  private readonly executor: ICliExecutor;
   private readonly executorFactory: ICliExecutorFactory;
   private readonly sessionRunner: IAgentSessionRunner;
   private readonly logger: Logger;
@@ -95,6 +96,10 @@ export class ContainerManager implements IContainerManager {
   private readonly profile: IAgentProfile;
   private readonly logRegistry: ILogSourceRegistry;
   private readonly enableContinuation: boolean;
+  /** Runtimes of the CLIs the variant's container stages run. */
+  private readonly containerRuntimes: readonly ICliRuntime[];
+  /** The executor of the stage that runs or ran last, killed on stop. */
+  private activeExecutor: ICliExecutor | null = null;
   private _running = false;
 
   /** Whether the container has been started and not yet stopped. */
@@ -108,9 +113,6 @@ export class ContainerManager implements IContainerManager {
   /** Handles cleanup of workspace paths and log directories inside the container. */
   readonly cleaner: IContainerWorkspaceCleaner;
 
-  /** Filesystem paths specific to the chosen CLI. */
-  readonly cliPaths: CliPaths;
-
   /** Optional callback invoked for each line of real-time tool output. */
   onToolOutput?: (line: string) => void;
 
@@ -120,7 +122,7 @@ export class ContainerManager implements IContainerManager {
   constructor({
     profile,
     compose,
-    executor,
+    cliRuntimes,
     executorFactory,
     logs,
     cleaner,
@@ -132,7 +134,7 @@ export class ContainerManager implements IContainerManager {
   }: {
     profile: IAgentProfile;
     compose: IComposeClient;
-    executor: ICliExecutor;
+    cliRuntimes: ICliRuntimeRegistry;
     executorFactory: ICliExecutorFactory;
     logs: IContainerLogCollector;
     cleaner: IContainerWorkspaceCleaner;
@@ -149,12 +151,14 @@ export class ContainerManager implements IContainerManager {
     this.logs = logs;
     this.cleaner = cleaner;
     this.logRegistry = logRegistry;
-    this.executor = executor;
     this.executorFactory = executorFactory;
-    this.cliPaths = executor.paths;
     this.sessionRunner = sessionRunner;
     this.enableContinuation = enableContinuation;
-    this.logger.info(`Using ${profile.cli} CLI`);
+    this.containerRuntimes = cliRuntimes.forClis(profile.containerClis);
+  }
+
+  get layouts(): readonly CliContainerLayout[] {
+    return this.containerRuntimes.map((runtime) => runtime.layout);
   }
 
   /** Verify that Docker is running. Throws if `docker info` fails. */
@@ -162,9 +166,18 @@ export class ContainerManager implements IContainerManager {
     await this.compose.checkDocker();
   }
 
-  /** Build and start the containers (`docker compose up -d --build`). */
+  /**
+   * Build and start the containers (`docker compose up -d --build`).
+   *
+   * Creates each CLI home that lives in the target repo on the host first. Docker creates the mount points
+   * of files mounted into a CLI home as root, inside a root-owned directory when the home does not exist
+   * yet, and the host could then no longer delete `.ralph/` before the next task.
+   */
   async start(signal: AbortSignal): Promise<void> {
     await this.compose.checkDocker();
+    for (const { configDir } of this.layouts) {
+      mkdirSync(hostWorkspacePath(this.profile.repoPath, configDir), { recursive: true });
+    }
     this.logger.info(`Starting containers (compose: ${this.profile.composeFile})...`);
 
     const proc = this.compose.compose(["up", "-d", "--build"]);
@@ -217,8 +230,8 @@ export class ContainerManager implements IContainerManager {
    * Register standard log sources for a task and start streaming.
    *
    * Call after {@link start} when containers are running.
-   * Sets up the issue key on the log collector and registers all known log
-   * sources (audit, transcript, tool output, proxy).
+   * Sets up the issue key on the log collector and registers the common log sources plus those of each
+   * CLI the variant's container stages run.
    *
    * @param taskId Work item id used as the filename prefix for all collected logs.
    */
@@ -237,26 +250,25 @@ export class ContainerManager implements IContainerManager {
           appendFileSync(debugLogPath, line + "\n");
         },
       },
-      this.cliPaths,
+      this.containerRuntimes,
     );
   }
 
   /**
-   * Create a CLI executor configured for a specific pipeline stage.
+   * Create the executor of a pipeline stage's CLI.
    *
-   * For `mode: "container"`, derives a stage-scoped profile and creates an
-   * executor via the factory that runs inside the Docker container.
-   * For `mode: "local"`, creates a host-side executor that runs the CLI
-   * in the orchestrator repo directory. The target repo path is available
-   * to the agent via the `{{ repo }}` template variable.
+   * For `mode: "container"`, the executor runs the CLI inside the Docker container.
+   * For `mode: "local"`, it runs the CLI on the host in the orchestrator repo directory. The target repo
+   * path is available to the agent via the `{{ repo }}` template variable.
    */
-  createExecutorForStage(stage: IStageConfig): ICliExecutor {
+  async createExecutorForStage(stage: IStageConfig): Promise<ICliExecutor> {
     const stageProfile = deriveStageProfile(this.profile, stage);
+    this.logger.info(`Stage ${stage.role}: ${stage.cli} CLI (${stage.mode}), agent ${stage.agent}`);
     switch (stage.mode) {
       case StageMode.Local:
-        return this.executorFactory.createLocal(stageProfile, process.cwd(), this.containerLogger);
+        return this.executorFactory.createLocal(stageProfile, stage, process.cwd(), this.containerLogger);
       case StageMode.Container:
-        return this.executorFactory.create(this.compose, stageProfile, this.containerLogger);
+        return this.executorFactory.create(this.compose, stageProfile, stage, this.containerLogger);
       default: {
         const _exhaustive: never = stage.mode;
         throw new Error(`Unknown stage mode: ${_exhaustive}`);
@@ -265,24 +277,25 @@ export class ContainerManager implements IContainerManager {
   }
 
   /**
-   * Execute the agent CLI inside the running container.
+   * Execute the variant's first stage.
    *
    * Delegates prompt construction and injection auditing to the {@link PromptBuilder}.
    * Parses the agent's structured `===RALPH_RESULT_START===` block for PR URL
    * and status. Streams stdout/stderr to the logger in real-time.
    *
-   * When `maxContinuations > 0`, re-invokes the CLI with `--continue` if the
-   * result block is missing, using exponential backoff between attempts.
+   * When `maxContinuations > 0`, resumes the CLI session if the result block is missing, using
+   * exponential backoff between attempts.
    *
    * @param workItem Work item to process — used to build the prompt.
    * @param context Pre-fetched issue context (comments, revision handoff). Omit for tasks with no context.
    * @returns Enriched {@link RalphResult} with status, PR URL, and captured output.
    */
   async execute(workItem: WorkItem, context?: IssueContext): Promise<RalphResult> {
-    return this.executeWithExecutor(this.executor, workItem, context);
+    return this.executeWithExecutor(await this.createExecutorForStage(this.profile.stages[0]), workItem, context);
   }
 
   async executeWithExecutor(executor: ICliExecutor, workItem: WorkItem, context?: IssueContext): Promise<RalphResult> {
+    this.activeExecutor = executor;
     return this.sessionRunner.run(executor, workItem, context, {
       maxContinuations: this.profile.maxContinuations,
       enableContinuation: this.enableContinuation,
@@ -301,7 +314,7 @@ export class ContainerManager implements IContainerManager {
     this._running = false;
     this.logger.info("Stopping containers...");
     this.logs.detach();
-    this.executor.killActive();
+    this.activeExecutor?.killActive();
 
     try {
       await this.compose.compose(["down", "--volumes", "--remove-orphans"]);

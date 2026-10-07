@@ -36,16 +36,14 @@ export class ContainerWorkspaceCleaner implements IContainerWorkspaceCleaner {
   }
 
   /**
-   * Ensure the Copilot CLI config directory (`/workspace/.ralph`) and its
-   * writable subdirectories are owned by vscode.
+   * Ensure a CLI's config directory and the directories it writes at runtime exist and are owned by vscode.
    *
-   * Docker creates `/workspace/.ralph/` as root when bind-mounting files
-   * into it (mcp-config.json, config.json, etc.). The Copilot CLI then
-   * fails to create runtime directories like `session-state/` and
+   * Docker creates the directories that files are bind-mounted into (mcp-config.json, settings files)
+   * as root. The CLI then fails to create runtime directories like `session-state/` and
    * `logs/cli-debug/` because the parent is root-owned.
    *
    * @param configDir The config directory path inside the container.
-   * @param writableDirs Subdirectories the CLI needs to create/write at runtime.
+   * @param writableDirs Directories the CLI needs to create/write at runtime.
    */
   async prepareConfigDir(configDir: string, writableDirs: readonly string[]): Promise<void> {
     try {

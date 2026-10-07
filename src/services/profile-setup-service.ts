@@ -6,7 +6,8 @@ import {
   type StageOverrides,
   type IAgentTemplateRenderer,
 } from "../container/setup/agent-includes";
-import { skillsBuildDir, type ISkillTemplateRenderer } from "../container/setup/skill-includes";
+import type { ISkillTemplateRenderer } from "../container/setup/skill-includes";
+import { profileBuildPaths } from "../container/setup/build-paths";
 import type { IJitMcpConfigWriter } from "../container/setup/jit-mcp-params";
 import type { IComposeOverlayWriter } from "../container/setup/compose-overlay-writer";
 
@@ -71,15 +72,20 @@ export class ProfileSetupService implements IProfileSetupService {
     );
 
     this.logger.info("Rendering skill templates...");
-    await this.skillRenderer.render(templateContext, skillsBuildDir(profileId), this.logger);
+    await this.skillRenderer.render(templateContext, this.skillsBuildDir(profileId), this.logger);
 
     this.logger.info("Regenerating compose overlay for matched variant...");
-    this.overlayWriter.write(ctx.profile, this.logger);
+    await this.overlayWriter.write(ctx.profile, this.logger);
 
     this.jitMcpConfig.write(ctx.profile, ctx.workItem, this.logger, ctx.triggerParams, {
       sourceBranch: ctx.sourceBranch,
       taskBranch: ctx.taskBranch,
     });
+  }
+
+  /** The profile's rendered-skills directory under the orchestrator's working directory. */
+  private skillsBuildDir(profileId: string): string {
+    return profileBuildPaths(process.cwd(), profileId).skillsBuildDir;
   }
 
   async prepareForStage(ctx: TaskContext, stageOverrides: StageOverrides): Promise<void> {
@@ -91,6 +97,6 @@ export class ProfileSetupService implements IProfileSetupService {
       stageRenderTarget(profileId, stageOverrides.stage),
       this.logger,
     );
-    await this.skillRenderer.render(stageContext, skillsBuildDir(profileId), this.logger);
+    await this.skillRenderer.render(stageContext, this.skillsBuildDir(profileId), this.logger);
   }
 }

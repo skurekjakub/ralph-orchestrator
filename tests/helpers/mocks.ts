@@ -30,9 +30,17 @@ import type { IAgentPipelineExecutor } from "../../src/services/agent-pipeline-e
 import type { ITaskResultWriter } from "../../src/services/task-result-writer";
 import type { IVcsSourceClient } from "../../src/services/vcs-source-client";
 import type { AppStartupDeps } from "../../src/app-startup";
-import type { RalphResult, CliPaths } from "../../src/container/types";
+import type { RalphResult } from "../../src/container/types";
+import type { ICliExecutor } from "../../src/container/cli-executor-factory";
+import { CliType } from "../../src/config/types";
+import { COPILOT_CONTAINER_LAYOUT } from "../../src/cli/copilot/copilot-layout";
+import { CliDebugLogKind, type ICliRuntime } from "../../src/cli/cli-runtime";
+import { modelPolicyFor } from "../../src/cli/model-catalog";
+import { PlainTextDecoder } from "../../src/cli/plain-text-decoder";
 import type { ResultPromise } from "execa";
-import { makeConfig, makeResult } from "./factories";
+import { once } from "node:events";
+import { PassThrough } from "node:stream";
+import { makeConfig, makeExecResult, makeResult } from "./factories";
 
 // ── Mocked<T> utility type ──────────────────────────────────────────────────
 
@@ -161,6 +169,66 @@ export function createMockConnector(
 // ── Container mocks ──────────────────────────────────────────────────────────
 
 /**
+ * A fake CLI subprocess whose stdout and stderr streams carry `stdout` and `stderr`. It settles once both streams
+ * have been read to the end: resolved with `exitCode`, or rejected with `error`.
+ */
+export function fakeCliProcess(
+  stdout: string,
+  { stderr = "", exitCode = 0, error }: { stderr?: string; exitCode?: number; error?: Error } = {},
+): ResultPromise {
+  const out = new PassThrough();
+  const err = new PassThrough();
+  out.end(stdout);
+  err.end(stderr);
+  const settled = Promise.all([once(out, "close"), once(err, "close")]).then(() => {
+    if (error) throw error;
+    return { exitCode, stdout, stderr };
+  });
+  return Object.assign(settled, { stdout: out, stderr: err, kill: vi.fn() }) as unknown as ResultPromise;
+}
+
+/** Create a mock CLI executor whose runs exit cleanly without output. */
+export function createMockExecutor(cli: CliType = CliType.Copilot): ICliExecutor & Mocked<ICliExecutor> {
+  return {
+    cli,
+    run: vi.fn().mockResolvedValue(makeExecResult()),
+    continueSession: vi.fn().mockResolvedValue(makeExecResult()),
+    killActive: vi.fn(),
+  };
+}
+
+/**
+ * Create a mock CLI runtime whose container paths are tagged with the CLI name.
+ *
+ * Methods are spies: no compose contribution, no log sources, a plain-text decoder.
+ */
+export function createMockCliRuntime(
+  cli: CliType,
+  overrides: Partial<ICliRuntime> = {},
+): ICliRuntime & Mocked<ICliRuntime> {
+  return {
+    cli,
+    layout: {
+      configDir: `/workspace/.cfg-${cli}`,
+      writableDirs: [`/workspace/.cfg-${cli}/logs`],
+      agentsDir: `/workspace/.cfg-${cli}/agents`,
+      skillsDir: `/workspace/.cfg-${cli}/skills`,
+      debugLog: { kind: CliDebugLogKind.File, path: `/workspace/.cfg-${cli}/debug.log` },
+      transcriptPath: null,
+    },
+    models: modelPolicyFor(cli),
+    credentials: { required: [] },
+    egressDomains: [],
+    workspaceMountTargets: [],
+    composeContribution: vi.fn().mockReturnValue({ volumes: [], env: {} }),
+    writeTaskArtifacts: vi.fn(),
+    logSources: vi.fn().mockReturnValue({ sources: [], exports: [] }),
+    createOutputDecoder: vi.fn().mockImplementation(() => new PlainTextDecoder()),
+    ...overrides,
+  } as ICliRuntime & Mocked<ICliRuntime>;
+}
+
+/**
  * Create a mock ComposeClient with `exec` stubbed.
  *
  * Returns both the client and the underlying `exec` spy for assertion.
@@ -207,17 +275,7 @@ export function createMockContainer(executeResult?: Partial<RalphResult>): {
     registerLogSources: vi.fn(),
     execute: vi.fn().mockResolvedValue(result),
     executeWithExecutor: vi.fn().mockResolvedValue(result),
-    createExecutorForStage: vi.fn().mockReturnValue({
-      paths: {
-        configDir: "/workspace/.ralph",
-        writableDirs: [],
-        transcriptPath: "/workspace/.ralph/logs/session-transcript.md",
-        logDir: "/workspace/.ralph/logs/cli-debug",
-      },
-      run: vi.fn(),
-      continueSession: vi.fn(),
-      killActive: vi.fn(),
-    }),
+    createExecutorForStage: vi.fn().mockResolvedValue(createMockExecutor()),
     stop: vi.fn().mockResolvedValue(undefined),
     cleanLogDirectory: vi.fn().mockResolvedValue(undefined),
     cleanPaths: vi.fn().mockResolvedValue(undefined),
@@ -225,13 +283,6 @@ export function createMockContainer(executeResult?: Partial<RalphResult>): {
     collectAll: vi.fn().mockResolvedValue([]),
     detach: vi.fn(),
     clearCollectSources: vi.fn().mockResolvedValue(undefined),
-  };
-
-  const cliPaths: CliPaths = {
-    configDir: "/workspace/.ralph",
-    writableDirs: ["/workspace/.ralph/logs", "/workspace/.ralph/logs/cli-debug", "/workspace/.ralph/session-state"],
-    transcriptPath: "/workspace/.ralph/logs/session-transcript.md",
-    logDir: "/workspace/.ralph/logs/cli-debug",
   };
 
   const container: IContainerManager = {
@@ -248,7 +299,7 @@ export function createMockContainer(executeResult?: Partial<RalphResult>): {
     onToolOutput: undefined,
     onPreToolUse: undefined,
     isRunning: true,
-    cliPaths,
+    layouts: [COPILOT_CONTAINER_LAYOUT],
     logs: {
       collectAll: spies.collectAll,
       detach: spies.detach,
@@ -362,7 +413,7 @@ export function createMockOverlayWriter(
   overrides: Partial<Mocked<IComposeOverlayWriter>> = {},
 ): Mocked<IComposeOverlayWriter> {
   return {
-    write: vi.fn(),
+    write: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 }
@@ -375,7 +426,7 @@ export function createMockStartupDeps(overrides: Partial<AppStartupDeps> = {}): 
     loadConfig: vi.fn().mockReturnValue(makeConfig()),
     loadDataSourceConnectors: vi.fn().mockResolvedValue(undefined),
     buildMcpServers: vi.fn().mockResolvedValue(undefined),
-    resolveMcpConfigs: vi.fn(),
+    resolveMcpConfigs: vi.fn().mockResolvedValue(undefined),
     startRalphchives: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };

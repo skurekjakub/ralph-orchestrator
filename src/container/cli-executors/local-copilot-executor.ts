@@ -1,12 +1,13 @@
 import { execa, ExecaError, type ResultPromise } from "execa";
 import { existsSync, readdirSync, symlinkSync, unlinkSync, mkdirSync, lstatSync } from "node:fs";
-import { join, resolve } from "node:path";
-import type { IAgentProfile } from "../../config/types";
+import { join } from "node:path";
+import { CliType, type IAgentProfile } from "../../config/types";
 import { DEFAULT_COPILOT_MODEL } from "../../cli/model-catalog";
-import type { ContainerExecResult, CliPaths } from "../types";
+import type { ContainerExecResult } from "../types";
 import type { Logger } from "../../logger";
 import type { ICliExecutor } from "../cli-executor-factory";
 import { StreamCapture } from "../stream-capture";
+import { agentsBuildDir, profileBuildPaths } from "../setup/build-paths";
 
 /**
  * Executes the Copilot CLI directly on the host machine (no Docker).
@@ -17,14 +18,16 @@ import { StreamCapture } from "../stream-capture";
  * available on `PATH`.
  *
  * The Copilot CLI discovers agents from `<cwd>/.github/agents/`. Since
- * rendered agent templates live in `profiles/<id>/.build/`, this executor
+ * rendered agent templates live in `profiles/<id>/.build/copilot/agents/`, this executor
  * symlinks them into the expected location before each invocation and
  * removes the symlinks afterwards.
  */
 export class LocalCopilotExecutor implements ICliExecutor {
+  readonly cli = CliType.Copilot;
   activeProcess: ResultPromise | null = null;
 
-  readonly paths: CliPaths;
+  /** Copilot debug log directory, relative to `cwd`. */
+  private readonly logDir = ".ralph/logs/cli-debug";
 
   /** Symlinks created by {@link deployAgents}, removed by {@link removeAgents}. */
   private deployedLinks: string[] = [];
@@ -33,14 +36,7 @@ export class LocalCopilotExecutor implements ICliExecutor {
     private readonly profile: IAgentProfile,
     private readonly cwd: string,
     private readonly logger: Logger,
-  ) {
-    this.paths = {
-      configDir: ".ralph",
-      writableDirs: [".ralph/logs", ".ralph/logs/cli-debug", ".ralph/session-state"],
-      transcriptPath: ".ralph/logs/session-transcript.md",
-      logDir: ".ralph/logs/cli-debug",
-    };
-  }
+  ) {}
 
   killActive(): void {
     if (this.activeProcess) {
@@ -82,7 +78,7 @@ export class LocalCopilotExecutor implements ICliExecutor {
       "--log-level",
       "debug",
       "--log-dir",
-      this.paths.logDir,
+      this.logDir,
       "--experimental",
       "--allow-all-tools",
       "--allow-all-paths",
@@ -105,6 +101,7 @@ export class LocalCopilotExecutor implements ICliExecutor {
         stdout: capture.stdout,
         stderr: capture.stderr,
         timedOut: false,
+        ...capture.outcome(),
       };
     } catch (err: unknown) {
       this.activeProcess = null;
@@ -115,6 +112,7 @@ export class LocalCopilotExecutor implements ICliExecutor {
           stdout: capture?.stdout ?? err.stdout ?? "",
           stderr: capture?.stderr ?? err.stderr ?? "",
           timedOut: err.timedOut ?? false,
+          ...(capture ? capture.outcome() : { agentText: "" }),
         };
       }
 
@@ -130,7 +128,7 @@ export class LocalCopilotExecutor implements ICliExecutor {
    * don't already exist at the destination.
    */
   private deployAgents(): void {
-    const buildDir = resolve(process.cwd(), "profiles", this.profile.id, ".build");
+    const buildDir = agentsBuildDir(profileBuildPaths(process.cwd(), this.profile.id), CliType.Copilot);
     if (!existsSync(buildDir)) return;
 
     const agentFiles = readdirSync(buildDir).filter((f) => f.endsWith(".agent.md"));

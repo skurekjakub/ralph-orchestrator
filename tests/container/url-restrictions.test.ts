@@ -8,6 +8,7 @@ import {
   writeCopilotConfig,
 } from "../../src/container/setup/url-restrictions";
 import { createTempDir } from "../helpers/mcp-fs";
+import { createMockLogger } from "../helpers/mocks";
 
 describe("URL Restrictions", () => {
   let tempDir: string;
@@ -118,7 +119,7 @@ describe("URL Restrictions", () => {
         ].join("\n"),
       );
 
-      writeCopilotConfig(buildDir);
+      writeCopilotConfig(buildDir, createMockLogger());
 
       const outPath = join(buildDir, "copilot-config.json");
       expect(existsSync(outPath)).toBe(true);
@@ -130,13 +131,18 @@ describe("URL Restrictions", () => {
       expect(config.allowed_urls).toContain("http://host.docker.internal:4500/*");
     });
 
-    it("does nothing when squid.conf does not exist", () => {
+    it("writes nothing and warns when squid.conf does not exist", () => {
+      // Arrange
       const buildDir = join(tempDir, "build");
       mkdirSync(buildDir, { recursive: true });
+      const logger = createMockLogger();
 
-      writeCopilotConfig(buildDir);
+      // Act
+      writeCopilotConfig(buildDir, logger);
 
+      // Assert
       expect(existsSync(join(buildDir, "copilot-config.json"))).toBe(false);
+      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("No squid.conf"));
     });
   });
 });

@@ -1,5 +1,6 @@
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
+import type { Logger } from "../../logger";
 
 // ── Copilot CLI config generation (URL allowlist) ────────────────────────────
 
@@ -76,13 +77,16 @@ export function generateAllowedUrls(squidDomains: string[], hostLoopbackPorts: n
  * Reads the profile's squid.conf to discover all allowed domains and
  * converts them to Copilot URL patterns. The resulting config.json is
  * mounted at `/workspace/.ralph/config.json` and read by the Copilot CLI
- * via `--config-dir /workspace/.ralph`.
+ * via `--config-dir /workspace/.ralph`. Writes nothing when the build directory has no `squid.conf`.
  *
  * @param buildDir Profile build directory (`.build/`).
  */
-export function writeCopilotConfig(buildDir: string): void {
+export function writeCopilotConfig(buildDir: string, logger: Logger): void {
   const squidConfPath = join(buildDir, "squid.conf");
-  if (!existsSync(squidConfPath)) return;
+  if (!existsSync(squidConfPath)) {
+    logger.warn(`No squid.conf in ${buildDir}, skipping copilot-config.json`);
+    return;
+  }
 
   const squidConf = readFileSync(squidConfPath, "utf-8");
   const squidDomains = parseSquidDomains(squidConf);
@@ -91,4 +95,5 @@ export function writeCopilotConfig(buildDir: string): void {
 
   const config = { allowed_urls: allowedUrls };
   writeFileSync(join(buildDir, "copilot-config.json"), JSON.stringify(config, null, 2) + "\n", "utf-8");
+  logger.info(`Wrote copilot-config.json with ${allowedUrls.length} allowed URLs: ${allowedUrls.join(", ")}`);
 }

@@ -6,7 +6,6 @@ import {
   discoverSkills,
   renderSkills,
   SkillTemplateRenderer,
-  skillsBuildDir,
   type RenderSkillsInput,
 } from "../../src/container/setup/skill-includes";
 import { createMockLogger } from "../helpers/mocks";
@@ -261,12 +260,5 @@ describe("SkillTemplateRenderer", () => {
 
     // Assert
     expect(logger.info).toHaveBeenCalledWith(expect.stringContaining("1 skill template"));
-  });
-});
-
-describe("skillsBuildDir", () => {
-  it("is the profile's .build/skills directory under the orchestrator root", () => {
-    // Act & Assert
-    expect(skillsBuildDir("ralph-docs")).toBe(join(process.cwd(), "profiles", "ralph-docs", ".build", "skills"));
   });
 });

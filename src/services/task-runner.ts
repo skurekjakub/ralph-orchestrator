@@ -187,8 +187,10 @@ export class TaskRunner implements ITaskRunner {
     this.logger.info("Verifying container health...");
     await container.checkPrerequisites();
 
-    this.logger.info("Preparing config directory...");
-    await container.cleaner.prepareConfigDir(container.cliPaths.configDir, container.cliPaths.writableDirs);
+    this.logger.info("Preparing CLI config directories...");
+    for (const layout of container.layouts) {
+      await container.cleaner.prepareConfigDir(layout.configDir, layout.writableDirs);
+    }
 
     await container.cleaner.cleanPaths(ctx.profile.cleanPaths);
 

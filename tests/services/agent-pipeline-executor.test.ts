@@ -12,26 +12,11 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { AgentPipelineExecutor } from "../../src/services/agent-pipeline-executor";
 import { TaskStatus } from "../../src/container/types";
 import { makeTaskContext, makeProfile, makeResult, makeStage } from "../helpers/factories";
-import { createMockProfileSetupService, createSilentLogger } from "../helpers/mocks";
+import { createMockExecutor, createMockProfileSetupService, createSilentLogger } from "../helpers/mocks";
 import type { IContainerManager } from "../../src/container/manager";
-import type { ICliExecutor } from "../../src/container/cli-executor-factory";
 import type { IssueContext } from "../../src/prompt/prompt";
 
 // ── Mock helpers ─────────────────────────────────────────────────────────────
-
-function createMockExecutor(): ICliExecutor {
-  return {
-    paths: {
-      configDir: "/workspace/.ralph",
-      writableDirs: [],
-      transcriptPath: "/workspace/.ralph/logs/session-transcript.md",
-      logDir: "/workspace/.ralph/logs/cli-debug",
-    },
-    run: vi.fn(),
-    continueSession: vi.fn(),
-    killActive: vi.fn(),
-  };
-}
 
 function createMockContainer(executeResult?: Partial<ReturnType<typeof makeResult>>): IContainerManager {
   return {
@@ -44,7 +29,7 @@ function createMockContainer(executeResult?: Partial<ReturnType<typeof makeResul
     registerLogSources: vi.fn(),
     execute: vi.fn(),
     executeWithExecutor: vi.fn().mockResolvedValue(makeResult("DF-100", executeResult)),
-    createExecutorForStage: vi.fn().mockReturnValue(createMockExecutor()),
+    createExecutorForStage: vi.fn().mockResolvedValue(createMockExecutor()),
     stop: vi.fn().mockResolvedValue(undefined),
     logs: {
       detach: vi.fn(),
@@ -56,12 +41,7 @@ function createMockContainer(executeResult?: Partial<ReturnType<typeof makeResul
       cleanDirectory: vi.fn(),
       cleanPaths: vi.fn(),
     },
-    cliPaths: {
-      configDir: "/workspace/.ralph",
-      writableDirs: [],
-      transcriptPath: "/workspace/.ralph/logs/session-transcript.md",
-      logDir: "/workspace/.ralph/logs/cli-debug",
-    },
+    layouts: [],
     onToolOutput: undefined,
     onPreToolUse: undefined,
   } as unknown as IContainerManager;

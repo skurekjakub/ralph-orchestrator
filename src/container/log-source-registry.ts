@@ -1,10 +1,6 @@
+import type { ICliRuntime } from "../cli/cli-runtime";
 import type { IAgentProfile } from "../config/types";
 import { CaptureMode, type IContainerLogCollector } from "./log-collector";
-import type { CliPaths } from "./types";
-
-/** Path to the CLI session-state directory inside the container. */
-const SESSION_STATE_PATH = "/workspace/.ralph/session-state";
-const SESSION_STATE_DB = "/workspace/.ralph/session-store.db";
 
 /** Optional callbacks wired into streamed log sources. */
 export interface LogSourceCallbacks {
@@ -25,7 +21,7 @@ export interface ILogSourceRegistry {
    * @param profile    Agent profile providing paths (audit log, etc.).
    * @param taskId     Work item id used as the filename prefix.
    * @param callbacks  Optional real-time line callbacks for streamed sources.
-   * @param cliPaths   CLI-specific filesystem paths.
+   * @param runtimes   Runtimes of the CLIs the task's container stages run; each adds its own sources.
    */
   registerAll(
     logs: IContainerLogCollector,
@@ -33,16 +29,16 @@ export interface ILogSourceRegistry {
     taskId: string,
     workItemId: string,
     callbacks: LogSourceCallbacks,
-    cliPaths: CliPaths,
+    runtimes: readonly ICliRuntime[],
   ): void;
 }
 
 /**
  * Encapsulates the registration of all standard log sources for a task.
  *
- * Knows about audit logs, transcripts, tool output, proxy logs, CLI debug
- * logs, and the MCP sidecar — delegating the actual capture to the
- * {@link ContainerLogCollector}.
+ * Registers the sources every task has (audit log, tool logs, proxy, MCP sidecar, task state and
+ * artifacts) and the debug logs, transcripts and session data of each CLI the task runs, delegating
+ * the actual capture to the {@link ContainerLogCollector}.
  */
 export class LogSourceRegistry implements ILogSourceRegistry {
   /** Path to the pre-tool invocation log inside the container. */
@@ -57,7 +53,7 @@ export class LogSourceRegistry implements ILogSourceRegistry {
     taskId: string,
     workItemId: string,
     callbacks: LogSourceCallbacks,
-    cliPaths: CliPaths,
+    runtimes: readonly ICliRuntime[],
   ): void {
     logs.setTaskId(taskId);
 
@@ -66,14 +62,6 @@ export class LogSourceRegistry implements ILogSourceRegistry {
       service: "app",
       containerPath: profile.auditLogPath,
       extension: "jsonl",
-      mode: CaptureMode.Collect,
-    });
-
-    logs.addSource({
-      id: "transcript",
-      service: "app",
-      containerPath: cliPaths.transcriptPath,
-      extension: "md",
       mode: CaptureMode.Collect,
     });
 
@@ -104,21 +92,6 @@ export class LogSourceRegistry implements ILogSourceRegistry {
     });
 
     logs.addSource({
-      id: "cli-debug",
-      service: "app",
-      containerPath: cliPaths.logDir,
-      extension: "log",
-      mode: callbacks.onCliDebug ? CaptureMode.Stream : CaptureMode.Collect,
-      collectArgs: ["sh", "-c", `cat ${cliPaths.logDir}/*.log 2>/dev/null`],
-      streamArgs: [
-        "sh",
-        "-c",
-        `while ! ls ${cliPaths.logDir}/*.log >/dev/null 2>&1; do sleep 1; done; exec tail -n 0 -F ${cliPaths.logDir}/*.log`,
-      ],
-      onLine: callbacks.onCliDebug,
-    });
-
-    logs.addSource({
       id: "sidecar",
       service: "mcp-sidecar",
       containerPath: "",
@@ -136,22 +109,16 @@ export class LogSourceRegistry implements ILogSourceRegistry {
     });
 
     logs.addExport({
-      id: "session-state",
-      service: "app",
-      containerPath: SESSION_STATE_PATH,
-    });
-
-    logs.addExport({
-      id: "session-db",
-      service: "app",
-      containerPath: SESSION_STATE_DB,
-    });
-
-    logs.addExport({
       id: "artifacts",
       service: "app",
       containerPath: `/workspace/.ralph/tasks/${workItemId}/artifacts`,
     });
+
+    for (const runtime of runtimes) {
+      const { sources, exports } = runtime.logSources(callbacks.onCliDebug);
+      for (const source of sources) logs.addSource(source);
+      for (const folder of exports) logs.addExport(folder);
+    }
 
     logs.attach();
   }

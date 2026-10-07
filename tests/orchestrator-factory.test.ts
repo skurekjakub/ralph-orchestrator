@@ -75,6 +75,27 @@ describe("createCradle", () => {
     expect(runtime.cli).toBe(CliType.Copilot);
   });
 
+  it("registers the Claude Code runtime with the configured credential", () => {
+    // Arrange
+    const cradle = createCradle({ ...makeConfig(), claudeAuth: ClaudeAuthMode.ApiKey });
+
+    // Act
+    const runtime = cradle.cliRuntimes.get(CliType.Claude);
+
+    // Assert
+    expect(runtime.credentials.required.map((c) => c.envVar)).toEqual(["ANTHROPIC_API_KEY"]);
+  });
+
+  it("resolves the executor factory, overlay writer and repo sync hook with their CLI runtime dependencies", () => {
+    // Arrange
+    const cradle = createCradle(makeConfig());
+
+    // Act & Assert
+    expect(cradle.executorFactory).toBeDefined();
+    expect(cradle.overlayWriter).toBeDefined();
+    expect(cradle.preExecuteHooks.map((h) => h.name)).toEqual(["repo-sync"]);
+  });
+
   it("exposes claudeAuth from the config", () => {
     // Arrange
     const config = { ...makeConfig(), claudeAuth: ClaudeAuthMode.ApiKey };

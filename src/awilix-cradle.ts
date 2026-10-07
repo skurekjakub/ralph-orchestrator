@@ -33,8 +33,8 @@ import { ContainerWorkspaceCleaner } from "./container/workspace-cleaner";
 import { LogSourceRegistry } from "./container/log-source-registry";
 import { ContinuationRunner } from "./container/continuation-runner";
 import { AgentSessionRunner } from "./container/agent-session-runner";
-import { CliRuntimeRegistry } from "./cli/cli-runtime";
-import { CopilotRuntime } from "./cli/copilot/copilot-runtime";
+import { createCliRuntimeRegistry } from "./cli/supported-runtimes";
+import { AgentCatalogProvider } from "./container/setup/agent-catalogs";
 
 function buildComposeClient(profile: IAgentProfile): IComposeClient {
   const composeFiles = new ComposeFileResolver().resolve(profile);
@@ -55,18 +55,24 @@ function buildComposeClient(profile: IAgentProfile): IComposeClient {
 function buildContainerFactory({
   outputConfig,
   enableContinuation,
+  cliRuntimes,
   executorFactory,
   promptBuilder,
   logger,
   containerLogger,
 }: Pick<
   OrchestratorCradle,
-  "outputConfig" | "enableContinuation" | "executorFactory" | "promptBuilder" | "logger" | "containerLogger"
+  | "outputConfig"
+  | "enableContinuation"
+  | "cliRuntimes"
+  | "executorFactory"
+  | "promptBuilder"
+  | "logger"
+  | "containerLogger"
 >): ContainerManagerFactory {
   return {
     create: (profile) => {
       const compose = buildComposeClient(profile);
-      const executor = executorFactory.create(compose, profile, containerLogger);
       const logs = new ContainerLogCollector({ compose, logDir: outputConfig.logDir, logger });
       const cleaner = new ContainerWorkspaceCleaner({ compose, logger });
       const logRegistry = new LogSourceRegistry();
@@ -75,7 +81,7 @@ function buildContainerFactory({
       return new ContainerManager({
         profile,
         compose,
-        executor,
+        cliRuntimes,
         executorFactory,
         logs,
         cleaner,
@@ -92,7 +98,7 @@ function buildContainerFactory({
     },
     createLocalSession: (profile, stage) => {
       const stageProfile = deriveStageProfile(profile, stage);
-      const executor = executorFactory.createLocal(stageProfile, process.cwd(), containerLogger);
+      const executor = executorFactory.createLocal(stageProfile, stage, process.cwd(), containerLogger);
       const continuationRunner = new ContinuationRunner({ logger });
       const sessionRunner = new AgentSessionRunner({ continuationRunner, promptBuilder, logger });
       return { executor, sessionRunner };
@@ -126,7 +132,9 @@ export function createCradle(config: IAppConfig): OrchestratorCradle {
     ralphchivesConfig: asValue(config.ralphchives),
     enableContinuation: asValue(config.enableContinuation),
     claudeAuth: asValue(config.claudeAuth),
-    preExecuteHooks: asValue([new RepoSyncHook()] as readonly ILifecycleHook[]),
+    preExecuteHooks: asFunction(({ cliRuntimes }: Pick<OrchestratorCradle, "cliRuntimes">) => [
+      new RepoSyncHook({ cliRuntimes }) as ILifecycleHook,
+    ]).singleton(),
 
     // ── Infrastructure ────────────────────────────────────────────────────────
     activityLog: asClass(ActivityLog).singleton(),
@@ -146,9 +154,12 @@ export function createCradle(config: IAppConfig): OrchestratorCradle {
     triggerScanner: asClass(TriggerScanner).singleton(),
 
     // ── Execution infrastructure ──────────────────────────────────────────────
-    cliRuntimes: asFunction(() => new CliRuntimeRegistry({ runtimes: [new CopilotRuntime()] })).singleton(),
+    cliRuntimes: asFunction(({ claudeAuth }: Pick<OrchestratorCradle, "claudeAuth">) =>
+      createCliRuntimeRegistry(claudeAuth),
+    ).singleton(),
     logCollector: asClass(LogCollector).singleton(),
     promptBuilder: asClass(PromptBuilder).singleton(),
+    agentCatalogs: asFunction(() => new AgentCatalogProvider(process.cwd())).singleton(),
     executorFactory: asClass(CliExecutorFactory).singleton(),
     templateRenderer: asClass(AgentTemplateRenderer).singleton(),
     skillRenderer: asClass(SkillTemplateRenderer).singleton(),

@@ -45,9 +45,8 @@ services:
       NO_PROXY: "localhost,127.0.0.1,db,egress-proxy,mcp-sidecar"
       no_proxy: "localhost,127.0.0.1,db,egress-proxy,mcp-sidecar"
     volumes:
-      # Shared audit hooks + config (mounted for all profiles)
+      # Shared audit hook scripts; each CLI's hook config is mounted by the generated overlay
       - ${SHARED_HOOKS_PATH}:/workspace/.ralph/hooks:ro
-      - ${SHARED_HOOKS_PATH}/ralph-audit.json:/workspace/.github/hooks/ralph-audit.json:ro
     depends_on:
       egress-proxy:
         condition: service_healthy

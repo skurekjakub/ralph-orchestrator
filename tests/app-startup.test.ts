@@ -77,14 +77,17 @@ describe("AppStartup", () => {
       expect(deps.buildMcpServers).toHaveBeenCalledWith(logger);
     });
 
-    it("passes logger to resolveMcpConfigs", async () => {
+    it("passes the loaded config and the logger to resolveMcpConfigs", async () => {
+      // Arrange
       const deps = createMockStartupDeps();
       const logger = createMockLogger();
-
       const startup = new AppStartup(deps);
+
+      // Act
       await startup.run(logger);
 
-      expect(deps.resolveMcpConfigs).toHaveBeenCalledWith(logger);
+      // Assert
+      expect(deps.resolveMcpConfigs).toHaveBeenCalledWith(vi.mocked(deps.loadConfig).mock.results[0].value, logger);
     });
 
     it("passes logger to validate", async () => {

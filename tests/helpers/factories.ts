@@ -16,7 +16,7 @@ import {
   type IStageConfig,
   VcsProvider,
 } from "../../src/config/types";
-import { TaskStatus, type RalphResult } from "../../src/container/types";
+import { TaskStatus, type ContainerExecResult, type RalphResult } from "../../src/container/types";
 import type { JiraIssue, JiraComment } from "../../src/datasource/connectors/jira/jira-types";
 import type { WorkItem, WorkItemComment } from "../../src/datasource/types";
 import type { CompletedTask } from "../../src/orchestrator-types";
@@ -113,6 +113,11 @@ export function makeWorkItemComment(
 
 // ── Container data ───────────────────────────────────────────────────────────
 
+/** Create the result of a CLI process that exited cleanly without output. */
+export function makeExecResult(overrides: Partial<ContainerExecResult> = {}): ContainerExecResult {
+  return { exitCode: 0, stdout: "", stderr: "", timedOut: false, agentText: "", ...overrides };
+}
+
 /** Create a mock RalphResult with sensible defaults. */
 export function makeResult(taskId: string, overrides: Partial<RalphResult> = {}): RalphResult {
   return {
@@ -205,6 +210,8 @@ export function makeProfile(
     mcpServerConfigs: {},
     mcpSidecarEnv: {},
     githubMcpTools: false,
+    claude: { loadRepoInstructions: false },
+    allowlistDomains: [],
     skills: overrides.skills ?? stages.flatMap((s) => s.skills ?? []),
     stages,
     postTaskHooks: [],

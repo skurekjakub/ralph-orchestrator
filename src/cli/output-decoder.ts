@@ -35,6 +35,8 @@ export interface CliError {
 export interface DecodedLine {
   /** Human-readable log lines (`assistant: …`, `[ralph-writer] tool Edit src/x.md`, `result: success $1.23 41 turns`). */
   readonly logLines: readonly string[];
+  /** Lines to log as warnings: malformed output, tool and API errors. */
+  readonly warnings?: readonly string[];
   /** Main-thread assistant text carried by the line; result-block detection reads only this. */
   readonly agentText?: string;
 }

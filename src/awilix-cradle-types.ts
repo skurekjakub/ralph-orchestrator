@@ -15,6 +15,7 @@ import type { IOperationLedger } from "./services/operation-ledger";
 import type { ILogCollector } from "./logs/collector";
 import type { PromptBuilder } from "./prompt/prompt-builder";
 import type { ICliExecutorFactory } from "./container/cli-executor-factory";
+import type { IAgentCatalogProvider } from "./container/setup/agent-catalogs";
 import type { IProfileRouter } from "./services/profile-router";
 import type { IIssueManager } from "./services/issue-manager";
 import type { IResourceManager } from "./services/task-resource-manager";
@@ -77,6 +78,7 @@ export interface OrchestratorCradle {
   cliRuntimes: ICliRuntimeRegistry;
   logCollector: ILogCollector;
   promptBuilder: PromptBuilder;
+  agentCatalogs: IAgentCatalogProvider;
   executorFactory: ICliExecutorFactory;
   templateRenderer: IAgentTemplateRenderer;
   skillRenderer: ISkillTemplateRenderer;

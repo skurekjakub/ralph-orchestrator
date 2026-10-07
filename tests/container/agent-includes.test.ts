@@ -4,7 +4,6 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import {
   AgentTemplateRenderer,
-  agentBuildDir,
   buildTemplateContext,
   buildTriggerParams,
   renderAgents,
@@ -271,9 +270,6 @@ describe("stageRenderTarget", () => {
       rootAgentFileId: "ralph.scientist",
       outDir: join(process.cwd(), "profiles", "ralph-docs", ".build", "claude", "agents"),
     });
-    expect(agentBuildDir("ralph-docs", CliType.Copilot)).toBe(
-      join(process.cwd(), "profiles", "ralph-docs", ".build", "copilot", "agents"),
-    );
   });
 });
 

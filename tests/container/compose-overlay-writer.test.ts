@@ -1,199 +1,354 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { makeProfile } from "../helpers/factories";
-import { createMockLogger } from "../helpers/mocks";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { AgentCatalog } from "../../src/cli/agent-catalog";
+import { createCliRuntimeRegistry } from "../../src/cli/supported-runtimes";
+import { ClaudeAuthMode, CliType, StageMode, type IAgentProfile } from "../../src/config/types";
+import { ComposeOverlayWriter, writeComposeArtifacts } from "../../src/container/setup/compose-overlay-writer";
+import type { IAgentCatalogProvider } from "../../src/container/setup/agent-catalogs";
+import { makeAgentSource, makeProfile, makeStage } from "../helpers/factories";
+import { createTempDir } from "../helpers/mcp-fs";
+import { createMockLogger, createSilentLogger, type Mocked } from "../helpers/mocks";
 
-const PID = "ralph-docs";
+const PID = "docs";
 
-vi.mock("node:fs", async (importOriginal) => {
-  const orig = await importOriginal<typeof import("node:fs")>();
-  return {
-    ...orig,
-    existsSync: vi.fn().mockReturnValue(false),
-    readFileSync: vi.fn().mockReturnValue("{}"),
-    writeFileSync: vi.fn(),
-    readdirSync: vi.fn().mockReturnValue([]),
-  };
-});
+/** `ralph` spawns `writer`; `other` is unreachable from it. */
+const AGENTS = new AgentCatalog([
+  makeAgentSource("ralph.ralph", { name: "ralph", subagents: ["writer"] }),
+  makeAgentSource("ralph.writer", { name: "writer" }),
+  makeAgentSource("ralph.other", { name: "other" }),
+]);
 
-const { existsSync, readFileSync, writeFileSync, readdirSync } = await import("node:fs");
-const { ComposeOverlayWriter } = await import("../../src/container/setup/compose-overlay-writer");
+/** A variant whose stages all run `cli` in the container, with one skill each. */
+function variant(cli: CliType, overrides: Partial<IAgentProfile> = {}): IAgentProfile {
+  return makeProfile({
+    id: PID,
+    stages: [makeStage({ agent: "ralph.ralph", cli, skills: ["code-review"] })],
+    ...overrides,
+  });
+}
 
-describe("ComposeOverlayWriter", () => {
-  const writer = new ComposeOverlayWriter();
+describe("writeComposeArtifacts", () => {
+  let root: string;
+  let buildDir: string;
+
+  /** The generated overlay, squid.conf, or another build file. */
+  const built = (file: string): string => readFileSync(join(buildDir, file), "utf-8");
+
+  function write(profile: IAgentProfile, claudeAuth = ClaudeAuthMode.OAuthToken): void {
+    writeComposeArtifacts({
+      rootDir: root,
+      cliRuntimes: createCliRuntimeRegistry(claudeAuth),
+      profile,
+      agents: AGENTS,
+      logger: createSilentLogger(),
+    });
+  }
 
   beforeEach(() => {
-    vi.clearAllMocks();
-    vi.mocked(existsSync).mockReturnValue(false);
-    vi.mocked(readFileSync).mockReturnValue("{}");
-    vi.mocked(writeFileSync).mockImplementation(() => {});
-    vi.mocked(readdirSync).mockReturnValue([]);
+    root = createTempDir();
+    buildDir = join(root, "profiles", PID, ".build");
+    mkdirSync(join(root, "profiles", PID), { recursive: true });
+    mkdirSync(join(root, "shared", "mcp-servers"), { recursive: true });
+    mkdirSync(join(root, "shared", "security"), { recursive: true });
+    mkdirSync(join(root, "shared", "hooks", "claude"), { recursive: true });
+    writeFileSync(
+      join(root, "shared", "security", "squid.conf"),
+      "acl allowed_domains dstdomain .baseline.example\n# {{PROFILE_DOMAINS}}\nhttp_access deny all\n",
+    );
+    writeFileSync(join(root, "shared", "hooks", "claude", "hooks.json"), JSON.stringify({ Stop: [] }));
   });
 
-  it("writes overlay to the profile's build directory", () => {
-    const profile = makeProfile({ id: PID, skills: ["skill-a"] });
+  afterEach(() => {
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  describe("for a Claude Code container stage", () => {
+    it("passes only the OAuth token, never GH_TOKEN or the API key", () => {
+      // Act
+      write(variant(CliType.Claude));
+
+      // Assert
+      const overlay = built("docker-compose.overlay.yml");
+      expect(overlay).toContain('CLAUDE_CODE_OAUTH_TOKEN: "${CLAUDE_CODE_OAUTH_TOKEN}"');
+      expect(overlay).not.toContain("ANTHROPIC_API_KEY");
+      expect(overlay).not.toContain("GH_TOKEN");
+    });
+
+    it("passes only the API key when claudeAuth is api-key", () => {
+      // Act
+      write(variant(CliType.Claude), ClaudeAuthMode.ApiKey);
+
+      // Assert
+      const overlay = built("docker-compose.overlay.yml");
+      expect(overlay).toContain('ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY}"');
+      expect(overlay).not.toContain("CLAUDE_CODE_OAUTH_TOKEN");
+    });
+
+    it("sets the environment Claude Code reads, under the names it reads them by", () => {
+      // Act
+      write(variant(CliType.Claude));
+
+      // Assert
+      const overlay = built("docker-compose.overlay.yml");
+      for (const entry of [
+        'CLAUDE_CONFIG_DIR: "/workspace/.ralph/claude"',
+        'CLAUDE_CODE_DISABLE_BACKGROUND_TASKS: "1"',
+        'CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1"',
+        'CLAUDE_CODE_DISABLE_AUTO_MEMORY: "1"',
+        'CLAUDE_CODE_DISABLE_CLAUDE_MDS: "1"',
+        'DISABLE_AUTOUPDATER: "1"',
+        'DISABLE_COST_WARNINGS: "1"',
+        'ENABLE_TOOL_SEARCH: "false"',
+      ]) {
+        expect(overlay).toContain(entry);
+      }
+      expect(overlay).not.toContain("CLAUDE_CODE_DISABLE_AUTOUPDATER");
+      expect(overlay).not.toContain("CLAUDE_CODE_DISABLE_COST_WARNINGS");
+    });
+
+    it("loads the target repo's CLAUDE.md files when the profile opts in", () => {
+      // Act
+      write(variant(CliType.Claude, { claude: { loadRepoInstructions: true } }));
+
+      // Assert
+      expect(built("docker-compose.overlay.yml")).not.toContain("CLAUDE_CODE_DISABLE_CLAUDE_MDS");
+    });
+
+    it("mounts the managed and user settings and the agents and skills directories", () => {
+      // Act
+      write(variant(CliType.Claude));
+
+      // Assert
+      const overlay = built("docker-compose.overlay.yml");
+      expect(overlay).toContain(`- ${buildDir}/claude/managed-settings.json:/etc/claude-code/managed-settings.json:ro`);
+      expect(overlay).toContain(`- ${buildDir}/claude/user-settings.json:/workspace/.ralph/claude/settings.json:ro`);
+      expect(overlay).toContain(`- ${buildDir}/claude/agents:/workspace/.ralph/claude/agents:ro`);
+      expect(overlay).toContain(`- ${buildDir}/skills:/workspace/.ralph/claude/skills:ro`);
+      expect(overlay).not.toContain("/workspace/.github/");
+    });
+
+    it("writes the settings files and creates the mounted directories", () => {
+      // Act
+      write(variant(CliType.Claude));
+
+      // Assert
+      const managed = JSON.parse(built("claude/managed-settings.json"));
+      expect(managed.hooks).toEqual({ Stop: [] });
+      expect(JSON.parse(built("claude/user-settings.json"))).toEqual({});
+      expect(existsSync(join(buildDir, "claude", "agents"))).toBe(true);
+      expect(existsSync(join(buildDir, "skills"))).toBe(true);
+      expect(existsSync(join(buildDir, "copilot-config.json"))).toBe(false);
+    });
+
+    it("allows the Anthropic API but no Copilot domain through the egress proxy", () => {
+      // Act
+      write(variant(CliType.Claude, { allowlistDomains: [".npmjs.org"] }));
+
+      // Assert
+      const squid = built("squid.conf");
+      expect(squid).toContain("acl allowed_domains dstdomain .anthropic.com");
+      expect(squid).toContain("acl allowed_domains dstdomain .npmjs.org");
+      expect(squid).not.toContain("githubcopilot");
+      expect(squid).not.toContain("github.com");
+    });
+
+    it("throws when the Claude Code hooks file is missing", () => {
+      // Arrange
+      rmSync(join(root, "shared", "hooks", "claude", "hooks.json"));
+
+      // Act & Assert
+      expect(() => write(variant(CliType.Claude))).toThrow(/Failed to read Claude Code hooks/);
+    });
+  });
+
+  describe("for a Copilot container stage", () => {
+    it("passes GH_TOKEN and no Claude Code environment", () => {
+      // Act
+      write(variant(CliType.Copilot));
+
+      // Assert
+      const overlay = built("docker-compose.overlay.yml");
+      expect(overlay).toContain('GH_TOKEN: "${GH_TOKEN}"');
+      expect(overlay).not.toContain("CLAUDE_CODE_OAUTH_TOKEN");
+      expect(overlay).not.toContain("CLAUDE_CONFIG_DIR");
+      expect(overlay).not.toContain("ANTHROPIC_API_KEY");
+      expect(overlay).not.toContain("DISABLE_AUTOUPDATER");
+    });
+
+    it("mounts the URL allowlist, the hook config, each reachable agent file and each skill", () => {
+      // Act
+      write(variant(CliType.Copilot));
+
+      // Assert
+      const overlay = built("docker-compose.overlay.yml");
+      const agentsDir = join(buildDir, "copilot", "agents");
+      expect(overlay).toContain(`- ${buildDir}/copilot-config.json:/workspace/.ralph/config.json:ro`);
+      expect(overlay).toContain(
+        `- ${join(root, "shared", "hooks")}/ralph-audit.json:/workspace/.github/hooks/ralph-audit.json:ro`,
+      );
+      expect(overlay).toContain(
+        `- ${agentsDir}/ralph.ralph.agent.md:/workspace/.github/agents/ralph.ralph.agent.md:ro`,
+      );
+      expect(overlay).toContain(
+        `- ${agentsDir}/ralph.writer.agent.md:/workspace/.github/agents/ralph.writer.agent.md:ro`,
+      );
+      expect(overlay).not.toContain("ralph.other.agent.md");
+      expect(overlay).toContain(`- ${buildDir}/skills/code-review:/workspace/.github/skills/code-review:ro`);
+      expect(overlay).not.toContain("/workspace/.ralph/claude");
+    });
+
+    it("allows the Copilot domains but not the Anthropic API, and derives copilot-config.json from them", () => {
+      // Act
+      write(variant(CliType.Copilot));
+
+      // Assert
+      const squid = built("squid.conf");
+      expect(squid).toContain("acl allowed_domains dstdomain .githubcopilot.com");
+      expect(squid).toContain("acl allowed_domains dstdomain api.github.com");
+      expect(squid).not.toContain("anthropic");
+      const config = JSON.parse(built("copilot-config.json"));
+      expect(config.allowed_urls).toContain("https://*.githubcopilot.com");
+      expect(existsSync(join(buildDir, "claude"))).toBe(false);
+    });
+  });
+
+  it("combines both CLIs' credentials, mounts and domains for a variant whose container stages run both", () => {
+    // Arrange
+    const profile = makeProfile({
+      id: PID,
+      stages: [
+        makeStage({ role: "write", agent: "ralph.ralph", cli: CliType.Claude }),
+        makeStage({ role: "review", agent: "ralph.other", cli: CliType.Copilot }),
+      ],
+    });
+
+    // Act
+    write(profile);
+
+    // Assert
+    const overlay = built("docker-compose.overlay.yml");
+    expect(overlay).toContain('CLAUDE_CODE_OAUTH_TOKEN: "${CLAUDE_CODE_OAUTH_TOKEN}"');
+    expect(overlay).toContain('GH_TOKEN: "${GH_TOKEN}"');
+    expect(overlay).toContain("/workspace/.ralph/claude/agents:ro");
+    expect(overlay).toContain("/workspace/.github/agents/ralph.other.agent.md:ro");
+    expect(overlay).not.toContain("/workspace/.github/agents/ralph.ralph.agent.md");
+    const squid = built("squid.conf");
+    expect(squid).toContain(".anthropic.com");
+    expect(squid).toContain(".githubcopilot.com");
+  });
+
+  it("injects no CLI credential when every stage runs on the host", () => {
+    // Arrange
+    const profile = makeProfile({
+      id: PID,
+      stages: [makeStage({ agent: "ralph.ralph", mode: StageMode.Local, cli: CliType.Copilot })],
+    });
+
+    // Act
+    write(profile);
+
+    // Assert
+    const overlay = built("docker-compose.overlay.yml");
+    expect(overlay).not.toContain("environment:");
+    expect(built("squid.conf")).toContain("# (no extra domains)");
+  });
+
+  it("pins the agent CLI versions in the image build args", () => {
+    // Act
+    write(variant(CliType.Claude));
+
+    // Assert
+    const overlay = built("docker-compose.overlay.yml");
+    expect(overlay).toMatch(/CLAUDE_CODE_VERSION: "\d+\.\d+\.\d+"/);
+    expect(overlay).toMatch(/COPILOT_CLI_VERSION: "\d+\.\d+\.\d+"/);
+  });
+
+  it("mounts the profile's resource files", () => {
+    // Arrange
+    mkdirSync(join(root, "profiles", PID, "resources"), { recursive: true });
+    writeFileSync(join(root, "profiles", PID, "resources", "guide.md"), "# Guide");
+
+    // Act
+    write(variant(CliType.Claude, { resources: { mountBase: "res" } }));
+
+    // Assert
+    expect(built("docker-compose.overlay.yml")).toContain("- ./resources/guide.md:/workspace/res/guide.md:ro");
+  });
+
+  it("scopes mcp-config.json and gateway.json to the variant's MCP servers", () => {
+    // Act
+    write(variant(CliType.Claude));
+
+    // Assert
+    expect(JSON.parse(built("mcp-config.json"))).toEqual({ mcpServers: {} });
+    expect(JSON.parse(built("gateway.json")).servers).toEqual([]);
+  });
+
+  it("warns and writes no squid.conf when the baseline is missing", () => {
+    // Arrange
+    rmSync(join(root, "shared", "security", "squid.conf"));
     const logger = createMockLogger();
 
-    writer.write(profile, logger);
-
-    expect(writeFileSync).toHaveBeenCalledTimes(3);
-    const overlayPath = vi.mocked(writeFileSync).mock.calls[0][0] as string;
-    expect(overlayPath).toContain(`profiles/${PID}/.build/docker-compose.overlay.yml`);
-    const mcpConfigPath = vi.mocked(writeFileSync).mock.calls[1][0] as string;
-    expect(mcpConfigPath).toContain(`profiles/${PID}/.build/mcp-config.json`);
-    const gatewayPath = vi.mocked(writeFileSync).mock.calls[2][0] as string;
-    expect(gatewayPath).toContain(`profiles/${PID}/.build/gateway.json`);
-  });
-
-  it("generates skill volume mounts for declared skills", () => {
-    const profile = makeProfile({ id: PID, skills: ["code-review", "testing"] });
-
-    writer.write(profile, createMockLogger());
-
-    const content = vi.mocked(writeFileSync).mock.calls[0][1] as string;
-    expect(content).toContain("/workspace/.github/skills/code-review:ro");
-    expect(content).toContain("/workspace/.github/skills/testing:ro");
-  });
-
-  it("excludes skills not in the matched variant", () => {
-    const profile = makeProfile({ id: PID, skills: ["code-review"] });
-
-    writer.write(profile, createMockLogger());
-
-    const content = vi.mocked(writeFileSync).mock.calls[0][1] as string;
-    expect(content).toContain("/workspace/.github/skills/code-review:ro");
-    expect(content).not.toContain("unrelated-skill");
-  });
-
-  it("includes agent volume mounts when agent templates exist", () => {
-    const profile = makeProfile({ id: PID, skills: [] });
-    // readdirSync for the agents dir should return agent files
-    vi.mocked(existsSync).mockImplementation((p) => {
-      return String(p).includes("/agents");
-    });
-    vi.mocked(readdirSync).mockImplementation((p) => {
-      if (String(p).includes("/agents")) {
-        return ["ralph.agent.md", "reviewer.agent.md"] as unknown as ReturnType<typeof readdirSync>;
-      }
-      return [] as unknown as ReturnType<typeof readdirSync>;
+    // Act
+    writeComposeArtifacts({
+      rootDir: root,
+      cliRuntimes: createCliRuntimeRegistry(ClaudeAuthMode.OAuthToken),
+      profile: variant(CliType.Claude),
+      agents: AGENTS,
+      logger,
     });
 
-    writer.write(profile, createMockLogger());
+    // Assert
+    expect(existsSync(join(buildDir, "squid.conf"))).toBe(false);
+    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("Baseline squid.conf not found"));
+  });
+});
 
-    const content = vi.mocked(writeFileSync).mock.calls[0][1] as string;
-    expect(content).toContain("/workspace/.github/agents/ralph.agent.md:ro");
-    expect(content).toContain("/workspace/.github/agents/reviewer.agent.md:ro");
+describe("ComposeOverlayWriter", () => {
+  let root: string;
+  let originalCwd: string;
+  let agentCatalogs: Mocked<IAgentCatalogProvider>;
+
+  beforeEach(() => {
+    originalCwd = process.cwd();
+    root = createTempDir();
+    mkdirSync(join(root, "profiles", PID), { recursive: true });
+    mkdirSync(join(root, "shared", "mcp-servers"), { recursive: true });
+    process.chdir(root);
+    agentCatalogs = { load: vi.fn().mockResolvedValue(AGENTS) };
   });
 
-  it("includes resource volume mounts when profile.json has resources config", () => {
-    const profile = makeProfile({ id: PID, skills: [] });
-    vi.mocked(existsSync).mockImplementation((p) => {
-      const path = String(p);
-      return path.includes("profile.json") || path.includes("/resources");
-    });
-    vi.mocked(readFileSync).mockReturnValue(
-      JSON.stringify({
-        resources: { mountBase: "res" },
-      }),
-    );
-    vi.mocked(readdirSync).mockImplementation((p, _opts) => {
-      if (String(p).includes("/resources")) {
-        return [{ name: "guide.md", isDirectory: () => false }] as unknown as ReturnType<typeof readdirSync>;
-      }
-      return [] as unknown as ReturnType<typeof readdirSync>;
-    });
-
-    writer.write(profile, createMockLogger());
-
-    const content = vi.mocked(writeFileSync).mock.calls[0][1] as string;
-    expect(content).toContain("/workspace/res/guide.md:ro");
+  afterEach(() => {
+    process.chdir(originalCwd);
+    rmSync(root, { recursive: true, force: true });
   });
 
-  it("skips resource mounts when profile.json does not exist", () => {
-    const profile = makeProfile({ id: PID, skills: ["skill-a"] });
-    vi.mocked(existsSync).mockReturnValue(false);
-
-    writer.write(profile, createMockLogger());
-
-    const content = vi.mocked(writeFileSync).mock.calls[0][1] as string;
-    // Should still have skill mounts but no resource mounts
-    expect(content).toContain("/workspace/.github/skills/skill-a:ro");
-    expect(content).not.toContain("/workspace/res/");
-  });
-
-  it("skips resource mounts when profile.json has no resources field", () => {
-    const profile = makeProfile({ id: PID, skills: [] });
-    vi.mocked(existsSync).mockImplementation((p) => String(p).includes("profile.json"));
-    vi.mocked(readFileSync).mockReturnValue(JSON.stringify({ someOtherField: true }));
-
-    writer.write(profile, createMockLogger());
-
-    const content = vi.mocked(writeFileSync).mock.calls[0][1] as string;
-    expect(content).not.toContain("/workspace/res/");
-  });
-
-  it("skips resource mounts gracefully on profile.json parse error", () => {
-    const profile = makeProfile({ id: PID, skills: [] });
-    vi.mocked(existsSync).mockImplementation((p) => String(p).includes("profile.json"));
-    vi.mocked(readFileSync).mockReturnValue("not valid json {{{");
-
-    expect(() => writer.write(profile, createMockLogger())).not.toThrow();
-
-    expect(writeFileSync).toHaveBeenCalledTimes(3);
-  });
-
-  it("includes MCP sidecar service when profile has MCP servers", () => {
-    const profile = makeProfile({ id: PID, skills: [], mcpServers: ["ado", "jira-kentico"] });
-    // Mock existsSync so loadMcpManifest finds the manifest files
-    vi.mocked(existsSync).mockReturnValue(true);
-    vi.mocked(readFileSync).mockImplementation((p) => {
-      const path = String(p);
-      if (path.includes("mcp-server.json")) {
-        return JSON.stringify({
-          name: "test",
-          type: "custom",
-          command: "node",
-          args: ["server.js"],
-          sidecarPort: 9100,
-        });
-      }
-      return "{}";
+  it("writes the variant's artifacts under the working directory with the profile's agent catalog", async () => {
+    // Arrange
+    const writer = new ComposeOverlayWriter({
+      cliRuntimes: createCliRuntimeRegistry(ClaudeAuthMode.OAuthToken),
+      agentCatalogs,
     });
 
-    writer.write(profile, createMockLogger());
+    // Act
+    await writer.write(variant(CliType.Copilot), createSilentLogger());
 
-    const content = vi.mocked(writeFileSync).mock.calls[0][1] as string;
-    expect(content).toContain("mcp-sidecar:");
-    expect(content).toContain("gateway.json:/opt/mcp/config/gateway.json:ro");
+    // Assert
+    expect(agentCatalogs.load).toHaveBeenCalledWith(PID);
+    const overlay = readFileSync(join(root, "profiles", PID, ".build", "docker-compose.overlay.yml"), "utf-8");
+    expect(overlay).toContain("/workspace/.github/agents/ralph.writer.agent.md:ro");
   });
 
-  it("omits MCP sidecar service when profile has no MCP servers", () => {
-    const profile = makeProfile({ id: PID, skills: [], mcpServers: [] });
+  it("propagates an invalid agent catalog", async () => {
+    // Arrange
+    agentCatalogs.load.mockRejectedValue(new Error("Invalid agent set"));
+    const writer = new ComposeOverlayWriter({
+      cliRuntimes: createCliRuntimeRegistry(ClaudeAuthMode.OAuthToken),
+      agentCatalogs,
+    });
 
-    writer.write(profile, createMockLogger());
-
-    const content = vi.mocked(writeFileSync).mock.calls[0][1] as string;
-    expect(content).not.toContain("mcp-sidecar:");
-  });
-
-  it("logs the number of skill mounts", () => {
-    const profile = makeProfile({ id: PID, skills: ["a", "b", "c"] });
-    const logger = createMockLogger();
-
-    writer.write(profile, logger);
-
-    expect(logger.info).toHaveBeenCalledWith(
-      "Regenerated compose overlay, mcp-config, and gateway with 3 skill mount(s), 0 MCP server(s)",
-    );
-  });
-
-  it("produces a valid overlay even with zero skills and zero servers", () => {
-    const profile = makeProfile({ id: PID, skills: [], mcpServers: [] });
-
-    writer.write(profile, createMockLogger());
-
-    const content = vi.mocked(writeFileSync).mock.calls[0][1] as string;
-    expect(content).toContain("services:");
-    expect(content).toContain("app:");
-    expect(content).toContain("mcp-config.json:/workspace/.ralph/mcp-config.json:ro");
+    // Act & Assert
+    await expect(writer.write(variant(CliType.Copilot), createSilentLogger())).rejects.toThrow("Invalid agent set");
   });
 });

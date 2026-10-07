@@ -1,36 +1,25 @@
 import { existsSync, readdirSync } from "node:fs";
 import { join, relative } from "node:path";
-
-/** Configuration for auto-discovered resource mounts. */
-export interface ResourceConfig {
-  mountBase: string;
-}
+import type { IResourceMountConfig } from "../../config/types";
 
 /**
- * Discover resource files in a profile's `resources/` directory and generate
- * Docker Compose volume mount lines.
+ * Discover resource files in a profile's `resources/` directory and generate read-only bind mounts.
  *
- * Recursively scans `profileDir/resources/` for files (ignoring directories)
- * and produces `:ro` volume mounts under `/workspace/<mountBase>/`.
+ * Recursively scans `profileDir/resources/` for files (ignoring directories) and mounts each one under
+ * `/workspace/<mountBase>/`. Host paths are relative to the profile directory, which is the compose project
+ * directory.
  *
  * @param profileDir Absolute path to the profile directory (e.g. `profiles/ralph-docs`).
  * @param config Resource config with the container mount base path.
- * @returns Array of volume mount strings (YAML-ready, indented for `services.app.volumes`).
+ * @returns Mounts in compose short syntax, sorted by file path.
  */
-export function generateResourceVolumeMounts(profileDir: string, config: ResourceConfig): string[] {
+export function generateResourceVolumeMounts(profileDir: string, config: IResourceMountConfig): string[] {
   const resourcesDir = join(profileDir, "resources");
   if (!existsSync(resourcesDir)) return [];
 
-  const mounts: string[] = [];
-  const files = collectFiles(resourcesDir, resourcesDir);
-
-  for (const relPath of files) {
-    const hostPath = `./resources/${relPath}`;
-    const containerPath = `/workspace/${config.mountBase}/${relPath}`;
-    mounts.push(`      - ${hostPath}:${containerPath}:ro`);
-  }
-
-  return mounts;
+  return collectFiles(resourcesDir, resourcesDir).map(
+    (relPath) => `./resources/${relPath}:/workspace/${config.mountBase}/${relPath}:ro`,
+  );
 }
 
 /** Recursively collect file paths relative to the base directory. */

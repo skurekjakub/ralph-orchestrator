@@ -1,10 +1,11 @@
 import { execa } from "execa";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import type { ICliRuntimeRegistry } from "../cli/cli-runtime";
 import type { IContainerManager } from "./manager";
 import type { Logger } from "../logger";
 import type { TaskContext } from "../services/task-context";
-import { VcsProvider } from "../config/types";
+import { CliType, VcsProvider } from "../config/types";
 
 /**
  * A pre-execution hook that runs between container setup and agent execution.
@@ -36,8 +37,19 @@ function buildAuthHeader(provider: VcsProvider, pat: string): string {
 const EXCLUDE_MARKER_START = "# >>>ralph-orchestrator (managed — do not edit)";
 const EXCLUDE_MARKER_END = "# <<<ralph-orchestrator";
 
-/** Patterns the orchestrator mounts into the container workspace via Docker bind mounts. */
-const ORCHESTRATOR_EXCLUDE_PATTERNS = [".ralph/", ".github/skills/", ".github/agents/"];
+/** The directory the orchestrator owns in the target repo: prompt, logs, task files and CLI homes. */
+const RALPH_DIR = ".ralph/";
+
+/**
+ * Git exclude patterns for the paths the agent CLIs mount into the target repo: `.ralph/`, plus each
+ * mount target outside it, anchored to the repo root.
+ *
+ * @param mountTargets Workspace mount targets (`ICliRuntime.workspaceMountTargets`).
+ */
+export function gitExcludePatterns(mountTargets: readonly string[]): string[] {
+  const outside = mountTargets.filter((target) => !target.startsWith(RALPH_DIR)).map((target) => `/${target}`);
+  return [RALPH_DIR, ...new Set(outside)];
+}
 
 /**
  * Write orchestrator-managed exclusion patterns to `.git/info/exclude`.
@@ -49,8 +61,10 @@ const ORCHESTRATOR_EXCLUDE_PATTERNS = [".ralph/", ".github/skills/", ".github/ag
  * This prevents Docker-created bind-mount artifacts (skills, agents, .ralph/)
  * from appearing in `git status`, being staged by `git add`, or blocking
  * `git checkout` when switching to branches that track those paths.
+ *
+ * @param patterns The managed block's patterns, in order.
  */
-export function ensureGitExclude(repoPath: string): void {
+export function ensureGitExclude(repoPath: string, patterns: readonly string[]): void {
   const excludePath = join(repoPath, ".git", "info", "exclude");
   const infoDir = join(repoPath, ".git", "info");
 
@@ -58,7 +72,7 @@ export function ensureGitExclude(repoPath: string): void {
     mkdirSync(infoDir, { recursive: true });
   }
 
-  const managedBlock = [EXCLUDE_MARKER_START, ...ORCHESTRATOR_EXCLUDE_PATTERNS, EXCLUDE_MARKER_END].join("\n");
+  const managedBlock = [EXCLUDE_MARKER_START, ...patterns, EXCLUDE_MARKER_END].join("\n");
 
   let content = "";
   if (existsSync(excludePath)) {
@@ -113,9 +127,19 @@ async function branchExistsOnRemote(
  * After syncing, creates a task-scoped branch (`ralph/<key>-<slug>`) from the
  * source branch and prepares the `.ralph/tasks/<key>/` directory so the agent
  * starts on a ready workspace.
+ *
+ * The git exclude block covers the mount targets of every supported CLI, not only those of the CLIs
+ * the task runs: the mount points an earlier run with another CLI left behind are root-owned files the
+ * host cannot remove, and the agent must not see them as untracked changes it could commit.
  */
 export class RepoSyncHook implements ILifecycleHook {
   readonly name = "repo-sync";
+
+  private readonly cliRuntimes: ICliRuntimeRegistry;
+
+  constructor({ cliRuntimes }: { cliRuntimes: ICliRuntimeRegistry }) {
+    this.cliRuntimes = cliRuntimes;
+  }
 
   async execute(_container: IContainerManager, taskCtx: TaskContext, logger: Logger): Promise<void> {
     const { repoPat, vcsProvider, repoPath } = taskCtx.profile;
@@ -125,7 +149,8 @@ export class RepoSyncHook implements ILifecycleHook {
 
     // Write exclusion patterns before any git operation so Docker-created
     // bind-mount artifacts don't block checkout or appear in status/add.
-    ensureGitExclude(repoPath);
+    const mountTargets = this.cliRuntimes.forClis(Object.values(CliType)).flatMap((r) => r.workspaceMountTargets);
+    ensureGitExclude(repoPath, gitExcludePatterns(mountTargets));
 
     const authHeader = buildAuthHeader(vcsProvider, pat);
     const git = (args: string[]) => execa("git", ["-C", repoPath, ...args]);

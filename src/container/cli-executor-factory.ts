@@ -1,19 +1,22 @@
-import type { IAgentProfile, ISecretsConfig } from "../config/types";
+import type { ICliRuntimeRegistry } from "../cli/cli-runtime";
+import { CliType, type IAgentProfile, type IStageConfig } from "../config/types";
 import type { Logger } from "../logger";
 import type { IComposeClient } from "./compose-client";
-import type { ContainerExecResult, CliPaths } from "./types";
+import type { IAgentCatalogProvider } from "./setup/agent-catalogs";
+import type { ContainerExecResult } from "./types";
+import { ClaudeCodeExecutor } from "./cli-executors/claude-code-executor";
 import { CopilotExecutor } from "./cli-executors/copilot-executor";
 import { LocalCopilotExecutor } from "./cli-executors/local-copilot-executor";
 
 /**
- * Common interface for CLI executors (Copilot CLI, Claude Code CLI).
+ * Runs one pipeline stage's agent CLI.
  *
- * Each implementation translates a prompt into the appropriate CLI invocation
- * inside the container, handles streaming, timeout, and process lifecycle.
+ * Each implementation translates a prompt into its CLI's invocation, handles streaming, timeout and the
+ * process lifecycle.
  */
 export interface ICliExecutor {
-  /** Filesystem paths specific to the chosen CLI. */
-  readonly paths: CliPaths;
+  /** The CLI this executor runs. */
+  readonly cli: CliType;
   /** Execute the agent CLI with the given prompt. */
   run(prompt: string): Promise<ContainerExecResult>;
   /** Resume the previous CLI session with a continuation prompt. */
@@ -22,42 +25,77 @@ export interface ICliExecutor {
   killActive(): void;
 }
 
-/**
- * Creates the appropriate {@link ICliExecutor} for a profile based on
- * available credentials.
- *
- * Only Copilot CLI is currently supported — Claude Code CLI lacks the
- * URL restriction and pre-tool hook infrastructure required for secure
- * operation.
- */
+/** Creates the executor of a stage's CLI. Credentials are checked by startup validation, not here. */
 export interface ICliExecutorFactory {
-  /** Create a CLI executor for the given profile (runs inside a container). Throws if required credentials are missing. */
-  create(compose: IComposeClient, profile: IAgentProfile, cliLogger: Logger): ICliExecutor;
-  /** Create a local CLI executor for the given profile (runs on the host). */
-  createLocal(profile: IAgentProfile, cwd: string, cliLogger: Logger): ICliExecutor;
+  /**
+   * Executor for a `mode: "container"` stage, running inside the task's `app` container.
+   *
+   * @param stageProfile The variant with the stage's overrides applied (`deriveStageProfile`).
+   * @throws Error when the profile's agent templates are invalid or lack the stage's agent.
+   */
+  create(
+    compose: IComposeClient,
+    stageProfile: IAgentProfile,
+    stage: IStageConfig,
+    cliLogger: Logger,
+  ): Promise<ICliExecutor>;
+  /**
+   * Executor for a `mode: "local"` stage, running on the host in `cwd`.
+   *
+   * @param stageProfile The variant with the stage's overrides applied (`deriveStageProfile`).
+   * @throws Error when the stage's CLI has no host executor.
+   */
+  createLocal(stageProfile: IAgentProfile, stage: IStageConfig, cwd: string, cliLogger: Logger): ICliExecutor;
 }
 
-/** Default implementation — creates {@link CopilotExecutor} or {@link LocalCopilotExecutor} when GH_TOKEN is available. */
+/** Dispatches on the stage's resolved CLI. */
 export class CliExecutorFactory implements ICliExecutorFactory {
-  private readonly secrets: ISecretsConfig;
+  private readonly cliRuntimes: ICliRuntimeRegistry;
+  private readonly agentCatalogs: IAgentCatalogProvider;
 
-  constructor({ secrets }: { secrets: ISecretsConfig }) {
-    this.secrets = secrets;
+  constructor({
+    cliRuntimes,
+    agentCatalogs,
+  }: {
+    cliRuntimes: ICliRuntimeRegistry;
+    agentCatalogs: IAgentCatalogProvider;
+  }) {
+    this.cliRuntimes = cliRuntimes;
+    this.agentCatalogs = agentCatalogs;
   }
 
-  create(compose: IComposeClient, profile: IAgentProfile, cliLogger: Logger): ICliExecutor {
-    if (this.secrets.ghToken) {
-      return new CopilotExecutor(compose, profile, cliLogger);
+  /** Claude Code takes the stage root's frontmatter name and the depth of its subagent graph from the agent catalog. */
+  async create(
+    compose: IComposeClient,
+    stageProfile: IAgentProfile,
+    stage: IStageConfig,
+    cliLogger: Logger,
+  ): Promise<ICliExecutor> {
+    const runtime = this.cliRuntimes.get(stage.cli);
+    switch (stage.cli) {
+      case CliType.Claude: {
+        const catalog = await this.agentCatalogs.load(stageProfile.id);
+        return new ClaudeCodeExecutor({
+          compose,
+          profile: stageProfile,
+          stage,
+          agentName: catalog.get(stage.agent).frontmatter.name,
+          subagentDepth: catalog.depthFrom(stage.agent),
+          runtime,
+          logger: cliLogger,
+        });
+      }
+      case CliType.Copilot:
+        return new CopilotExecutor({ compose, profile: stageProfile, runtime, logger: cliLogger });
     }
-
-    throw new Error("GH_TOKEN is required — Copilot CLI is the only supported CLI. Set GH_TOKEN in .env");
   }
 
-  createLocal(profile: IAgentProfile, cwd: string, cliLogger: Logger): ICliExecutor {
-    if (this.secrets.ghToken) {
-      return new LocalCopilotExecutor(profile, cwd, cliLogger);
+  createLocal(stageProfile: IAgentProfile, stage: IStageConfig, cwd: string, cliLogger: Logger): ICliExecutor {
+    switch (stage.cli) {
+      case CliType.Copilot:
+        return new LocalCopilotExecutor(stageProfile, cwd, cliLogger);
+      case CliType.Claude:
+        throw new Error(`Stage "${stage.role}" runs cli "claude" on the host, but host stages run only Copilot CLI`);
     }
-
-    throw new Error("GH_TOKEN is required — Copilot CLI is the only supported CLI. Set GH_TOKEN in .env");
   }
 }

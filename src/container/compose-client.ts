@@ -16,14 +16,24 @@ export interface ComposeEnvConfig {
   squidConfPath: string;
 }
 
+/** Stdin for a `docker compose exec` command. */
+export interface ExecInputOptions {
+  /** Host file streamed to the command's stdin. */
+  readonly inputFile?: string;
+}
+
 /** Public contract for Docker Compose process spawning. */
 export interface IComposeClient {
   /** Run `docker compose -f <file...> <args>`. */
   compose(args: string[]): ResultPromise;
   /** Run `docker compose -f <file...> exec <args>`. */
   exec(args: string[]): ResultPromise;
-  /** Run `docker compose exec` with a timeout. */
-  execWithTimeout(args: string[], timeoutMs: number): ResultPromise;
+  /**
+   * Run `docker compose exec` with a timeout.
+   *
+   * @param options.inputFile Host file streamed to the command's stdin; pass `-T` in `args` so compose forwards it.
+   */
+  execWithTimeout(args: string[], timeoutMs: number, options?: ExecInputOptions): ResultPromise;
   /** Run `docker compose -f <file...> logs --no-color --no-log-prefix <service>`. */
   logs(service: string): ResultPromise;
   /** Verify that the Docker daemon is reachable. */
@@ -91,10 +101,11 @@ export class ComposeClient implements IComposeClient {
    *
    * Returns the raw execa result promise so callers can attach stream listeners.
    */
-  execWithTimeout(args: string[], timeoutMs: number) {
+  execWithTimeout(args: string[], timeoutMs: number, options: ExecInputOptions = {}) {
     return execa("docker", ["compose", ...this.fileArgs, "exec", ...args], {
       env: this.env,
       timeout: timeoutMs,
+      ...(options.inputFile === undefined ? {} : { inputFile: options.inputFile }),
     });
   }
 

@@ -19,9 +19,11 @@ import {
   createSilentLogger,
 } from "../helpers/mocks";
 import { makeProfile, makeStage, makeTaskContext } from "../helpers/factories";
-import { agentBuildDir } from "../../src/container/setup/agent-includes";
-import { skillsBuildDir } from "../../src/container/setup/skill-includes";
+import { agentsBuildDir, profileBuildPaths } from "../../src/container/setup/build-paths";
 import { CliType, StageMode } from "../../src/config/types";
+
+/** Build paths of the "docs" profile under the working directory, where the service renders. */
+const DOCS_PATHS = profileBuildPaths(process.cwd(), "docs");
 
 function createService() {
   const templateRenderer = createMockTemplateRenderer();
@@ -60,7 +62,7 @@ describe("ProfileSetupService", () => {
       expect(templateRenderer.render).toHaveBeenCalledWith(
         "docs",
         expect.objectContaining({ taskId: ctx.workItem.id, profileId: "docs", agentName: "ralph.ralph" }),
-        { cli: CliType.Claude, rootAgentFileId: "ralph.ralph", outDir: agentBuildDir("docs", CliType.Claude) },
+        { cli: CliType.Claude, rootAgentFileId: "ralph.ralph", outDir: agentsBuildDir(DOCS_PATHS, CliType.Claude) },
         expect.anything(),
       );
     });
@@ -76,7 +78,7 @@ describe("ProfileSetupService", () => {
       // Assert
       expect(skillRenderer.render).toHaveBeenCalledWith(
         expect.objectContaining({ skills: ["a", "b"] }),
-        skillsBuildDir("docs"),
+        DOCS_PATHS.skillsBuildDir,
         expect.anything(),
       );
     });
@@ -130,12 +132,12 @@ describe("ProfileSetupService", () => {
       expect(templateRenderer.render).toHaveBeenCalledWith(
         "docs",
         expect.anything(),
-        { cli: CliType.Claude, rootAgentFileId: "ralph.scientist", outDir: agentBuildDir("docs", CliType.Claude) },
+        { cli: CliType.Claude, rootAgentFileId: "ralph.scientist", outDir: agentsBuildDir(DOCS_PATHS, CliType.Claude) },
         expect.anything(),
       );
       expect(skillRenderer.render).toHaveBeenCalledWith(
         expect.objectContaining({ skills: ["review"] }),
-        skillsBuildDir("docs"),
+        DOCS_PATHS.skillsBuildDir,
         expect.anything(),
       );
     });

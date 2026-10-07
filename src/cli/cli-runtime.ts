@@ -1,6 +1,11 @@
-import type { CliType } from "../config/types";
+import type { CliType, IAgentProfile } from "../config/types";
+import type { FolderExportDef, LogSourceDef } from "../container/log-collector";
+import type { ProfileBuildPaths } from "../container/setup/build-paths";
+import type { Logger } from "../logger";
+import type { AgentGraph } from "./agent-file-writer";
 import type { ICliCredentialPolicy } from "./credential-catalog";
 import type { ICliModelPolicy } from "./model-catalog";
+import type { ICliOutputDecoder } from "./output-decoder";
 
 /** Whether a CLI writes its debug log to one file or to files inside a directory. */
 export enum CliDebugLogKind {
@@ -24,6 +29,38 @@ export interface CliContainerLayout {
   readonly transcriptPath: string | null;
 }
 
+/** The task a CLI's container contribution and per-task artifacts are generated for. */
+export interface CliTaskInput {
+  /** The matched variant; `skills` is the union of its stages' skills. */
+  readonly profile: IAgentProfile;
+  /** Host paths of the profile's sources and generated artifacts. */
+  readonly paths: ProfileBuildPaths;
+  /** The profile's subagent graph, for the agents each container stage can reach. */
+  readonly agents: AgentGraph;
+}
+
+/** What one CLI adds to the agent container's `app` service. */
+export interface ComposeContribution {
+  /** Bind mounts in compose short syntax (`<host path>:<container path>[:ro]`). */
+  readonly volumes: readonly string[];
+  /** Environment entries; a value may be a compose interpolation such as `${GH_TOKEN}`. */
+  readonly env: Readonly<Record<string, string>>;
+}
+
+/** Several CLIs' contributions as one: each volume listed once, in order, and the environment entries of all of them (the CLIs set disjoint variables). */
+export function mergeComposeContributions(contributions: readonly ComposeContribution[]): ComposeContribution {
+  return {
+    volumes: [...new Set(contributions.flatMap((c) => c.volumes))],
+    env: Object.assign({}, ...contributions.map((c) => c.env)),
+  };
+}
+
+/** Log files and folders one CLI writes inside the agent container. */
+export interface CliLogSources {
+  readonly sources: readonly LogSourceDef[];
+  readonly exports: readonly FolderExportDef[];
+}
+
 /** What the orchestrator needs to know to run one agent CLI. One implementation per supported CLI. */
 export interface ICliRuntime {
   /** The CLI this runtime describes. */
@@ -34,6 +71,29 @@ export interface ICliRuntime {
   readonly models: ICliModelPolicy;
   /** Environment variables the CLI authenticates with. */
   readonly credentials: ICliCredentialPolicy;
+  /** Domains the CLI itself reaches (its model API), added to the task's Squid allowlist. */
+  readonly egressDomains: readonly string[];
+  /**
+   * Paths relative to `/workspace` that the CLI's mounts create inside the target repo; a trailing `/` marks a
+   * directory. Those outside `.ralph/` go into the target repo's git exclude.
+   */
+  readonly workspaceMountTargets: readonly string[];
+  /** Mounts and environment the CLI adds to the `app` service for one task. */
+  composeContribution(input: CliTaskInput): ComposeContribution;
+  /**
+   * Writes the CLI's per-task artifacts into the profile's build directory before the containers start.
+   *
+   * @throws Error when an input the artifacts are built from is missing or malformed.
+   */
+  writeTaskArtifacts(input: CliTaskInput, logger: Logger): void;
+  /**
+   * Log files and folders to collect from the container.
+   *
+   * @param onDebugLine Receives each line of the CLI's debug log while it streams; the debug log is only collected without it.
+   */
+  logSources(onDebugLine?: (line: string) => void): CliLogSources;
+  /** A fresh decoder for the stdout of one CLI process. */
+  createOutputDecoder(): ICliOutputDecoder;
 }
 
 /** Resolves the runtime of a CLI. */

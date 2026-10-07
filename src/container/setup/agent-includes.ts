@@ -13,6 +13,7 @@ import type { AgentRenderTarget } from "../../cli/agent-file-writer";
 import { agentFileWriterFor } from "../../cli/agent-writers";
 import { cliToolNamesFor, type CliToolNames } from "../../cli/cli-tools";
 import { syncDirectory } from "../../util/sync-dir";
+import { agentsBuildDir, profileBuildPaths } from "./build-paths";
 import { loadMcpManifest } from "./mcp-manifest";
 
 /**
@@ -259,18 +260,12 @@ export function createTemplateEngine(roots: readonly string[]): Liquid {
 }
 
 /**
- * Host directory a profile's agents are rendered into for one CLI (`profiles/<id>/.build/<cli>/agents`).
- * Compose overlays mount it, or files in it, into the agent container.
- */
-export function agentBuildDir(profileId: string, cli: CliType): string {
-  return resolve(process.cwd(), "profiles", profileId, ".build", cli, "agents");
-}
-
-/**
- * The render target of `stage`: its CLI, its root agent and the profile's build directory for that CLI.
+ * The render target of `stage`: its CLI, its root agent and the profile's build directory for that CLI
+ * under the orchestrator's working directory.
  */
 export function stageRenderTarget(profileId: string, stage: IStageConfig): AgentRenderTarget {
-  return { cli: stage.cli, rootAgentFileId: stage.agent, outDir: agentBuildDir(profileId, stage.cli) };
+  const outDir = agentsBuildDir(profileBuildPaths(process.cwd(), profileId), stage.cli);
+  return { cli: stage.cli, rootAgentFileId: stage.agent, outDir };
 }
 
 /**

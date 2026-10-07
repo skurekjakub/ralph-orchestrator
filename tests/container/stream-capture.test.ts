@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { StreamCapture } from "../../src/container/stream-capture";
+import { ClaudeStreamJsonDecoder } from "../../src/cli/claude/stream-json-decoder";
 import { createMockLogger } from "../helpers/mocks";
 import type { ResultPromise } from "execa";
 import { EventEmitter } from "node:events";
@@ -172,5 +173,105 @@ describe("StreamCapture", () => {
 
     await Promise.resolve();
     expect(resolveCount).toBe(1);
+  });
+
+  describe("with a stream-json decoder", () => {
+    const event = (e: object): string => JSON.stringify(e) + "\n";
+
+    it("logs the decoded lines and warnings instead of the raw JSON", () => {
+      // Arrange
+      const { proc, stdout } = makeFakeProc();
+      const logger = createMockLogger();
+      new StreamCapture(proc, logger, "claude", new ClaudeStreamJsonDecoder());
+
+      // Act
+      stdout.emit(
+        "data",
+        event({
+          type: "assistant",
+          parent_tool_use_id: null,
+          message: { content: [{ type: "text", text: "Hello" }] },
+        }) + "not json\n",
+      );
+
+      // Assert
+      expect(logger.info).toHaveBeenCalledWith("[claude] Hello");
+      expect(logger.warn).toHaveBeenCalledWith("[claude] unparsable output: not json");
+      expect(logger.info).not.toHaveBeenCalledWith(expect.stringContaining('"type"'));
+    });
+
+    it("does not detect a result marker that only appears inside a tool call", async () => {
+      // Arrange
+      const { proc, stdout } = makeFakeProc();
+      const capture = new StreamCapture(proc, createMockLogger(), "claude", new ClaudeStreamJsonDecoder());
+      let resolved = false;
+      void capture.resultBlockDetected.then(() => {
+        resolved = true;
+      });
+
+      // Act
+      stdout.emit(
+        "data",
+        event({
+          type: "assistant",
+          parent_tool_use_id: null,
+          message: { content: [{ type: "tool_use", name: "Write", input: { content: "===RALPH_RESULT_END===" } }] },
+        }),
+      );
+      await Promise.resolve();
+
+      // Assert
+      expect(resolved).toBe(false);
+    });
+
+    it("detects the result marker in the agent's own text", async () => {
+      // Arrange
+      const { proc, stdout } = makeFakeProc();
+      const capture = new StreamCapture(proc, createMockLogger(), "claude", new ClaudeStreamJsonDecoder());
+
+      // Act
+      stdout.emit(
+        "data",
+        event({
+          type: "assistant",
+          parent_tool_use_id: null,
+          message: { content: [{ type: "text", text: "===RALPH_RESULT_START===\n===RALPH_RESULT_END===" }] },
+        }),
+      );
+
+      // Assert
+      await expect(capture.resultBlockDetected).resolves.toBeUndefined();
+    });
+  });
+
+  describe("outcome", () => {
+    it("decodes a final line that never got its newline", () => {
+      // Arrange
+      const { proc, stdout } = makeFakeProc();
+      const capture = new StreamCapture(proc, createMockLogger(), "test");
+      stdout.emit("data", "first\nlast without newline");
+
+      // Act
+      const outcome = capture.outcome();
+
+      // Assert
+      expect(outcome.agentText).toBe("first\nlast without newline");
+    });
+
+    it("decodes the final line once when the stream closes before outcome is read", () => {
+      // Arrange
+      const { proc, stdout } = makeFakeProc();
+      const logger = createMockLogger();
+      const capture = new StreamCapture(proc, logger, "test");
+      stdout.emit("data", "tail");
+      stdout.emit("close");
+
+      // Act
+      const outcome = capture.outcome();
+
+      // Assert
+      expect(outcome.agentText).toBe("tail");
+      expect(logger.info).toHaveBeenCalledTimes(1);
+    });
   });
 });

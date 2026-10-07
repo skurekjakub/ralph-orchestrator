@@ -1,141 +1,222 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
+import { PassThrough } from "node:stream";
 import { ExecaError, type ResultPromise } from "execa";
-import { createMockCompose, createMockLogger } from "../../helpers/mocks";
+import {
+  executeCliCommand,
+  killActiveProcess,
+  writePromptFile,
+  type CliCommand,
+} from "../../../src/container/cli-executors/shared-exec";
+import { PlainTextDecoder } from "../../../src/cli/plain-text-decoder";
+import { createMockCompose, createMockLogger, fakeCliProcess } from "../../helpers/mocks";
 
-vi.mock("../../../src/container/stream-capture", () => ({
-  StreamCapture: class MockStreamCapture {
-    readonly stdout = "captured-stdout";
-    readonly stderr = "captured-stderr";
-    readonly resultBlockDetected = new Promise<void>(() => {});
-    constructor(_proc: unknown, _logger: unknown, _tag: string) {}
-  },
-}));
-
-const { executeCliCommand, killActiveProcess } = await import("../../../src/container/cli-executors/shared-exec");
-
-function makeExecaError(
-  overrides: {
-    exitCode?: number;
-    stdout?: string;
-    stderr?: string;
-    timedOut?: boolean;
-  } = {},
-): ExecaError {
-  const err = Object.create(ExecaError.prototype) as ExecaError & Record<string, unknown>;
-  err.message = "Command failed";
-  err.exitCode = overrides.exitCode ?? 1;
-  err.stdout = overrides.stdout ?? "";
-  err.stderr = overrides.stderr ?? "";
-  err.timedOut = overrides.timedOut ?? false;
-  return err;
+function makeExecaError(overrides: { exitCode?: number; stderr?: string; timedOut?: boolean } = {}): ExecaError {
+  return Object.assign(Object.create(ExecaError.prototype) as ExecaError, {
+    message: "Command failed",
+    shortMessage: "Command failed",
+    exitCode: overrides.exitCode ?? 1,
+    stdout: "",
+    stderr: overrides.stderr ?? "",
+    timedOut: overrides.timedOut ?? false,
+  });
 }
 
-// ── executeCliCommand ────────────────────────────────────────────────────────
+/** A command whose compose client returns `process`. */
+function command(process: ResultPromise, overrides: Partial<CliCommand> = {}): CliCommand {
+  const { compose } = createMockCompose();
+  vi.mocked(compose.execWithTimeout).mockReturnValue(process);
+  return {
+    compose,
+    args: ["--user", "vscode", "app", "cli"],
+    timeoutMs: 60_000,
+    logger: createMockLogger(),
+    tag: "test",
+    tracker: { activeProcess: null },
+    decoder: new PlainTextDecoder(),
+    ...overrides,
+  };
+}
 
 describe("executeCliCommand", () => {
-  it("returns result on success", async () => {
-    const { compose } = createMockCompose();
-    const logger = createMockLogger();
-    const tracker = { activeProcess: null as ResultPromise | null };
+  it("returns the exit code, the captured output and the decoded agent text", async () => {
+    // Arrange
+    const cmd = command(fakeCliProcess("hello\nworld\n", { stderr: "note\n" }));
 
-    vi.mocked(compose.execWithTimeout).mockReturnValue(
-      Promise.resolve({ exitCode: 0, stdout: "ok", stderr: "" }) as unknown as ResultPromise,
-    );
+    // Act
+    const result = await executeCliCommand(cmd);
 
-    const result = await executeCliCommand(
-      compose,
-      ["--user", "vscode", "app", "test"],
-      60000,
-      logger,
-      "test",
-      tracker,
-    );
-
+    // Assert
     expect(result).toEqual({
       exitCode: 0,
-      stdout: "captured-stdout",
-      stderr: "captured-stderr",
+      stdout: "hello\nworld\n",
+      stderr: "note\n",
       timedOut: false,
+      agentText: "hello\nworld",
     });
   });
 
-  it("handles ExecaError without rethrowing", async () => {
-    const { compose } = createMockCompose();
-    const logger = createMockLogger();
-    const tracker = { activeProcess: null as ResultPromise | null };
-    const error = makeExecaError({ exitCode: 42, timedOut: true });
+  it("passes the args, timeout and stdin file to compose exec", async () => {
+    // Arrange
+    const cmd = command(fakeCliProcess(""), { inputFile: "/repo/.ralph/prompt.txt", timeoutMs: 42 });
 
-    vi.mocked(compose.execWithTimeout).mockReturnValue(Promise.reject(error) as unknown as ResultPromise);
+    // Act
+    await executeCliCommand(cmd);
 
-    const result = await executeCliCommand(compose, ["arg"], 60000, logger, "test", tracker);
+    // Assert
+    expect(cmd.compose.execWithTimeout).toHaveBeenCalledWith(["--user", "vscode", "app", "cli"], 42, {
+      inputFile: "/repo/.ralph/prompt.txt",
+    });
+  });
 
-    expect(result.exitCode).toBe(42);
+  it("returns a non-zero exit with what the CLI printed, and warns with its stderr", async () => {
+    // Arrange
+    const error = makeExecaError({ exitCode: 42, stderr: "boom" });
+    const cmd = command(fakeCliProcess("partial\n", { stderr: "boom", error }));
+
+    // Act
+    const result = await executeCliCommand(cmd);
+
+    // Assert
+    expect(result).toMatchObject({ exitCode: 42, stdout: "partial\n", stderr: "boom", agentText: "partial" });
+    expect(cmd.logger.warn).toHaveBeenCalledWith(expect.stringContaining("CLI exited with code 42 — stderr: boom"));
+  });
+
+  it("reports a timeout", async () => {
+    // Arrange
+    const cmd = command(fakeCliProcess("", { error: makeExecaError({ timedOut: true }) }));
+
+    // Act
+    const result = await executeCliCommand(cmd);
+
+    // Assert
     expect(result.timedOut).toBe(true);
   });
 
-  it("rethrows non-ExecaError errors", async () => {
+  it("returns an empty agent text when the process failed before any output was captured", async () => {
+    // Arrange
     const { compose } = createMockCompose();
-    const logger = createMockLogger();
-    const tracker = { activeProcess: null as ResultPromise | null };
+    vi.mocked(compose.execWithTimeout).mockImplementation(() => {
+      throw makeExecaError({ exitCode: 127 });
+    });
+    const cmd = command(fakeCliProcess(""), { compose });
 
-    vi.mocked(compose.execWithTimeout).mockReturnValue(
-      Promise.reject(new Error("network failure")) as unknown as ResultPromise,
-    );
+    // Act
+    const result = await executeCliCommand(cmd);
 
-    await expect(executeCliCommand(compose, ["arg"], 60000, logger, "test", tracker)).rejects.toThrow(
-      "network failure",
-    );
+    // Assert
+    expect(result).toMatchObject({ exitCode: 127, agentText: "" });
   });
 
-  it("clears activeProcess after success", async () => {
-    const { compose } = createMockCompose();
-    const logger = createMockLogger();
-    const tracker = { activeProcess: null as ResultPromise | null };
+  it("rethrows errors that are not process failures", async () => {
+    // Arrange
+    const cmd = command(fakeCliProcess("", { error: new Error("network failure") }));
 
-    vi.mocked(compose.execWithTimeout).mockReturnValue(
-      Promise.resolve({ exitCode: 0, stdout: "", stderr: "" }) as unknown as ResultPromise,
-    );
-
-    await executeCliCommand(compose, ["arg"], 60000, logger, "test", tracker);
-
-    expect(tracker.activeProcess).toBeNull();
+    // Act & Assert
+    await expect(executeCliCommand(cmd)).rejects.toThrow("network failure");
   });
 
-  it("clears activeProcess after ExecaError", async () => {
-    const { compose } = createMockCompose();
-    const logger = createMockLogger();
-    const tracker = { activeProcess: null as ResultPromise | null };
+  it("clears the tracked process after success and after failure", async () => {
+    // Arrange
+    const ok = command(fakeCliProcess(""));
+    const failed = command(fakeCliProcess("", { error: makeExecaError() }));
 
-    vi.mocked(compose.execWithTimeout).mockReturnValue(Promise.reject(makeExecaError()) as unknown as ResultPromise);
+    // Act
+    await executeCliCommand(ok);
+    await executeCliCommand(failed);
 
-    await executeCliCommand(compose, ["arg"], 60000, logger, "test", tracker);
+    // Assert
+    expect(ok.tracker.activeProcess).toBeNull();
+    expect(failed.tracker.activeProcess).toBeNull();
+  });
 
-    expect(tracker.activeProcess).toBeNull();
+  describe("after the result block", () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("terminates a CLI that is still running 10 s after printing the block", async () => {
+      // Arrange
+      const out = new PassThrough();
+      const err = new PassThrough();
+      let exit!: () => void;
+      const settled = new Promise((resolve) => {
+        exit = () => resolve({ exitCode: 143, stdout: "", stderr: "" });
+      });
+      const kill = vi.fn(() => {
+        out.end();
+        err.end();
+        exit();
+        return true;
+      });
+      const process = Object.assign(settled, { stdout: out, stderr: err, kill }) as unknown as ResultPromise;
+      out.write("===RALPH_RESULT_END===\n");
+      const pending = executeCliCommand(command(process));
+
+      // Act
+      await vi.advanceTimersByTimeAsync(10_000);
+
+      // Assert
+      expect(kill).toHaveBeenCalledWith("SIGTERM");
+      await expect(pending).resolves.toMatchObject({ exitCode: 143 });
+    });
   });
 });
 
-// ── killActiveProcess ────────────────────────────────────────────────────────
+describe("writePromptFile", () => {
+  let repoPath: string;
+
+  beforeEach(() => {
+    repoPath = mkdtempSync(join(tmpdir(), "prompt-file-"));
+  });
+
+  afterEach(() => {
+    rmSync(repoPath, { recursive: true, force: true });
+  });
+
+  it("writes the prompt to .ralph/prompt.txt, creating .ralph, and returns its path", () => {
+    // Act
+    const path = writePromptFile(repoPath, "the prompt");
+
+    // Assert
+    expect(path).toBe(join(repoPath, ".ralph", "prompt.txt"));
+    expect(readFileSync(path, "utf-8")).toBe("the prompt");
+  });
+});
 
 describe("killActiveProcess", () => {
   it("sends SIGTERM when process exists", () => {
+    // Arrange
     const mockProcess = { kill: vi.fn() } as unknown as ResultPromise;
     const tracker = { activeProcess: mockProcess };
 
+    // Act
     killActiveProcess(tracker);
 
+    // Assert
     expect(mockProcess.kill).toHaveBeenCalledWith("SIGTERM");
     expect(tracker.activeProcess).toBeNull();
   });
 
   it("is a no-op when activeProcess is null", () => {
+    // Arrange
     const tracker = { activeProcess: null as ResultPromise | null };
 
+    // Act
     killActiveProcess(tracker);
 
+    // Assert
     expect(tracker.activeProcess).toBeNull();
   });
 
   it("handles already-terminated process gracefully", () => {
+    // Arrange
     const mockProcess = {
       kill: vi.fn().mockImplementation(() => {
         throw new Error("Process already terminated");
@@ -143,6 +224,7 @@ describe("killActiveProcess", () => {
     } as unknown as ResultPromise;
     const tracker = { activeProcess: mockProcess };
 
+    // Act & Assert
     expect(() => killActiveProcess(tracker)).not.toThrow();
     expect(tracker.activeProcess).toBeNull();
   });

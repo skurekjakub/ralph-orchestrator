@@ -55,5 +55,9 @@
   },
   "engines": {
     "node": ">=24"
+  },
+  "agentCliVersions": {
+    "claude": "2.1.292",
+    "copilot": "1.0.3"
   }
 }

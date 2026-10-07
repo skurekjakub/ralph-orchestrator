@@ -1,392 +1,191 @@
 import { describe, it, expect } from "vitest";
-import { mkdirSync, rmSync } from "node:fs";
-import { join } from "node:path";
-import { generateComposeOverlay } from "../../src/container/setup/compose-overlay";
-import { createTempDir, writeManifest } from "../helpers/mcp-fs";
+import { generateComposeOverlay, type ComposeOverlayOptions } from "../../src/container/setup/compose-overlay";
 
-describe("Compose Overlay", () => {
-  describe("generateComposeOverlay with extraVolumes", () => {
-    it("includes extra volumes in the generated overlay", () => {
-      const mcpDir = createTempDir();
-      const sidecarDir = join(mcpDir, "sidecar");
-      mkdirSync(sidecarDir, { recursive: true });
-      writeManifest(mcpDir, "test-server", {
-        name: "test-server",
-        type: "custom",
-        command: "npx",
-        args: ["-y", "test"],
-        sidecarPort: 9100,
-      });
+const BUILD_DIR = "/repo/profiles/p/.build";
+const SIDECAR_DIR = "/repo/shared/mcp-sidecar";
 
-      const buildDir = join(mcpDir, ".build");
-      mkdirSync(buildDir, { recursive: true });
+/** Overlay options for a variant without MCP servers, CLI artifacts or extra build args, merged with `overrides`. */
+function options(overrides: Partial<ComposeOverlayOptions> = {}): ComposeOverlayOptions {
+  return {
+    mcpServersDir: "/repo/shared/mcp-servers",
+    serverNames: [],
+    buildDir: BUILD_DIR,
+    sidecarDir: SIDECAR_DIR,
+    appVolumes: [],
+    appEnv: {},
+    appBuildArgs: {},
+    sidecarEnv: {},
+    hasPreInit: false,
+    ...overrides,
+  };
+}
 
-      const extraVolumes = ["      - ./resources/data.md:/workspace/res/data.md:ro"];
+/** The `app` service part of an overlay. */
+function appSection(overlay: string): string {
+  const sidecarStart = overlay.indexOf("\n  mcp-sidecar:\n");
+  return sidecarStart === -1 ? overlay : overlay.slice(0, sidecarStart);
+}
 
-      const overlay = generateComposeOverlay(mcpDir, ["test-server"], buildDir, sidecarDir, extraVolumes);
+/** The `mcp-sidecar` service part of an overlay. */
+function sidecarSection(overlay: string): string {
+  return overlay.slice(overlay.indexOf("\n  mcp-sidecar:\n"));
+}
 
-      expect(overlay).toContain("# Agent definitions, skills, and resource files");
-      expect(overlay).toContain("./resources/data.md:/workspace/res/data.md:ro");
-      expect(overlay).toContain("copilot-config.json:/workspace/.ralph/config.json:ro");
+describe("generateComposeOverlay", () => {
+  describe("app service", () => {
+    it("always mounts the URL-only MCP config and the .ralph .gitignore", () => {
+      // Act
+      const overlay = generateComposeOverlay(options());
 
-      rmSync(mcpDir, { recursive: true, force: true });
+      // Assert
+      expect(overlay).toContain(`- ${BUILD_DIR}/mcp-config.json:/workspace/.ralph/mcp-config.json:ro`);
+      expect(overlay).toContain(`- ${BUILD_DIR}/.gitignore:/workspace/.ralph/.gitignore:ro`);
     });
 
-    it("generates overlay with only resource volumes when no MCP servers", () => {
-      const mcpDir = createTempDir();
-      const sidecarDir = join(mcpDir, "sidecar");
+    it("lists the CLI and resource volumes it is given", () => {
+      // Act
+      const overlay = generateComposeOverlay(
+        options({ appVolumes: ["/b/settings.json:/etc/x.json:ro", "./resources/data.md:/workspace/res/data.md:ro"] }),
+      );
 
-      const extraVolumes = ["      - ./resources/guide.md:/workspace/res/guide.md:ro"];
-
-      const overlay = generateComposeOverlay(mcpDir, [], mcpDir, sidecarDir, extraVolumes);
-
-      expect(overlay).toContain("# Agent definitions, skills, and resource files");
-      expect(overlay).toContain("./resources/guide.md:/workspace/res/guide.md:ro");
-      expect(overlay).toContain("copilot-config.json:/workspace/.ralph/config.json:ro");
-
-      rmSync(mcpDir, { recursive: true, force: true });
-    });
-  });
-
-  describe("generateComposeOverlay environment variables", () => {
-    it("always mounts mcp-config.json even with no MCP servers", () => {
-      const mcpDir = createTempDir();
-      const sidecarDir = join(mcpDir, "sidecar");
-
-      const overlay = generateComposeOverlay(mcpDir, [], mcpDir, sidecarDir);
-
-      expect(overlay).toContain("mcp-config.json:/workspace/.ralph/mcp-config.json:ro");
-
-      rmSync(mcpDir, { recursive: true, force: true });
+      // Assert
+      expect(overlay).toContain("      - /b/settings.json:/etc/x.json:ro");
+      expect(overlay).toContain("      - ./resources/data.md:/workspace/res/data.md:ro");
     });
 
-    it("always mounts .gitignore into .ralph directory", () => {
-      const mcpDir = createTempDir();
-      const sidecarDir = join(mcpDir, "sidecar");
+    it("writes the given environment as quoted values, keeping compose interpolations", () => {
+      // Act
+      const overlay = generateComposeOverlay(
+        options({ appEnv: { CLAUDE_CODE_OAUTH_TOKEN: "${CLAUDE_CODE_OAUTH_TOKEN}", DISABLE_AUTOUPDATER: "1" } }),
+      );
 
-      const overlay = generateComposeOverlay(mcpDir, [], mcpDir, sidecarDir);
-
-      expect(overlay).toContain(".gitignore:/workspace/.ralph/.gitignore:ro");
-
-      rmSync(mcpDir, { recursive: true, force: true });
+      // Assert
+      expect(appSection(overlay)).toContain("    environment:");
+      expect(overlay).toContain('      CLAUDE_CODE_OAUTH_TOKEN: "${CLAUDE_CODE_OAUTH_TOKEN}"');
+      expect(overlay).toContain('      DISABLE_AUTOUPDATER: "1"');
     });
 
-    it("does not mount .gitignore into .github/skills directory", () => {
-      const mcpDir = createTempDir();
-      const sidecarDir = join(mcpDir, "sidecar");
+    it("has no environment and no CLI credential when no agent CLI runs in the container", () => {
+      // Act
+      const app = appSection(generateComposeOverlay(options()));
 
-      const overlay = generateComposeOverlay(mcpDir, [], mcpDir, sidecarDir);
-
-      expect(overlay).not.toContain(".github/skills/.gitignore");
-
-      rmSync(mcpDir, { recursive: true, force: true });
+      // Assert
+      expect(app).not.toContain("environment:");
+      expect(app).not.toContain("GH_TOKEN");
+      expect(app).not.toContain("ANTHROPIC_API_KEY");
+      expect(app).not.toContain("CLAUDE_CODE_OAUTH_TOKEN");
     });
 
-    it("always injects base env vars even with no MCP servers", () => {
-      const mcpDir = createTempDir();
-      const sidecarDir = join(mcpDir, "sidecar");
+    it("passes the host UID/GID and the given build args to the image build", () => {
+      // Act
+      const overlay = generateComposeOverlay(
+        options({ appBuildArgs: { CLAUDE_CODE_VERSION: "2.1.292", COPILOT_CLI_VERSION: "1.0.3" } }),
+      );
 
-      const overlay = generateComposeOverlay(mcpDir, [], mcpDir, sidecarDir);
-
-      expect(overlay).toContain("environment:");
-      expect(overlay).toContain('GH_TOKEN: "${GH_TOKEN}"');
-      expect(overlay).toContain('ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY}"');
-      expect(overlay).toContain('CLAUDE_CODE_DISABLE_AUTOUPDATER: "1"');
-      expect(overlay).toContain('CLAUDE_CODE_DISABLE_COST_WARNINGS: "1"');
-
-      rmSync(mcpDir, { recursive: true, force: true });
+      // Assert
+      expect(appSection(overlay)).toContain(
+        [
+          "    build:",
+          "      args:",
+          '        HOST_UID: "${HOST_UID}"',
+          '        HOST_GID: "${HOST_GID}"',
+          '        CLAUDE_CODE_VERSION: "2.1.292"',
+          '        COPILOT_CLI_VERSION: "1.0.3"',
+        ].join("\n"),
+      );
     });
 
-    it("does not inject MCP server env vars into container environment", () => {
-      const mcpDir = createTempDir();
-      const sidecarDir = join(mcpDir, "sidecar");
-      writeManifest(mcpDir, "jira", {
-        name: "jira",
-        command: "node",
-        args: [],
-        sidecarPort: 9100,
-        requiredEnv: ["JIRA_PAT", "JIRA_EMAIL"],
-      });
+    it("escapes quotes and backslashes in environment values", () => {
+      // Act
+      const overlay = generateComposeOverlay(options({ appEnv: { ODD: 'a"b\\c' } }));
 
-      const overlay = generateComposeOverlay(mcpDir, ["jira"], mcpDir, sidecarDir);
-
-      expect(overlay).toContain('GH_TOKEN: "${GH_TOKEN}"');
-      expect(overlay).toContain('ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY}"');
-      // Secrets never appear in the overlay — they go to gateway.json for the sidecar
-      expect(overlay).not.toContain("JIRA_PAT");
-      expect(overlay).not.toContain("JIRA_EMAIL");
-
-      rmSync(mcpDir, { recursive: true, force: true });
-    });
-
-    it("does not duplicate base vars when MCP server declares them", () => {
-      const mcpDir = createTempDir();
-      const sidecarDir = join(mcpDir, "sidecar");
-      writeManifest(mcpDir, "special", {
-        name: "special",
-        command: "node",
-        args: [],
-        sidecarPort: 9100,
-        requiredEnv: ["GH_TOKEN", "CUSTOM_VAR"],
-      });
-
-      const overlay = generateComposeOverlay(mcpDir, ["special"], mcpDir, sidecarDir);
-
-      const ghTokenLines = overlay.split("\n").filter((l: string) => l.includes("GH_TOKEN"));
-      expect(ghTokenLines).toHaveLength(1);
-      expect(overlay).not.toContain("CUSTOM_VAR");
-
-      rmSync(mcpDir, { recursive: true, force: true });
+      // Assert
+      expect(overlay).toContain('      ODD: "a\\"b\\\\c"');
     });
   });
 
   describe("MCP sidecar service", () => {
-    it("includes mcp-sidecar service when servers are declared", () => {
-      const mcpDir = createTempDir();
-      const sidecarDir = join(mcpDir, "sidecar");
-      writeManifest(mcpDir, "test-server", {
-        name: "test-server",
-        type: "custom",
-        command: "npx",
-        args: ["-y", "test"],
-        sidecarPort: 9100,
-      });
+    it("is defined with its hardening when servers are declared", () => {
+      // Act
+      const overlay = generateComposeOverlay(options({ serverNames: ["test-server"] }));
 
-      const buildDir = join(mcpDir, ".build");
-      mkdirSync(buildDir, { recursive: true });
-
-      const overlay = generateComposeOverlay(mcpDir, ["test-server"], buildDir, sidecarDir);
-
-      expect(overlay).toContain("mcp-sidecar:");
-      expect(overlay).toContain(`context: ${sidecarDir}`);
-      expect(overlay).toContain("/opt/mcp/servers:ro");
-      expect(overlay).toContain("/opt/mcp/gateway/dist:ro");
-      expect(overlay).toContain("entrypoint.sh:/opt/mcp/entrypoint.sh:ro");
-      expect(overlay).toContain("gateway.json:/opt/mcp/config/gateway.json:ro");
-      expect(overlay).toContain("no-new-privileges:true");
-      expect(overlay).toContain("cap_drop:");
-      expect(overlay).toContain("- ALL");
-      expect(overlay).toContain("memory: 24G");
-
-      rmSync(mcpDir, { recursive: true, force: true });
+      // Assert
+      const sidecar = sidecarSection(overlay);
+      expect(sidecar).toContain(`context: ${SIDECAR_DIR}`);
+      expect(sidecar).toContain("/repo/shared/mcp-servers:/opt/mcp/servers:ro");
+      expect(sidecar).toContain("/opt/mcp/gateway/dist:ro");
+      expect(sidecar).toContain("entrypoint.sh:/opt/mcp/entrypoint.sh:ro");
+      expect(sidecar).toContain("gateway.json:/opt/mcp/config/gateway.json:ro");
+      expect(sidecar).toContain("no-new-privileges:true");
+      expect(sidecar).toContain("- ALL");
+      expect(sidecar).toContain("memory: 24G");
     });
 
-    it("omits mcp-sidecar service when no servers", () => {
-      const mcpDir = createTempDir();
-      const sidecarDir = join(mcpDir, "sidecar");
+    it("is omitted, with the attachment volume, when no servers are declared", () => {
+      // Act
+      const overlay = generateComposeOverlay(options());
 
-      const overlay = generateComposeOverlay(mcpDir, [], mcpDir, sidecarDir);
-
+      // Assert
       expect(overlay).not.toContain("mcp-sidecar:");
       expect(overlay).not.toContain("/opt/mcp/servers");
-
-      rmSync(mcpDir, { recursive: true, force: true });
-    });
-
-    it("app depends on mcp-sidecar when servers are declared", () => {
-      const mcpDir = createTempDir();
-      const sidecarDir = join(mcpDir, "sidecar");
-      writeManifest(mcpDir, "test-server", {
-        name: "test-server",
-        type: "custom",
-        command: "npx",
-        args: ["-y", "test"],
-        sidecarPort: 9100,
-      });
-
-      const overlay = generateComposeOverlay(mcpDir, ["test-server"], mcpDir, sidecarDir);
-
-      expect(overlay).toContain("depends_on:");
-      expect(overlay).toContain("mcp-sidecar:");
-      expect(overlay).toContain("condition: service_healthy");
-
-      rmSync(mcpDir, { recursive: true, force: true });
-    });
-
-    it("does not mount MCP server code into agent container", () => {
-      const mcpDir = createTempDir();
-      const sidecarDir = join(mcpDir, "sidecar");
-      writeManifest(mcpDir, "test-server", {
-        name: "test-server",
-        type: "custom",
-        command: "node",
-        args: ["dist/bundle.js"],
-        containerPath: "/opt/mcp/servers/test-server",
-        sidecarPort: 9100,
-      });
-
-      const overlay = generateComposeOverlay(mcpDir, ["test-server"], mcpDir, sidecarDir);
-
-      // Server code only appears in sidecar volumes, not app volumes
-      const appSection = overlay.split("mcp-sidecar:")[0];
-      expect(appSection).not.toContain("/opt/mcp/servers");
-      expect(appSection).not.toContain("mcp-servers:ro");
-
-      rmSync(mcpDir, { recursive: true, force: true });
-    });
-
-    it("mounts shared attachment volume in both app and sidecar", () => {
-      const mcpDir = createTempDir();
-      const sidecarDir = join(mcpDir, "sidecar");
-      writeManifest(mcpDir, "test-server", {
-        name: "test-server",
-        type: "custom",
-        command: "npx",
-        args: ["-y", "test"],
-        sidecarPort: 9100,
-      });
-
-      const overlay = generateComposeOverlay(mcpDir, ["test-server"], mcpDir, sidecarDir);
-
-      // App gets read-write, sidecar gets read-only — bind mount from buildDir
-      const sidecarStart = overlay.indexOf("\n  mcp-sidecar:\n");
-      const appSection = overlay.slice(0, sidecarStart);
-      const sidecarSection = overlay.slice(sidecarStart);
-      expect(appSection).toContain(`${mcpDir}/attachments:/tmp/mcp-attachments`);
-      expect(sidecarSection).toContain(`${mcpDir}/attachments:/tmp/mcp-attachments:ro`);
-
-      // No named volume declaration — uses bind mount
-      expect(overlay).not.toContain("volumes:\n  mcp-attachments:");
-
-      rmSync(mcpDir, { recursive: true, force: true });
-    });
-
-    it("omits attachment volume when no MCP servers", () => {
-      const mcpDir = createTempDir();
-      const sidecarDir = join(mcpDir, "sidecar");
-
-      const overlay = generateComposeOverlay(mcpDir, [], mcpDir, sidecarDir);
-
       expect(overlay).not.toContain("/tmp/mcp-attachments");
-
-      rmSync(mcpDir, { recursive: true, force: true });
     });
 
-    it("mounts repo volume into sidecar for git operations", () => {
-      const mcpDir = createTempDir();
-      const sidecarDir = join(mcpDir, "sidecar");
-      writeManifest(mcpDir, "test-server", {
-        name: "test-server",
-        type: "custom",
-        command: "npx",
-        args: ["-y", "test"],
-        sidecarPort: 9100,
-      });
+    it("makes the app wait for a healthy sidecar", () => {
+      // Act
+      const app = appSection(generateComposeOverlay(options({ serverNames: ["test-server"] })));
 
-      const overlay = generateComposeOverlay(mcpDir, ["test-server"], mcpDir, sidecarDir);
-
-      const sidecarStart = overlay.indexOf("\n  mcp-sidecar:\n");
-      const sidecarSection = overlay.slice(sidecarStart);
-      expect(sidecarSection).toContain('"${TARGET_REPO_PATH}:/workspace"');
-
-      rmSync(mcpDir, { recursive: true, force: true });
+      // Assert
+      expect(app).toContain("    depends_on:\n      mcp-sidecar:\n        condition: service_healthy");
     });
 
-    it("sets REPO_ROOT environment variable on sidecar", () => {
-      const mcpDir = createTempDir();
-      const sidecarDir = join(mcpDir, "sidecar");
-      writeManifest(mcpDir, "test-server", {
-        name: "test-server",
-        type: "custom",
-        command: "npx",
-        args: ["-y", "test"],
-        sidecarPort: 9100,
-      });
+    it("mounts no MCP server code into the agent container", () => {
+      // Act
+      const app = appSection(generateComposeOverlay(options({ serverNames: ["test-server"] })));
 
-      const overlay = generateComposeOverlay(mcpDir, ["test-server"], mcpDir, sidecarDir);
-
-      const sidecarStart = overlay.indexOf("\n  mcp-sidecar:\n");
-      const sidecarSection = overlay.slice(sidecarStart);
-      expect(sidecarSection).toContain("environment:");
-      expect(sidecarSection).toContain('REPO_ROOT: "/workspace"');
-
-      rmSync(mcpDir, { recursive: true, force: true });
+      // Assert
+      expect(app).not.toContain("/opt/mcp/servers");
     });
 
-    it("sidecar depends on egress-proxy", () => {
-      const mcpDir = createTempDir();
-      const sidecarDir = join(mcpDir, "sidecar");
-      writeManifest(mcpDir, "test-server", {
-        name: "test-server",
-        type: "custom",
-        command: "npx",
-        args: ["-y", "test"],
-        sidecarPort: 9100,
-      });
+    it("shares the attachment directory read-write with the app and read-only with the sidecar", () => {
+      // Act
+      const overlay = generateComposeOverlay(options({ serverNames: ["test-server"] }));
 
-      const overlay = generateComposeOverlay(mcpDir, ["test-server"], mcpDir, sidecarDir);
-
-      // Find the sidecar service definition (second occurrence — first is app's depends_on)
-      const sidecarServiceIdx = overlay.indexOf("  mcp-sidecar:\n    build:");
-      const sidecarSection = overlay.slice(sidecarServiceIdx);
-      // Sidecar has direct internet access via ralph-sidecar-external — no egress-proxy dependency
-      expect(sidecarSection).toContain("ralph-sidecar-external:");
-      expect(sidecarSection).not.toContain("egress-proxy:");
-
-      rmSync(mcpDir, { recursive: true, force: true });
+      // Assert
+      expect(appSection(overlay)).toContain(`${BUILD_DIR}/attachments:/tmp/mcp-attachments\n`);
+      expect(sidecarSection(overlay)).toContain(`${BUILD_DIR}/attachments:/tmp/mcp-attachments:ro`);
     });
 
-    it("includes extra_hosts for host.docker.internal resolution", () => {
-      const mcpDir = createTempDir();
-      const sidecarDir = join(mcpDir, "sidecar");
-      writeManifest(mcpDir, "test-server", {
-        name: "test-server",
-        type: "custom",
-        command: "npx",
-        args: ["-y", "test"],
-        sidecarPort: 9100,
-      });
+    it("mounts the repo for git operations and sets REPO_ROOT and the servers' sidecar env", () => {
+      // Act
+      const sidecar = sidecarSection(
+        generateComposeOverlay(options({ serverNames: ["test-server"], sidecarEnv: { CGC_MODE: "fast" } })),
+      );
 
-      const overlay = generateComposeOverlay(mcpDir, ["test-server"], mcpDir, sidecarDir);
-
-      const sidecarServiceIdx = overlay.indexOf("  mcp-sidecar:\n    build:");
-      const sidecarSection = overlay.slice(sidecarServiceIdx);
-      expect(sidecarSection).toContain("extra_hosts:");
-      expect(sidecarSection).toContain("host.docker.internal:host-gateway");
-
-      rmSync(mcpDir, { recursive: true, force: true });
+      // Assert
+      expect(sidecar).toContain('"${TARGET_REPO_PATH}:/workspace"');
+      expect(sidecar).toContain('      REPO_ROOT: "/workspace"');
+      expect(sidecar).toContain('      CGC_MODE: "fast"');
     });
 
-    it("mounts pre-init.sh when hasPreInit is true", () => {
-      const mcpDir = createTempDir();
-      const sidecarDir = join(mcpDir, "sidecar");
-      const buildDir = join(mcpDir, ".build");
-      mkdirSync(buildDir, { recursive: true });
-      writeManifest(mcpDir, "test-server", {
-        name: "test-server",
-        type: "custom",
-        command: "npx",
-        args: ["-y", "test"],
-        sidecarPort: 9100,
-      });
+    it("reaches the internet directly, not through the egress proxy, and resolves host.docker.internal", () => {
+      // Act
+      const sidecar = sidecarSection(generateComposeOverlay(options({ serverNames: ["test-server"] })));
 
-      const overlay = generateComposeOverlay(mcpDir, ["test-server"], buildDir, sidecarDir, [], {}, true);
-
-      const sidecarStart = overlay.indexOf("\n  mcp-sidecar:\n");
-      const sidecarSection = overlay.slice(sidecarStart);
-      expect(sidecarSection).toContain("pre-init.sh:/opt/mcp/pre-init.sh:ro");
-
-      rmSync(mcpDir, { recursive: true, force: true });
+      // Assert
+      expect(sidecar).toContain("ralph-sidecar-external:");
+      expect(sidecar).not.toContain("egress-proxy:");
+      expect(sidecar).toContain("host.docker.internal:host-gateway");
     });
 
-    it("omits pre-init.sh mount when hasPreInit is false", () => {
-      const mcpDir = createTempDir();
-      const sidecarDir = join(mcpDir, "sidecar");
-      const buildDir = join(mcpDir, ".build");
-      mkdirSync(buildDir, { recursive: true });
-      writeManifest(mcpDir, "test-server", {
-        name: "test-server",
-        type: "custom",
-        command: "npx",
-        args: ["-y", "test"],
-        sidecarPort: 9100,
-      });
+    it("mounts pre-init.sh only when there is one", () => {
+      // Act
+      const withPreInit = generateComposeOverlay(options({ serverNames: ["test-server"], hasPreInit: true }));
+      const withoutPreInit = generateComposeOverlay(options({ serverNames: ["test-server"] }));
 
-      const overlay = generateComposeOverlay(mcpDir, ["test-server"], buildDir, sidecarDir);
-
-      expect(overlay).not.toContain("pre-init.sh");
-
-      rmSync(mcpDir, { recursive: true, force: true });
+      // Assert
+      expect(sidecarSection(withPreInit)).toContain("pre-init.sh:/opt/mcp/pre-init.sh:ro");
+      expect(withoutPreInit).not.toContain("pre-init.sh");
     });
   });
 });

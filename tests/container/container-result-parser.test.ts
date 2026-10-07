@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseResultBlock } from "../../src/container/result-parser";
+import { hasResultBlock, parseResultBlock } from "../../src/container/result-parser";
 
 // ── Result parsing tests ─────────────────────────────────
 // Tests the structured result block parser that extracts PR URL and agent status
@@ -76,5 +76,22 @@ summary: Implemented feature
     const { prUrl, agentStatus } = parseResultBlock(stdout);
     expect(prUrl).toBe("https://dev.azure.com/org/project/_git/repo/pullrequest/789");
     expect(agentStatus).toBe("completed");
+  });
+});
+
+describe("hasResultBlock", () => {
+  it.each(["completed", "partial", "blocked"])("accepts a block whose status is %s", (status) => {
+    // Act & Assert
+    expect(hasResultBlock(`text\n===RALPH_RESULT_START===\nSTATUS: ${status}\n===RALPH_RESULT_END===`)).toBe(true);
+  });
+
+  it.each([
+    ["an unknown status", "===RALPH_RESULT_START===\nSTATUS: success\n===RALPH_RESULT_END==="],
+    ["no status", "===RALPH_RESULT_START===\nPR_URL: none\n===RALPH_RESULT_END==="],
+    ["no end marker", "===RALPH_RESULT_START===\nSTATUS: completed"],
+    ["no block at all", "Pull Request: https://dev.azure.com/pr/1"],
+  ])("rejects %s", (_case, text) => {
+    // Act & Assert
+    expect(hasResultBlock(text)).toBe(false);
   });
 });

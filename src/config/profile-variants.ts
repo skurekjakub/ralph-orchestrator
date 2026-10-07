@@ -116,6 +116,9 @@ export function resolveProfileVariants(parsed: ProfileFile, profileId: string): 
       mcpServerConfigs: { ...profileServers.configs, ...variantServers.configs },
       mcpSidecarEnv: { ...profileServers.sidecarEnv, ...variantServers.sidecarEnv },
       githubMcpTools: parsed.githubMcpTools,
+      claude: { loadRepoInstructions: parsed.claude.loadRepoInstructions },
+      allowlistDomains: parsed.allowlistDomains,
+      resources: parsed.resources,
       match: {
         projects: variant.match.projects,
         statuses: variant.match.statuses,

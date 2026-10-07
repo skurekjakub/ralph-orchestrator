@@ -7,33 +7,17 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { AgentSessionRunner } from "../../src/container/agent-session-runner";
-import type { ICliExecutor } from "../../src/container/cli-executor-factory";
 import type { IContinuationRunner } from "../../src/container/continuation-runner";
 import type { PromptBuilder } from "../../src/prompt/prompt-builder";
-import { TaskStatus, type CliPaths } from "../../src/container/types";
-import { makeWorkItem } from "../helpers/factories";
-import { createSilentLogger, type Mocked } from "../helpers/mocks";
-
-const cliPaths: CliPaths = {
-  configDir: "/workspace/.ralph",
-  writableDirs: ["/workspace/.ralph/logs"],
-  transcriptPath: "/workspace/.ralph/logs/session-transcript.md",
-  logDir: "/workspace/.ralph/logs/cli-debug",
-};
-
-function createMockExecutor(): Mocked<ICliExecutor> & { paths: CliPaths } {
-  return {
-    paths: cliPaths,
-    run: vi.fn().mockResolvedValue({ exitCode: 0, stdout: "", stderr: "", timedOut: false }),
-    continueSession: vi.fn().mockResolvedValue({ exitCode: 0, stdout: "", stderr: "", timedOut: false }),
-    killActive: vi.fn(),
-  };
-}
+import { TaskStatus } from "../../src/container/types";
+import { makeExecResult, makeWorkItem } from "../helpers/factories";
+import { createMockExecutor, createSilentLogger, type Mocked } from "../helpers/mocks";
 
 function createMockContinuationRunner(): Mocked<IContinuationRunner> {
   return {
     run: vi.fn().mockResolvedValue({
-      lastResult: { exitCode: 0, stdout: "", stderr: "", timedOut: false },
+      lastResult: makeExecResult(),
+      combinedAgentText: "",
       combinedStdout: "",
       combinedStderr: "",
     }),
@@ -81,11 +65,12 @@ describe("AgentSessionRunner", () => {
     expect(vi.mocked(promptBuilder.build)).toHaveBeenCalledWith(expect.objectContaining({ id: "DF-500" }), context);
   });
 
-  it("parses result block from combined stdout", async () => {
+  it("parses the result block from the combined agent text, not from raw stdout", async () => {
     continuationRunner.run.mockResolvedValue({
-      lastResult: { exitCode: 0, stdout: "", stderr: "", timedOut: false },
-      combinedStdout:
+      lastResult: makeExecResult(),
+      combinedAgentText:
         "===RALPH_RESULT_START===\nPR_URL: https://dev.azure.com/pr/1\nSTATUS: completed\n===RALPH_RESULT_END===",
+      combinedStdout: '{"type":"assistant","message":{"content":[{"type":"text","text":"STATUS: blocked"}]}}',
       combinedStderr: "",
     });
 
@@ -99,10 +84,12 @@ describe("AgentSessionRunner", () => {
   });
 
   it("returns RalphResult with status, prUrl, and duration", async () => {
+    const block =
+      "===RALPH_RESULT_START===\nPR_URL: https://dev.azure.com/pr/2\nSTATUS: partial\n===RALPH_RESULT_END===";
     continuationRunner.run.mockResolvedValue({
-      lastResult: { exitCode: 0, stdout: "", stderr: "", timedOut: false },
-      combinedStdout:
-        "===RALPH_RESULT_START===\nPR_URL: https://dev.azure.com/pr/2\nSTATUS: partial\n===RALPH_RESULT_END===",
+      lastResult: makeExecResult(),
+      combinedAgentText: block,
+      combinedStdout: block,
       combinedStderr: "some warning",
     });
 
@@ -139,7 +126,8 @@ describe("AgentSessionRunner", () => {
 
   it("resolves error status when exit code is non-zero", async () => {
     continuationRunner.run.mockResolvedValue({
-      lastResult: { exitCode: 1, stdout: "", stderr: "fail", timedOut: false },
+      lastResult: makeExecResult({ exitCode: 1, stderr: "fail" }),
+      combinedAgentText: "",
       combinedStdout: "",
       combinedStderr: "fail",
     });
@@ -155,7 +143,8 @@ describe("AgentSessionRunner", () => {
 
   it("resolves partial status on timeout", async () => {
     continuationRunner.run.mockResolvedValue({
-      lastResult: { exitCode: 1, stdout: "", stderr: "", timedOut: true },
+      lastResult: makeExecResult({ exitCode: 1, timedOut: true }),
+      combinedAgentText: "",
       combinedStdout: "",
       combinedStderr: "",
     });

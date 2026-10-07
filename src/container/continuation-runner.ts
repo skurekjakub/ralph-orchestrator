@@ -8,6 +8,8 @@ import { ICliExecutor } from "./cli-executor-factory";
 export interface ContinuationResult {
   /** The last CLI invocation's raw result (exit code, timeout flag). */
   lastResult: ContainerExecResult;
+  /** Combined agent text across all invocations; the result block is parsed from it. */
+  combinedAgentText: string;
   /** Combined stdout across all invocations. */
   combinedStdout: string;
   /** Combined stderr across all invocations. */
@@ -17,7 +19,7 @@ export interface ContinuationResult {
 /** Public contract for the continuation runner. */
 export interface IContinuationRunner {
   /**
-   * Run the executor and retry via `--continue` if the result block is missing.
+   * Run the executor and resume its session if the agent text holds no result block.
    *
    * @param executor     CLI executor to invoke.
    * @param prompt       Initial prompt for the first run.
@@ -37,7 +39,7 @@ export interface IContinuationRunner {
  * Handles the continuation retry loop for agent CLI sessions.
  *
  * When the agent's session ends without producing the required
- * `===RALPH_RESULT_START===` block, re-invokes the CLI with `--continue`
+ * `===RALPH_RESULT_START===` block, resumes the CLI session (`continueSession`)
  * and exponential backoff until the block appears or attempts are exhausted.
  */
 export class ContinuationRunner implements IContinuationRunner {
@@ -54,6 +56,7 @@ export class ContinuationRunner implements IContinuationRunner {
     maxContinuations: number,
   ): Promise<ContinuationResult> {
     let result = await executor.run(prompt);
+    let combinedAgentText = result.agentText;
     let combinedStdout = result.stdout;
     let combinedStderr = result.stderr;
 
@@ -65,7 +68,7 @@ export class ContinuationRunner implements IContinuationRunner {
           break;
         }
 
-        const { prUrl, agentStatus } = parseResultBlock(combinedStdout);
+        const { prUrl, agentStatus } = parseResultBlock(combinedAgentText);
         if (prUrl !== undefined || agentStatus !== undefined) {
           this.logger.info(
             `Result block found after ${attempt} continuation(s)` +
@@ -89,19 +92,20 @@ export class ContinuationRunner implements IContinuationRunner {
           `Original issue: ${workItem.id} — ${workItem.title}`;
 
         result = await executor.continueSession(continuationPrompt);
+        combinedAgentText += "\n" + result.agentText;
         combinedStdout += "\n" + result.stdout;
         combinedStderr += "\n" + result.stderr;
       }
 
       if (attempt >= maxContinuations) {
-        const { prUrl, agentStatus } = parseResultBlock(combinedStdout);
+        const { prUrl, agentStatus } = parseResultBlock(combinedAgentText);
         if (prUrl === undefined && agentStatus === undefined) {
           this.logger.warn(`All ${maxContinuations} continuation(s) exhausted without a result block`);
         }
       }
     }
 
-    return { lastResult: result, combinedStdout, combinedStderr };
+    return { lastResult: result, combinedAgentText, combinedStdout, combinedStderr };
   }
 
   /**

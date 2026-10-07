@@ -1,6 +1,6 @@
 import { modelPolicyFor } from "../cli/model-catalog";
 import type { ProfileFile } from "../config/schemas";
-import { CliType, type IAgentProfile, type IStageConfig } from "../config/types";
+import { CliType, StageMode, type IAgentProfile, type IStageConfig } from "../config/types";
 
 /** A resolved stage with its location in profile.json (`variants[0]/postTaskHooks[1]/stages[2]`). */
 export interface LocatedStage {
@@ -47,8 +47,9 @@ function locate(prefix: string, path: string): string {
 }
 
 /**
- * Validate what each stage's resolved CLI implies for one profile: the CLI can run, the stage sets
- * only options that CLI supports, and the stage's model is one that CLI accepts.
+ * Validate what each stage's resolved CLI implies for one profile: the stage sets only options that
+ * CLI supports, CLI-specific profile options apply to some stage, and the stage's model is one that
+ * CLI accepts.
  *
  * A model error is reported once, where the model is declared. A stage that switches to another
  * CLI than the profile's must set its own model rather than inherit one chosen for the profile CLI.
@@ -65,15 +66,10 @@ export function validateStageClis(
 ): void {
   const stages = locateStages(variants);
 
-  const claudeStages = stages.filter(({ stage }) => stage.cli === CliType.Claude);
-  if (claudeStages.length > 0) {
-    errors.push(
-      `${prefix}: cli "claude" is not supported yet — the Claude Code runtime is not wired into stage execution. ` +
-        `Use cli "copilot".\n  Stages running claude: ${claudeStages.map((s) => s.path).join(", ")}`,
-    );
-  }
-
   for (const { stage, path } of stages) {
+    if (stage.cli === CliType.Claude && stage.mode === StageMode.Local) {
+      errors.push(`${prefix}/${path}: runs cli "claude" in mode "local", but host stages run only Copilot CLI`);
+    }
     if (stage.cli === CliType.Claude) continue;
     for (const option of CLAUDE_ONLY_STAGE_OPTIONS) {
       if (stage[option] !== undefined) {
@@ -86,6 +82,16 @@ export function validateStageClis(
     errors.push(
       `${prefix}: githubMcpTools only affects Copilot stages, but no stage runs cli "copilot"\n` +
         `  Remove githubMcpTools or set it to false`,
+    );
+  }
+
+  const claudeContainerStage = stages.some(
+    ({ stage }) => stage.cli === CliType.Claude && stage.mode === StageMode.Container,
+  );
+  if (parsed.claude.loadRepoInstructions && !claudeContainerStage) {
+    errors.push(
+      `${prefix}: claude.loadRepoInstructions only affects container stages that run cli "claude", but none does\n` +
+        `  Remove claude.loadRepoInstructions or set it to false`,
     );
   }
 

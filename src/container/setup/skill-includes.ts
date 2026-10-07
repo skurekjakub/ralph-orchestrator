@@ -37,11 +37,6 @@ export function discoverSkills(skillsDir: string): Map<string, string[]> {
   return skills;
 }
 
-/** Host directory a profile's skills are rendered into (`profiles/<id>/.build/skills`), one folder per skill. */
-export function skillsBuildDir(profileId: string): string {
-  return resolve(process.cwd(), "profiles", profileId, ".build", "skills");
-}
-
 /** Recursively collect all `.md` file paths under `dir`. */
 async function collectMdFiles(dir: string): Promise<string[]> {
   const results: string[] = [];

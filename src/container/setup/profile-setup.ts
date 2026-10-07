@@ -1,16 +1,13 @@
-import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, rmSync, chmodSync } from "node:fs";
+import { writeFileSync, mkdirSync, existsSync, readdirSync, rmSync, chmodSync } from "node:fs";
 import { join, resolve } from "node:path";
+import type { ICliRuntimeRegistry } from "../../cli/cli-runtime";
 import type { Logger } from "../../logger";
 import { readProfileFile, resolveProfileVariants } from "../../config/profile-variants";
-import type { ProfileFile } from "../../config/schemas";
 import type { IAgentProfile } from "../../config/types";
 import { toErrorMessage } from "../../util/error";
-import { generateMcpConfig, generateGatewayConfig } from "./mcp-config";
-import { generateComposeOverlay } from "./compose-overlay";
-import { generateProfileSquidConf } from "./squid-config";
-import { generateResourceVolumeMounts } from "./resource-mounts";
-import { generateAgentVolumeMounts, generateSkillVolumeMounts } from "./artifact-mounts";
-import { writeCopilotConfig } from "./url-restrictions";
+import { AgentCatalogProvider } from "./agent-catalogs";
+import { profileBuildPaths } from "./build-paths";
+import { writeComposeArtifacts } from "./compose-overlay-writer";
 import { discoverMcpServers, loadMcpManifest } from "./mcp-manifest";
 
 /**
@@ -52,44 +49,57 @@ export function generatePreInitScript(mcpServersDir: string, serverNames: string
   return lines.join("\n");
 }
 
+/** Everything startup profile setup needs. */
+export interface ProfileSetupInput {
+  readonly cliRuntimes: ICliRuntimeRegistry;
+  readonly logger: Logger;
+  /** The orchestrator checkout root; defaults to the working directory. */
+  readonly rootDir?: string;
+}
+
 /**
- * Resolve configs for all profiles and write them to each profile's build directory.
- *
- * For each profile that declares `mcpServers`, generates:
- * - `mcp-config.json` — URL-based MCP config pointing to sidecar
- * - `gateway.json` — Sidecar gateway config with embedded secrets
- * - `docker-compose.overlay.yml` — Compose overlay with sidecar service
- * - `squid.conf` — Baseline squid proxy config augmented with profile-level allowlist domains
- * - `copilot-config.json` — Copilot CLI config with URL allowlist derived from squid.conf
- *
- * All files go to `profiles/<id>/.build/`. The compose overlay is passed as
- * a third `-f` argument to `docker compose` by {@link ComposeFileResolver}.
- *
- * @param rootDir Workspace root (defaults to cwd).
- * @param logger Logger for progress and error reporting.
+ * One profile standing for all of its variants: the union of their MCP servers, sidecar env, skills and
+ * container-stage CLIs, so startup artifacts cover whichever variant runs first.
  */
-export function resolveAllProfileSetup(rootDir?: string, logger?: Logger): void {
-  const root = rootDir ?? process.cwd();
-  const mcpServersDir = resolve(root, "shared/mcp-servers");
-  const sidecarDir = resolve(root, "shared/mcp-sidecar");
-  const skillsDir = resolve(root, "shared/skills");
-  const profilesDir = resolve(root, "profiles");
-  const baselineSquidPath = resolve(root, "shared/security/squid.conf");
+function allVariantsOf(variants: readonly IAgentProfile[]): IAgentProfile {
+  const unique = <T>(values: readonly T[]): T[] => [...new Set(values)];
+  return {
+    ...variants[0],
+    mcpServers: unique(variants.flatMap((v) => v.mcpServers)),
+    mcpSidecarEnv: Object.assign({}, ...variants.map((v) => v.mcpSidecarEnv)),
+    skills: unique(variants.flatMap((v) => v.skills)),
+    containerClis: unique(variants.flatMap((v) => v.containerClis)),
+  };
+}
+
+/**
+ * Recreate every profile's build directory at startup.
+ *
+ * For each profile, clears `profiles/<id>/.build/` and writes the files that do not change per task (the
+ * world-writable `attachments/` directory, the `.gitignore` mounted into `/workspace/.ralph/` and the MCP
+ * `pre-init.sh`), then the task-scoped artifacts of {@link writeComposeArtifacts} for the union of the
+ * profile's variants. Each task regenerates the task-scoped ones for its own variant before the containers
+ * start. A profile whose profile.json is invalid is skipped with a warning.
+ *
+ * @throws Error when a profile's agent templates are invalid or a CLI's artifact inputs are missing or malformed.
+ */
+export async function resolveAllProfileSetup({
+  cliRuntimes,
+  logger,
+  rootDir = process.cwd(),
+}: ProfileSetupInput): Promise<void> {
+  const agentCatalogs = new AgentCatalogProvider(rootDir);
+  const mcpServersDir = resolve(rootDir, "shared/mcp-servers");
+  const profilesDir = resolve(rootDir, "profiles");
 
   if (!existsSync(profilesDir)) {
-    logger?.warn("Profiles directory not found, skipping profile setup");
+    logger.warn("Profiles directory not found, skipping profile setup");
     return;
   }
 
-  const hasBaselineSquid = existsSync(baselineSquidPath);
-  if (!hasBaselineSquid) {
-    logger?.warn("Baseline squid.conf not found — squid configs will not be generated");
-  }
-
-  // Verify MCP servers directory is valid (used for per-profile gateway config).
   const allServerNames = discoverMcpServers(mcpServersDir);
   if (allServerNames.length > 0) {
-    logger?.info(`Discovered ${allServerNames.length} MCP server(s): ${allServerNames.join(", ")}`);
+    logger.info(`Discovered ${allServerNames.length} MCP server(s): ${allServerNames.join(", ")}`);
   }
 
   for (const profileId of readdirSync(profilesDir, { withFileTypes: true })) {
@@ -98,26 +108,21 @@ export function resolveAllProfileSetup(rootDir?: string, logger?: Logger): void 
     const profileJsonPath = join(profilesDir, profileId.name, "profile.json");
     if (!existsSync(profileJsonPath)) continue;
 
-    let parsed: ProfileFile;
     let variants: IAgentProfile[];
     try {
-      parsed = readProfileFile(profileJsonPath);
-      variants = resolveProfileVariants(parsed, profileId.name);
+      variants = resolveProfileVariants(readProfileFile(profileJsonPath), profileId.name);
     } catch (err) {
-      logger?.warn(`Skipping profile ${profileId.name}: invalid profile.json — ${toErrorMessage(err)}`);
+      logger.warn(`Skipping profile ${profileId.name}: invalid profile.json — ${toErrorMessage(err)}`);
       continue;
     }
 
-    const serverNames = [...new Set(variants.flatMap((v) => v.mcpServers))];
-    logger?.info(
-      `Setting up profile ${profileId.name} (${serverNames.length} MCP server${serverNames.length === 1 ? "" : "s"})`,
+    const profile = allVariantsOf(variants);
+    logger.info(
+      `Setting up profile ${profileId.name} (${profile.mcpServers.length} MCP server` +
+        `${profile.mcpServers.length === 1 ? "" : "s"})`,
     );
 
-    // Startup mcp-config includes ALL servers (union). Per-task writer narrows to variant scope.
-    const config = generateMcpConfig(mcpServersDir, serverNames);
-    const gatewayConfig = generateGatewayConfig(mcpServersDir, serverNames, process.env);
-
-    const buildDir = join(profilesDir, profileId.name, ".build");
+    const buildDir = profileBuildPaths(rootDir, profileId.name).buildDir;
     rmSync(buildDir, { recursive: true, force: true });
     mkdirSync(buildDir, { recursive: true });
 
@@ -126,76 +131,16 @@ export function resolveAllProfileSetup(rootDir?: string, logger?: Logger): void 
     mkdirSync(attachDir);
     chmodSync(attachDir, 0o777);
 
-    // .gitignore file mounted into /workspace/.ralph/
-    // to hide orchestrator-managed runtime files from git inside the container
     writeFileSync(join(buildDir, ".gitignore"), "*\n", "utf-8");
 
-    writeFileSync(join(buildDir, "mcp-config.json"), JSON.stringify(config, null, 2) + "\n", "utf-8");
-
-    writeFileSync(join(buildDir, "gateway.json"), JSON.stringify(gatewayConfig, null, 2) + "\n", "utf-8");
-
-    const profileDir = join(profilesDir, profileId.name);
-    const resourceVolumes = parsed.resources ? generateResourceVolumeMounts(profileDir, parsed.resources) : [];
-    const agentVolumes = generateAgentVolumeMounts(profileDir);
-    const skillNames = [...new Set(variants.flatMap((v) => v.skills))];
-    const skillVolumes = generateSkillVolumeMounts(skillsDir, skillNames);
-
-    const extraVolumes = [...agentVolumes, ...skillVolumes, ...resourceVolumes];
-
-    const sidecarEnv: Record<string, string> = Object.assign({}, ...variants.map((v) => v.mcpSidecarEnv));
-
-    // Generate pre-init script from MCP server initScript declarations.
-    const preInitScript = generatePreInitScript(mcpServersDir, serverNames);
+    const preInitScript = generatePreInitScript(mcpServersDir, [...profile.mcpServers]);
     if (preInitScript) {
       const preInitPath = join(buildDir, "pre-init.sh");
       writeFileSync(preInitPath, preInitScript, "utf-8");
       chmodSync(preInitPath, 0o755);
     }
 
-    const overlay = generateComposeOverlay(
-      mcpServersDir,
-      serverNames,
-      buildDir,
-      sidecarDir,
-      extraVolumes,
-      sidecarEnv,
-      preInitScript !== null,
-    );
-    writeFileSync(join(buildDir, "docker-compose.overlay.yml"), overlay, "utf-8");
-
-    if (hasBaselineSquid) {
-      const squidConf = generateProfileSquidConf(baselineSquidPath, parsed.allowlistDomains);
-      writeFileSync(join(buildDir, "squid.conf"), squidConf, "utf-8");
-
-      if (logger) {
-        const domains = squidConf
-          .split("\n")
-          .filter((l) => l.startsWith("acl allowed_domains dstdomain"))
-          .map((l) => l.replace("acl allowed_domains dstdomain ", ""));
-        logger.info(
-          `  → squid.conf: ${domains.length} allowed domain${domains.length === 1 ? "" : "s"}: ${domains.join(", ")}`,
-        );
-      }
-    }
-
-    // Generate Copilot CLI config with URL allowlist derived from squid.conf.
-    // Must run after squid.conf is written (reads it to discover allowed domains).
-    writeCopilotConfig(buildDir);
-
-    if (logger) {
-      const copilotConfigPath = join(buildDir, "copilot-config.json");
-      if (existsSync(copilotConfigPath)) {
-        const copilotConfig = JSON.parse(readFileSync(copilotConfigPath, "utf-8"));
-        const urls: string[] = copilotConfig.allowed_urls ?? [];
-        logger.info(`  → copilot-config.json: ${urls.length} allowed URL${urls.length === 1 ? "" : "s"}:`);
-        for (const url of urls) {
-          logger.info(`      ${url}`);
-        }
-      }
-    }
-
-    const files = ["mcp-config.json", "gateway.json", "docker-compose.overlay.yml"];
-    if (hasBaselineSquid) files.push("squid.conf", "copilot-config.json");
-    logger?.info(`  → wrote ${files.join(", ")}`);
+    const agents = await agentCatalogs.load(profileId.name);
+    writeComposeArtifacts({ rootDir, cliRuntimes, profile, agents, logger });
   }
 }

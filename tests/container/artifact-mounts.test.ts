@@ -1,82 +1,42 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
-import { join } from "node:path";
-import { tmpdir } from "node:os";
-import { generateAgentVolumeMounts, generateSkillVolumeMounts } from "../../src/container/setup/artifact-mounts";
+import { describe, it, expect } from "vitest";
+import { agentFileMounts, skillDirMounts } from "../../src/container/setup/artifact-mounts";
 
-describe("generateAgentVolumeMounts", () => {
-  let tempDir: string;
+describe("agentFileMounts", () => {
+  it("mounts each rendered agent file read-only under the container agents directory", () => {
+    // Act
+    const mounts = agentFileMounts(
+      ["ralph.ralph.agent.md", "ralph.malph.agent.md"],
+      "/p/.build/copilot/agents",
+      "/workspace/.github/agents",
+    );
 
-  beforeEach(() => {
-    tempDir = mkdtempSync(join(tmpdir(), "artifact-mounts-"));
+    // Assert
+    expect(mounts).toEqual([
+      "/p/.build/copilot/agents/ralph.ralph.agent.md:/workspace/.github/agents/ralph.ralph.agent.md:ro",
+      "/p/.build/copilot/agents/ralph.malph.agent.md:/workspace/.github/agents/ralph.malph.agent.md:ro",
+    ]);
   });
 
-  afterEach(() => {
-    rmSync(tempDir, { recursive: true, force: true });
-  });
-
-  it("returns empty array when agents directory does not exist", () => {
-    expect(generateAgentVolumeMounts(tempDir)).toEqual([]);
-  });
-
-  it("discovers .agent.md files and generates mounts", () => {
-    const agentsDir = join(tempDir, "agents");
-    mkdirSync(agentsDir);
-    writeFileSync(join(agentsDir, "ralph.ralph.agent.md"), "# Agent");
-    writeFileSync(join(agentsDir, "ralph.malph.agent.md"), "# Agent");
-
-    const mounts = generateAgentVolumeMounts(tempDir);
-
-    expect(mounts).toHaveLength(2);
-    expect(mounts[0]).toContain("ralph.malph.agent.md:/workspace/.github/agents/ralph.malph.agent.md:ro");
-    expect(mounts[1]).toContain("ralph.ralph.agent.md:/workspace/.github/agents/ralph.ralph.agent.md:ro");
-  });
-
-  it("ignores non-.agent.md files", () => {
-    const agentsDir = join(tempDir, "agents");
-    mkdirSync(agentsDir);
-    writeFileSync(join(agentsDir, "ralph.ralph.agent.md"), "# Agent");
-    writeFileSync(join(agentsDir, "README.md"), "# Readme");
-
-    const mounts = generateAgentVolumeMounts(tempDir);
-
-    expect(mounts).toHaveLength(1);
-    expect(mounts[0]).toContain("ralph.ralph.agent.md");
-  });
-
-  it("points mounts to .build/ directory", () => {
-    const agentsDir = join(tempDir, "agents");
-    mkdirSync(agentsDir);
-    writeFileSync(join(agentsDir, "ralph.agent.md"), "# Agent");
-
-    const mounts = generateAgentVolumeMounts(tempDir);
-    const buildDir = join(tempDir, ".build");
-
-    expect(mounts[0]).toContain(`${buildDir}/ralph.agent.md`);
+  it("mounts nothing for no agents", () => {
+    // Act & Assert
+    expect(agentFileMounts([], "/p/.build/copilot/agents", "/workspace/.github/agents")).toEqual([]);
   });
 });
 
-describe("generateSkillVolumeMounts", () => {
-  let tempDir: string;
+describe("skillDirMounts", () => {
+  it("mounts each rendered skill directory read-only under the container skills directory", () => {
+    // Act
+    const mounts = skillDirMounts(["code-review", "testing"], "/p/.build/skills", "/workspace/.github/skills");
 
-  beforeEach(() => {
-    tempDir = mkdtempSync(join(tmpdir(), "skill-mounts-"));
+    // Assert
+    expect(mounts).toEqual([
+      "/p/.build/skills/code-review:/workspace/.github/skills/code-review:ro",
+      "/p/.build/skills/testing:/workspace/.github/skills/testing:ro",
+    ]);
   });
 
-  afterEach(() => {
-    rmSync(tempDir, { recursive: true, force: true });
-  });
-
-  it("returns empty array when no skills declared", () => {
-    expect(generateSkillVolumeMounts(tempDir, [])).toEqual([]);
-  });
-
-  it("generates directory mounts for declared skills from build dir", () => {
-    const mounts = generateSkillVolumeMounts(tempDir, ["git-workflow", "jira-conventions"]);
-    const buildDir = join(tempDir, ".build");
-
-    expect(mounts).toHaveLength(2);
-    expect(mounts[0]).toContain(`${join(buildDir, "git-workflow")}:/workspace/.github/skills/git-workflow:ro`);
-    expect(mounts[1]).toContain(`${join(buildDir, "jira-conventions")}:/workspace/.github/skills/jira-conventions:ro`);
+  it("mounts nothing for no skills", () => {
+    // Act & Assert
+    expect(skillDirMounts([], "/p/.build/skills", "/workspace/.github/skills")).toEqual([]);
   });
 });

@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { RepoSyncHook, ensureGitExclude } from "../../src/container/lifecycle";
-import { makeProfile, makeTaskContext, makeWorkItem } from "../helpers/factories";
+import { RepoSyncHook, ensureGitExclude, gitExcludePatterns } from "../../src/container/lifecycle";
+import { createCliRuntimeRegistry } from "../../src/cli/supported-runtimes";
+import { makeProfile, makeStage, makeTaskContext, makeWorkItem } from "../helpers/factories";
 import { createMockContainer, createMockLogger } from "../helpers/mocks";
-import { VcsProvider } from "../../src/config/types";
+import { ClaudeAuthMode, CliType, VcsProvider } from "../../src/config/types";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { slugifyBranchName } from "../../src/util/branch";
 
@@ -30,6 +31,11 @@ const mockExistsSync = vi.mocked(existsSync);
 const mockReadFileSync = vi.mocked(readFileSync);
 const mockWriteFileSync = vi.mocked(writeFileSync);
 
+const RUNTIMES = createCliRuntimeRegistry(ClaudeAuthMode.OAuthToken);
+
+/** Exclude patterns as {@link gitExcludePatterns} produces them for the Copilot runtime's mounts. */
+const PATTERNS = [".ralph/", "/.github/skills/", "/.github/agents/"];
+
 describe("RepoSyncHook", () => {
   const profile = makeProfile({ id: "ralph-docs" });
   const workItem = makeWorkItem("DF-100");
@@ -42,14 +48,14 @@ describe("RepoSyncHook", () => {
   });
 
   it("has the name 'repo-sync'", () => {
-    expect(new RepoSyncHook().name).toBe("repo-sync");
+    expect(new RepoSyncHook({ cliRuntimes: RUNTIMES }).name).toBe("repo-sync");
   });
 
   it("runs fetch, checkout, reset --hard, ls-remote, then creates task branch", async () => {
     const { container } = createMockContainer();
     const logger = createMockLogger();
 
-    await new RepoSyncHook().execute(container, taskCtx, logger);
+    await new RepoSyncHook({ cliRuntimes: RUNTIMES }).execute(container, taskCtx, logger);
 
     const calls = mockExeca.mock.calls.map((c) => c[1]);
     expect(calls[0]).toEqual([
@@ -80,7 +86,7 @@ describe("RepoSyncHook", () => {
     const { container } = createMockContainer();
     const expectedHeader = `Basic ${Buffer.from(":test-pat").toString("base64")}`;
 
-    await new RepoSyncHook().execute(container, taskCtx, createMockLogger());
+    await new RepoSyncHook({ cliRuntimes: RUNTIMES }).execute(container, taskCtx, createMockLogger());
 
     const fetchArgs = mockExeca.mock.calls[0][1]!;
     expect(fetchArgs).toContain(`http.extraHeader=Authorization: ${expectedHeader}`);
@@ -93,7 +99,7 @@ describe("RepoSyncHook", () => {
     const { container } = createMockContainer();
     const expectedHeader = `Basic ${Buffer.from("x-access-token:gh-test-pat").toString("base64")}`;
 
-    await new RepoSyncHook().execute(container, ghCtx, createMockLogger());
+    await new RepoSyncHook({ cliRuntimes: RUNTIMES }).execute(container, ghCtx, createMockLogger());
 
     const fetchArgs = mockExeca.mock.calls[0][1]!;
     expect(fetchArgs).toContain(`http.extraHeader=Authorization: ${expectedHeader}`);
@@ -105,7 +111,7 @@ describe("RepoSyncHook", () => {
     vi.stubEnv("MY_CUSTOM_PAT", "custom-secret");
     const { container } = createMockContainer();
 
-    await new RepoSyncHook().execute(container, customCtx, createMockLogger());
+    await new RepoSyncHook({ cliRuntimes: RUNTIMES }).execute(container, customCtx, createMockLogger());
 
     const fetchArgs = mockExeca.mock.calls[0][1] as string[];
     const headerArg = fetchArgs.find((a) => a.startsWith("http.extraHeader"));
@@ -116,7 +122,7 @@ describe("RepoSyncHook", () => {
     const { container } = createMockContainer();
     const ctx = makeTaskContext({ profile, workItem, triggerParams: { source_branch: "develop" } });
 
-    await new RepoSyncHook().execute(container, ctx, createMockLogger());
+    await new RepoSyncHook({ cliRuntimes: RUNTIMES }).execute(container, ctx, createMockLogger());
 
     const calls = mockExeca.mock.calls.map((c) => c[1]);
     expect(calls[0]).toContain("develop");
@@ -130,7 +136,7 @@ describe("RepoSyncHook", () => {
     const customBranch = "code/my-existing-branch";
     const ctx = makeTaskContext({ profile, workItem, triggerParams: { branch: customBranch } });
 
-    await new RepoSyncHook().execute(container, ctx, createMockLogger());
+    await new RepoSyncHook({ cliRuntimes: RUNTIMES }).execute(container, ctx, createMockLogger());
 
     const calls = mockExeca.mock.calls.map((c) => c[1]);
     // ls-remote checks for the custom branch, not the slugified one
@@ -148,7 +154,7 @@ describe("RepoSyncHook", () => {
     mockExeca.mockResolvedValueOnce({ exitCode: 0, stdout: "" } as any); // reset --hard
     mockExeca.mockResolvedValueOnce({ exitCode: 0, stdout: "abc123\trefs/heads/" + expectedBranch } as any); // ls-remote
 
-    await new RepoSyncHook().execute(container, taskCtx, createMockLogger());
+    await new RepoSyncHook({ cliRuntimes: RUNTIMES }).execute(container, taskCtx, createMockLogger());
 
     const calls = mockExeca.mock.calls.map((c) => c[1]);
     // ls-remote with auth
@@ -179,7 +185,7 @@ describe("RepoSyncHook", () => {
   it("creates .ralph/tasks/<key>/ directory on the host", async () => {
     const { container } = createMockContainer();
 
-    await new RepoSyncHook().execute(container, taskCtx, createMockLogger());
+    await new RepoSyncHook({ cliRuntimes: RUNTIMES }).execute(container, taskCtx, createMockLogger());
 
     expect(mockMkdirSync).toHaveBeenCalledWith(expect.stringContaining(`.ralph/tasks/${workItem.id}`), {
       recursive: true,
@@ -190,25 +196,25 @@ describe("RepoSyncHook", () => {
     vi.unstubAllEnvs();
     const { container } = createMockContainer();
 
-    await expect(new RepoSyncHook().execute(container, taskCtx, createMockLogger())).rejects.toThrow(
-      'ADO_PAT must be set for repo-sync hook (profile "ralph-docs")',
-    );
+    await expect(
+      new RepoSyncHook({ cliRuntimes: RUNTIMES }).execute(container, taskCtx, createMockLogger()),
+    ).rejects.toThrow('ADO_PAT must be set for repo-sync hook (profile "ralph-docs")');
   });
 
   it("propagates git errors", async () => {
     mockExeca.mockRejectedValueOnce(new Error("git fetch failed"));
     const { container } = createMockContainer();
 
-    await expect(new RepoSyncHook().execute(container, taskCtx, createMockLogger())).rejects.toThrow(
-      "git fetch failed",
-    );
+    await expect(
+      new RepoSyncHook({ cliRuntimes: RUNTIMES }).execute(container, taskCtx, createMockLogger()),
+    ).rejects.toThrow("git fetch failed");
   });
 
   it("switches to existing branch on revision without creating a new one", async () => {
     const { container } = createMockContainer();
     const revisionCtx = makeTaskContext({ profile, workItem, isRevision: true });
 
-    await new RepoSyncHook().execute(container, revisionCtx, createMockLogger());
+    await new RepoSyncHook({ cliRuntimes: RUNTIMES }).execute(container, revisionCtx, createMockLogger());
 
     const allArgs = mockExeca.mock.calls.map((c) => c[1]).flat();
     expect(allArgs).toContain(expectedBranch);
@@ -219,17 +225,50 @@ describe("RepoSyncHook", () => {
     expect(allArgs).not.toContain("ls-remote");
   });
 
-  it("populates .git/info/exclude with bind-mount artifact patterns during repo sync", async () => {
+  it("excludes .ralph/ and every CLI's mount targets in the repo, whichever CLI the task runs", async () => {
+    // Arrange
     const { container } = createMockContainer();
+    const claudeOnly = makeTaskContext({
+      profile: makeProfile({ id: "ralph-docs", stages: [makeStage({ cli: CliType.Claude })] }),
+      workItem,
+    });
 
-    await new RepoSyncHook().execute(container, taskCtx, createMockLogger());
+    // Act
+    await new RepoSyncHook({ cliRuntimes: RUNTIMES }).execute(container, claudeOnly, createMockLogger());
 
+    // Assert
     const excludeWrite = mockWriteFileSync.mock.calls.find((call) => String(call[0]).includes(".git/info/exclude"));
-    expect(excludeWrite).toBeDefined();
-    const content = excludeWrite![1] as string;
-    expect(content).toContain(".ralph/");
-    expect(content).toContain(".github/skills/");
-    expect(content).toContain(".github/agents/");
+    expect(excludeWrite![1]).toBe(
+      [
+        "# >>>ralph-orchestrator (managed — do not edit)",
+        ".ralph/",
+        "/.github/hooks/ralph-audit.json",
+        "/.github/agents/",
+        "/.github/skills/",
+        "# <<<ralph-orchestrator",
+        "",
+      ].join("\n"),
+    );
+  });
+});
+
+describe("gitExcludePatterns", () => {
+  it("keeps .ralph/ first and anchors each mount target outside it to the repo root", () => {
+    // Act
+    const patterns = gitExcludePatterns([".ralph/claude/agents/", ".github/agents/", ".github/hooks/ralph-audit.json"]);
+
+    // Assert
+    expect(patterns).toEqual([".ralph/", "/.github/agents/", "/.github/hooks/ralph-audit.json"]);
+  });
+
+  it("lists a target two CLIs share once", () => {
+    // Act & Assert
+    expect(gitExcludePatterns([".github/agents/", ".github/agents/"])).toEqual([".ralph/", "/.github/agents/"]);
+  });
+
+  it("is just .ralph/ when nothing is mounted outside it", () => {
+    // Act & Assert
+    expect(gitExcludePatterns([])).toEqual([".ralph/"]);
   });
 });
 
@@ -241,7 +280,7 @@ describe("ensureGitExclude", () => {
   });
 
   it("writes orchestrator exclusion patterns inside managed marker block", () => {
-    ensureGitExclude("/repo");
+    ensureGitExclude("/repo", PATTERNS);
 
     const written = mockWriteFileSync.mock.calls[0]![1] as string;
     expect(written).toContain(".ralph/");
@@ -254,7 +293,7 @@ describe("ensureGitExclude", () => {
   it("preserves existing content outside the managed block", () => {
     mockReadFileSync.mockReturnValue("*.log\nbuild/\n");
 
-    ensureGitExclude("/repo");
+    ensureGitExclude("/repo", PATTERNS);
 
     const written = mockWriteFileSync.mock.calls[0]![1] as string;
     expect(written).toContain("*.log\nbuild/\n");
@@ -271,7 +310,7 @@ describe("ensureGitExclude", () => {
     ].join("\n");
     mockReadFileSync.mockReturnValue(existingContent);
 
-    ensureGitExclude("/repo");
+    ensureGitExclude("/repo", PATTERNS);
 
     const written = mockWriteFileSync.mock.calls[0]![1] as string;
     // Should contain the updated patterns
@@ -293,7 +332,7 @@ describe("ensureGitExclude", () => {
       return true;
     });
 
-    ensureGitExclude("/repo");
+    ensureGitExclude("/repo", PATTERNS);
 
     expect(mockMkdirSync).toHaveBeenCalledWith(expect.stringContaining(".git/info"), { recursive: true });
   });
@@ -301,7 +340,7 @@ describe("ensureGitExclude", () => {
   it("handles empty exclude file gracefully", () => {
     mockReadFileSync.mockReturnValue("");
 
-    ensureGitExclude("/repo");
+    ensureGitExclude("/repo", PATTERNS);
 
     const written = mockWriteFileSync.mock.calls[0]![1] as string;
     expect(written).toContain(".ralph/");
@@ -312,7 +351,7 @@ describe("ensureGitExclude", () => {
     const corrupted = ["*.log", "# >>>ralph-orchestrator (managed — do not edit)", ".ralph/", "build/"].join("\n");
     mockReadFileSync.mockReturnValue(corrupted);
 
-    ensureGitExclude("/repo");
+    ensureGitExclude("/repo", PATTERNS);
 
     const written = mockWriteFileSync.mock.calls[0]![1] as string;
     const startCount = (written.match(/>>>ralph-orchestrator/g) ?? []).length;
@@ -325,7 +364,7 @@ describe("ensureGitExclude", () => {
     const corrupted = "*.log\n# <<<ralph-orchestrator\nbuild/\n";
     mockReadFileSync.mockReturnValue(corrupted);
 
-    ensureGitExclude("/repo");
+    ensureGitExclude("/repo", PATTERNS);
 
     const written = mockWriteFileSync.mock.calls[0]![1] as string;
     const endCount = (written.match(/<<<ralph-orchestrator/g) ?? []).length;
@@ -339,7 +378,7 @@ describe("ensureGitExclude", () => {
       "*.log\n# >>>ralph-orchestrator (managed — do not edit)\n.ralph/\n# <<<ralph-orchestrator\nbuild/\n";
     mockReadFileSync.mockReturnValue(existing);
 
-    ensureGitExclude("/repo");
+    ensureGitExclude("/repo", PATTERNS);
 
     const written = mockWriteFileSync.mock.calls[0]![1] as string;
     expect(written).not.toContain("\n\n\n");

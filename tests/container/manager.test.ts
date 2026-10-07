@@ -1,26 +1,28 @@
 /**
  * ContainerManager unit tests.
  *
- * Verifies delegation to injected collaborators after the DI refactor.
- * Every dependency is injected via the constructor — no concrete classes
- * are instantiated, making this fully testable without Docker.
+ * Every dependency is injected via the constructor, so the manager is tested without Docker: compose,
+ * executors, log collection and the session runner are mocks, the CLI runtimes are mock runtimes.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { ContainerManager } from "../../src/container/manager";
+import { CliRuntimeRegistry } from "../../src/cli/cli-runtime";
+import { CliType, StageMode, type IAgentProfile } from "../../src/config/types";
 import type { IComposeClient } from "../../src/container/compose-client";
-import type { ICliExecutor, ICliExecutorFactory } from "../../src/container/cli-executor-factory";
+import type { ICliExecutorFactory } from "../../src/container/cli-executor-factory";
 import type { IContainerLogCollector } from "../../src/container/log-collector";
 import type { IContainerWorkspaceCleaner } from "../../src/container/workspace-cleaner";
 import type { ILogSourceRegistry } from "../../src/container/log-source-registry";
 import type { IAgentSessionRunner } from "../../src/container/agent-session-runner";
-import { TaskStatus, type CliPaths } from "../../src/container/types";
-import { makeProfile, makeWorkItem } from "../helpers/factories";
-import { createSilentLogger, type Mocked } from "../helpers/mocks";
+import { TaskStatus } from "../../src/container/types";
+import { makeProfile, makeResult, makeStage, makeWorkItem } from "../helpers/factories";
+import { createMockCliRuntime, createMockExecutor, createMockLogger, type Mocked } from "../helpers/mocks";
 import type { Logger } from "../../src/logger";
 import type { ResultPromise } from "execa";
+
 const KEY = "DF-100";
 
 vi.mock("execa", async (importOriginal) => {
@@ -29,13 +31,6 @@ vi.mock("execa", async (importOriginal) => {
 });
 
 // ── Mock factories ───────────────────────────────────────────────────────────
-
-const cliPaths: CliPaths = {
-  configDir: "/workspace/.ralph",
-  writableDirs: ["/workspace/.ralph/logs"],
-  transcriptPath: "/workspace/.ralph/logs/session-transcript.md",
-  logDir: "/workspace/.ralph/logs/cli-debug",
-};
 
 function fakeResultPromise(overrides: Record<string, unknown> = {}): ResultPromise {
   return Promise.resolve({ stdout: "", stderr: "", exitCode: 0, ...overrides }) as unknown as ResultPromise;
@@ -49,15 +44,6 @@ function createMockComposeClient(): Mocked<IComposeClient> {
     logs: vi.fn().mockReturnValue(fakeResultPromise()),
     checkDocker: vi.fn().mockResolvedValue(undefined),
     getContainerName: vi.fn().mockResolvedValue("mock-container"),
-  };
-}
-
-function createMockExecutor(): Mocked<ICliExecutor> & { paths: CliPaths } {
-  return {
-    paths: cliPaths,
-    run: vi.fn().mockResolvedValue({ exitCode: 0, stdout: "", stderr: "", timedOut: false }),
-    continueSession: vi.fn().mockResolvedValue({ exitCode: 0, stdout: "", stderr: "", timedOut: false }),
-    killActive: vi.fn(),
   };
 }
 
@@ -81,74 +67,74 @@ function createMockCleaner(): Mocked<IContainerWorkspaceCleaner> {
   };
 }
 
-function createMockLogRegistry(): Mocked<ILogSourceRegistry> {
+function createMockExecutorFactory(): Mocked<ICliExecutorFactory> {
   return {
-    registerAll: vi.fn(),
+    create: vi.fn().mockImplementation(async (_compose, _profile, stage) => createMockExecutor(stage.cli)),
+    createLocal: vi.fn().mockImplementation((_profile, stage) => createMockExecutor(stage.cli)),
   };
 }
 
 function createMockSessionRunner(): Mocked<IAgentSessionRunner> {
-  return {
-    run: vi.fn().mockResolvedValue({
-      taskId: "DF-100",
-      status: TaskStatus.Completed,
-      durationMs: 100,
-      exitCode: 0,
-      stdout: "",
-      stderr: "",
-      collectedLogs: {},
-    }),
-  };
+  return { run: vi.fn().mockResolvedValue(makeResult("DF-100")) };
 }
 
 // ── Harness ──────────────────────────────────────────────────────────────────
 
+const claudeRuntime = createMockCliRuntime(CliType.Claude);
+const copilotRuntime = createMockCliRuntime(CliType.Copilot);
+
 interface Harness {
   manager: ContainerManager;
   compose: Mocked<IComposeClient>;
-  executor: Mocked<ICliExecutor> & { paths: CliPaths };
   executorFactory: Mocked<ICliExecutorFactory>;
   logs: Mocked<IContainerLogCollector>;
-  cleaner: Mocked<IContainerWorkspaceCleaner>;
   logRegistry: Mocked<ILogSourceRegistry>;
   sessionRunner: Mocked<IAgentSessionRunner>;
   logger: Logger;
 }
 
-function createHarness(overrides?: Partial<Harness>): Harness {
-  const compose = overrides?.compose ?? createMockComposeClient();
-  const executor = overrides?.executor ?? createMockExecutor();
-  const executorFactory =
-    overrides?.executorFactory ??
-    ({ create: vi.fn().mockReturnValue(createMockExecutor()) } as unknown as Mocked<ICliExecutorFactory>);
-  const logs = overrides?.logs ?? createMockLogCollector();
-  const cleaner = overrides?.cleaner ?? createMockCleaner();
-  const logRegistry = overrides?.logRegistry ?? createMockLogRegistry();
-  const sessionRunner = overrides?.sessionRunner ?? createMockSessionRunner();
-  const logger = overrides?.logger ?? createSilentLogger();
-  const profile = makeProfile();
+function createHarness(
+  profile: IAgentProfile,
+  overrides: Partial<Omit<Harness, "manager">> & { enableContinuation?: boolean } = {},
+): Harness {
+  const compose = overrides.compose ?? createMockComposeClient();
+  const executorFactory = overrides.executorFactory ?? createMockExecutorFactory();
+  const logs = overrides.logs ?? createMockLogCollector();
+  const logRegistry = overrides.logRegistry ?? { registerAll: vi.fn() };
+  const sessionRunner = overrides.sessionRunner ?? createMockSessionRunner();
+  const logger = overrides.logger ?? createMockLogger();
 
   const manager = new ContainerManager({
     profile,
-    compose: compose as unknown as IComposeClient,
-    executor,
-    executorFactory: executorFactory as unknown as ICliExecutorFactory,
-    logs: logs as unknown as IContainerLogCollector,
-    cleaner: cleaner as unknown as IContainerWorkspaceCleaner,
-    logRegistry: logRegistry as unknown as ILogSourceRegistry,
-    sessionRunner: sessionRunner as unknown as IAgentSessionRunner,
+    compose,
+    cliRuntimes: new CliRuntimeRegistry({ runtimes: [claudeRuntime, copilotRuntime] }),
+    executorFactory,
+    logs,
+    cleaner: createMockCleaner(),
+    logRegistry,
+    sessionRunner,
     logger,
+    enableContinuation: overrides.enableContinuation,
   });
 
-  return { manager, compose, executor, executorFactory, logs, cleaner, logRegistry, sessionRunner, logger };
+  return { manager, compose, executorFactory, logs, logRegistry, sessionRunner, logger };
 }
 
 describe("ContainerManager", () => {
   let tempDir: string;
+  /** A Claude Code container stage followed by a Copilot container stage, on a repo in `tempDir`. */
+  let mixedProfile: IAgentProfile;
 
   beforeEach(() => {
     vi.clearAllMocks();
     tempDir = mkdtempSync(join(tmpdir(), "manager-test-"));
+    mixedProfile = makeProfile({
+      repoPath: tempDir,
+      stages: [
+        makeStage({ role: "write", agent: "ralph.ralph", cli: CliType.Claude }),
+        makeStage({ role: "review", agent: "ralph.malph", cli: CliType.Copilot }),
+      ],
+    });
   });
 
   afterEach(() => {
@@ -157,20 +143,20 @@ describe("ContainerManager", () => {
 
   describe("checkPrerequisites", () => {
     it("delegates to compose.checkDocker()", async () => {
-      const { manager, compose } = createHarness();
+      // Arrange
+      const { manager, compose } = createHarness(mixedProfile);
+
+      // Act
       await manager.checkPrerequisites();
+
+      // Assert
       expect(compose.checkDocker).toHaveBeenCalledOnce();
     });
   });
 
   describe("start", () => {
-    it("calls compose up with build flag", async () => {
-      const { manager, compose } = createHarness();
-      await manager.start(new AbortController().signal);
-      expect(compose.compose).toHaveBeenCalledWith(["up", "-d", "--build"]);
-    });
-
-    it("checks docker before compose up", async () => {
+    it("checks docker, then runs compose up with the build flag", async () => {
+      // Arrange
       const callOrder: string[] = [];
       const compose = createMockComposeClient();
       compose.checkDocker.mockImplementation(async () => {
@@ -180,24 +166,57 @@ describe("ContainerManager", () => {
         callOrder.push("compose");
         return fakeResultPromise();
       });
-      const { manager } = createHarness({ compose });
+      const { manager } = createHarness(mixedProfile, { compose });
 
+      // Act
       await manager.start(new AbortController().signal);
+
+      // Assert
       expect(callOrder).toEqual(["checkDocker", "compose"]);
+      expect(compose.compose).toHaveBeenCalledWith(["up", "-d", "--build"]);
+      expect(manager.isRunning).toBe(true);
+    });
+
+    it("creates each container CLI's home in the target repo on the host before compose up", async () => {
+      // Arrange
+      const compose = createMockComposeClient();
+      const homesAtComposeUp: boolean[] = [];
+      compose.compose.mockImplementation(() => {
+        homesAtComposeUp.push(existsSync(join(tempDir, ".cfg-claude")), existsSync(join(tempDir, ".cfg-copilot")));
+        return fakeResultPromise();
+      });
+      const { manager } = createHarness(mixedProfile, { compose });
+
+      // Act
+      await manager.start(new AbortController().signal);
+
+      // Assert
+      expect(homesAtComposeUp).toEqual([true, true]);
+    });
+
+    it("propagates a compose up failure without marking the container running", async () => {
+      // Arrange
+      const compose = createMockComposeClient();
+      compose.compose.mockReturnValue(Promise.reject(new Error("build failed")) as unknown as ResultPromise);
+      const { manager } = createHarness(mixedProfile, { compose });
+
+      // Act & Assert
+      await expect(manager.start(new AbortController().signal)).rejects.toThrow("build failed");
+      expect(manager.isRunning).toBe(false);
     });
 
     it("stops the container when the abort signal fires", async () => {
+      // Arrange
       const controller = new AbortController();
       const compose = createMockComposeClient();
-      const { manager } = createHarness({ compose });
-
+      const { manager } = createHarness(mixedProfile, { compose });
       await manager.start(controller.signal);
-      expect(manager.isRunning).toBe(true);
+      compose.compose.mockClear();
 
-      compose.compose.mockReset();
-      compose.compose.mockReturnValue(fakeResultPromise());
+      // Act
       controller.abort();
 
+      // Assert
       await vi.waitFor(() => {
         expect(compose.compose).toHaveBeenCalledWith(["down", "--volumes", "--remove-orphans"]);
       });
@@ -205,25 +224,29 @@ describe("ContainerManager", () => {
   });
 
   describe("setup", () => {
-    it("runs the profile setup script in the container", async () => {
-      const _profile = makeProfile({ setupScript: "/usr/local/bin/setup.sh" });
-      const compose = createMockComposeClient();
-      const { manager } = createHarness({ compose });
-      // ContainerManager uses the profile's setupScript
+    it("runs the profile setup script in the container as vscode", async () => {
+      // Arrange
+      const { manager, compose } = createHarness({ ...mixedProfile, setupScript: "/usr/local/bin/setup.sh" });
+
+      // Act
       await manager.setup();
 
-      expect(compose.exec).toHaveBeenCalledWith(expect.arrayContaining(["--user", "vscode", "app"]));
+      // Assert
+      expect(compose.exec).toHaveBeenCalledWith(["--user", "vscode", "app", "/usr/local/bin/setup.sh"]);
     });
   });
 
   describe("execInApp", () => {
     it("delegates to compose.exec with vscode user", async () => {
+      // Arrange
       const compose = createMockComposeClient();
       compose.exec.mockReturnValue(fakeResultPromise({ stdout: "output", stderr: "" }));
-      const { manager } = createHarness({ compose });
+      const { manager } = createHarness(mixedProfile, { compose });
 
+      // Act
       const result = await manager.execInApp(["echo", "hello"]);
 
+      // Assert
       expect(compose.exec).toHaveBeenCalledWith(["--user", "vscode", "app", "echo", "hello"]);
       expect(result.stdout).toBe("output");
     });
@@ -231,218 +254,233 @@ describe("ContainerManager", () => {
 
   describe("execInSidecar", () => {
     it("delegates to compose.exec targeting mcp-sidecar", async () => {
+      // Arrange
       const compose = createMockComposeClient();
       compose.exec.mockReturnValue(fakeResultPromise({ stdout: "sidecar-output", stderr: "" }));
-      const { manager } = createHarness({ compose });
+      const { manager } = createHarness(mixedProfile, { compose });
 
+      // Act
       const result = await manager.execInSidecar(["git", "status"]);
 
+      // Assert
       expect(compose.exec).toHaveBeenCalledWith(["mcp-sidecar", "git", "status"]);
       expect(result.stdout).toBe("sidecar-output");
     });
   });
 
+  describe("layouts", () => {
+    it("are the layouts of the CLIs the container stages run, each once", () => {
+      // Arrange
+      const profile = makeProfile({
+        stages: [
+          makeStage({ role: "a", cli: CliType.Copilot }),
+          makeStage({ role: "b", cli: CliType.Copilot }),
+          makeStage({ role: "c", cli: CliType.Claude, mode: StageMode.Local }),
+        ],
+      });
+
+      // Act
+      const { manager } = createHarness(profile);
+
+      // Assert
+      expect(manager.layouts).toEqual([copilotRuntime.layout]);
+    });
+  });
+
   describe("registerLogSources", () => {
-    it("delegates to logRegistry.registerAll", () => {
-      const { manager, logRegistry, logs } = createHarness();
+    it("registers the common sources and those of the container CLIs' runtimes", () => {
+      // Arrange
+      const { manager, logRegistry, logs } = createHarness(mixedProfile);
+
+      // Act
       manager.registerLogSources(KEY, "DF-100", tempDir);
 
+      // Assert
       expect(logRegistry.registerAll).toHaveBeenCalledWith(
         logs,
-        expect.any(Object), // profile
+        mixedProfile,
         KEY,
         "DF-100",
         expect.objectContaining({ onToolOutput: undefined, onPreToolUse: undefined }),
-        cliPaths,
+        [claudeRuntime, copilotRuntime],
       );
     });
 
-    it("passes onToolOutput and onPreToolUse callbacks", () => {
-      const { manager, logRegistry } = createHarness();
+    it("passes the tool-output and pre-tool callbacks and always streams the CLI debug log", () => {
+      // Arrange
+      const { manager, logRegistry } = createHarness(mixedProfile);
       const onToolOutput = vi.fn();
       const onPreToolUse = vi.fn();
       manager.onToolOutput = onToolOutput;
       manager.onPreToolUse = onPreToolUse;
 
+      // Act
       manager.registerLogSources(KEY, "DF-100", tempDir);
 
-      expect(logRegistry.registerAll).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.anything(),
-        KEY,
-        "DF-100",
-        expect.objectContaining({ onToolOutput, onPreToolUse }),
-        cliPaths,
-      );
-    });
-
-    it("always provides an onCliDebug callback for file streaming", () => {
-      const { manager, logRegistry } = createHarness();
-
-      manager.registerLogSources(KEY, "DF-100", tempDir);
-
+      // Assert
       const callbacks = logRegistry.registerAll.mock.calls[0][4];
+      expect(callbacks).toMatchObject({ onToolOutput, onPreToolUse });
       expect(callbacks.onCliDebug).toBeTypeOf("function");
     });
   });
 
-  describe("execute", () => {
-    it("delegates to session runner with executor and work item", async () => {
-      const sessionRunner = createMockSessionRunner();
-      const issue = makeWorkItem("DF-200");
-      const { manager } = createHarness({ sessionRunner });
+  describe("createExecutorForStage", () => {
+    it("creates a container stage's executor for the stage profile and logs the stage's CLI", async () => {
+      // Arrange
+      const { manager, executorFactory, compose, logger } = createHarness(mixedProfile);
+      const stage = mixedProfile.stages[0];
 
+      // Act
+      const executor = await manager.createExecutorForStage(stage);
+
+      // Assert
+      expect(executor.cli).toBe(CliType.Claude);
+      expect(executorFactory.create).toHaveBeenCalledWith(
+        compose,
+        expect.objectContaining({ agentName: "ralph.ralph", cli: CliType.Claude }),
+        stage,
+        expect.anything(),
+      );
+      expect(logger.info).toHaveBeenCalledWith("Stage write: claude CLI (container), agent ralph.ralph");
+    });
+
+    it("creates a local stage's executor on the host", async () => {
+      // Arrange
+      const { manager, executorFactory } = createHarness(mixedProfile);
+      const stage = makeStage({ role: "hook", agent: "ralph.scientist", mode: StageMode.Local });
+
+      // Act
+      await manager.createExecutorForStage(stage);
+
+      // Assert
+      expect(executorFactory.createLocal).toHaveBeenCalledWith(
+        expect.objectContaining({ agentName: "ralph.scientist" }),
+        stage,
+        process.cwd(),
+        expect.anything(),
+      );
+      expect(executorFactory.create).not.toHaveBeenCalled();
+    });
+
+    it("propagates an executor factory failure", async () => {
+      // Arrange
+      const executorFactory = createMockExecutorFactory();
+      executorFactory.create.mockRejectedValue(new Error("No agent template ralph.ralph"));
+      const { manager } = createHarness(mixedProfile, { executorFactory });
+
+      // Act & Assert
+      await expect(manager.createExecutorForStage(mixedProfile.stages[0])).rejects.toThrow("No agent template");
+    });
+  });
+
+  describe("execute", () => {
+    it("runs the first stage's executor through the session runner", async () => {
+      // Arrange
+      const { manager, sessionRunner } = createHarness(mixedProfile);
+      const issue = makeWorkItem("DF-200");
+
+      // Act
       await manager.execute(issue);
 
+      // Assert
       expect(sessionRunner.run).toHaveBeenCalledWith(
-        expect.anything(), // executor
+        expect.objectContaining({ cli: CliType.Claude }),
         issue,
         undefined,
-        expect.objectContaining({ maxContinuations: 0, enableContinuation: false }),
+        { maxContinuations: 0, enableContinuation: false },
       );
     });
 
-    it("returns the RalphResult from session runner", async () => {
+    it("returns the RalphResult from the session runner", async () => {
+      // Arrange
       const sessionRunner = createMockSessionRunner();
-      sessionRunner.run.mockResolvedValue({
-        taskId: "DF-300",
-        status: TaskStatus.Completed,
-        durationMs: 200,
-        exitCode: 0,
-        stdout:
-          "===RALPH_RESULT_START===\nPR_URL: https://dev.azure.com/pr/1\nSTATUS: completed\n===RALPH_RESULT_END===",
-        stderr: "",
-        collectedLogs: {},
-        prUrl: "https://dev.azure.com/pr/1",
-      });
-      const { manager } = createHarness({ sessionRunner });
+      sessionRunner.run.mockResolvedValue(makeResult("DF-300", { prUrl: "https://dev.azure.com/pr/1" }));
+      const { manager } = createHarness(mixedProfile, { sessionRunner });
 
+      // Act
       const result = await manager.execute(makeWorkItem("DF-300"));
 
+      // Assert
       expect(result.prUrl).toBe("https://dev.azure.com/pr/1");
       expect(result.status).toBe(TaskStatus.Completed);
     });
 
-    it("passes issue context to session runner", async () => {
-      const sessionRunner = createMockSessionRunner();
-      const context = { previousHandoff: "some handoff", comments: [], isRevision: false };
-      const { manager } = createHarness({ sessionRunner });
+    it("passes issue context and the profile's maxContinuations when continuation is enabled", async () => {
+      // Arrange
+      const profile = { ...mixedProfile, maxContinuations: 3 };
+      const { manager, sessionRunner } = createHarness(profile, { enableContinuation: true });
+      const context = { comments: [], isRevision: false, handoffContent: null, triggerParams: {} };
 
+      // Act
       await manager.execute(makeWorkItem("DF-500"), context);
 
-      expect(sessionRunner.run).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({ id: "DF-500" }),
-        context,
-        expect.anything(),
-      );
-    });
-
-    it("passes enableContinuation=false and maxContinuations=0 by default", async () => {
-      const sessionRunner = createMockSessionRunner();
-      const { manager } = createHarness({ sessionRunner });
-
-      await manager.execute(makeWorkItem("DF-600"));
-
-      expect(sessionRunner.run).toHaveBeenCalledWith(expect.anything(), expect.anything(), undefined, {
-        maxContinuations: 0,
-        enableContinuation: false,
-      });
-    });
-
-    it("passes profile maxContinuations when enableContinuation is true", async () => {
-      const sessionRunner = createMockSessionRunner();
-      const profile = makeProfile();
-      const { compose, executor, executorFactory, logs, cleaner, logRegistry, logger } = createHarness();
-      const manager = new ContainerManager({
-        profile,
-        compose: compose as unknown as IComposeClient,
-        executor,
-        executorFactory: executorFactory as unknown as ICliExecutorFactory,
-        logs: logs as unknown as IContainerLogCollector,
-        cleaner: cleaner as unknown as IContainerWorkspaceCleaner,
-        logRegistry: logRegistry as unknown as ILogSourceRegistry,
-        sessionRunner: sessionRunner as unknown as IAgentSessionRunner,
-        logger,
-        enableContinuation: true,
-      });
-
-      await manager.execute(makeWorkItem("DF-601"));
-
-      expect(sessionRunner.run).toHaveBeenCalledWith(expect.anything(), expect.anything(), undefined, {
-        maxContinuations: profile.maxContinuations,
+      // Assert
+      expect(sessionRunner.run).toHaveBeenCalledWith(expect.anything(), expect.anything(), context, {
+        maxContinuations: 3,
         enableContinuation: true,
       });
     });
   });
 
   describe("stop", () => {
-    it("detaches logs, kills executor, and calls compose down", async () => {
+    it("detaches logs, kills the last executor and runs compose down, in that order", async () => {
+      // Arrange
       const callOrder: string[] = [];
-      const compose = createMockComposeClient();
       const executor = createMockExecutor();
-      const logs = createMockLogCollector();
-
-      const { manager } = createHarness({ compose, executor, logs });
+      const { manager, compose, logs } = createHarness(mixedProfile);
       await manager.start(new AbortController().signal);
-
-      // Attach order-tracking after start() so only stop() calls are recorded
-      logs.detach.mockImplementation(() => {
-        callOrder.push("detach");
-      });
-      executor.killActive.mockImplementation(() => {
-        callOrder.push("killActive");
-      });
+      await manager.executeWithExecutor(executor, makeWorkItem("DF-100"));
+      logs.detach.mockImplementation(() => callOrder.push("detach"));
+      executor.killActive.mockImplementation(() => callOrder.push("killActive"));
       compose.compose.mockImplementation(() => {
         callOrder.push("compose-down");
         return fakeResultPromise();
       });
 
+      // Act
       await manager.stop();
 
+      // Assert
       expect(callOrder).toEqual(["detach", "killActive", "compose-down"]);
       expect(compose.compose).toHaveBeenCalledWith(["down", "--volumes", "--remove-orphans"]);
     });
 
-    it("falls back to docker rm when compose down fails", async () => {
-      const compose = createMockComposeClient();
-      compose.getContainerName.mockResolvedValue("mock-container-id");
-
-      const { manager } = createHarness({ compose });
+    it("runs compose down when no stage has run", async () => {
+      // Arrange
+      const { manager, compose } = createHarness(mixedProfile);
       await manager.start(new AbortController().signal);
 
+      // Act
+      await manager.stop();
+
+      // Assert
+      expect(compose.compose).toHaveBeenLastCalledWith(["down", "--volumes", "--remove-orphans"]);
+    });
+
+    it("falls back to docker rm when compose down fails", async () => {
+      // Arrange
+      const compose = createMockComposeClient();
+      compose.getContainerName.mockResolvedValue("mock-container-id");
+      const { manager } = createHarness(mixedProfile, { compose });
+      await manager.start(new AbortController().signal);
       compose.compose.mockImplementation(() => {
         throw new Error("compose down failed");
       });
 
-      // Should not throw — the fallback swallows errors
+      // Act & Assert
       await expect(manager.stop()).resolves.toBeUndefined();
     });
-  });
 
-  describe("cliPaths", () => {
-    it("exposes executor paths", () => {
-      const { manager } = createHarness();
-      expect(manager.cliPaths).toEqual(cliPaths);
-    });
-  });
+    it("does nothing when the container never started", async () => {
+      // Arrange
+      const { manager, compose, logs } = createHarness(mixedProfile);
 
-  describe("logs", () => {
-    it("exposes log collector for external use", () => {
-      const { manager } = createHarness();
-      expect(manager.logs).toBeDefined();
-      expect(typeof manager.logs.detach).toBe("function");
-      expect(typeof manager.logs.collectAll).toBe("function");
-    });
-  });
+      // Act
+      await manager.stop();
 
-  describe("cleaner", () => {
-    it("exposes workspace cleaner for external use", () => {
-      const { manager } = createHarness();
-      expect(manager.cleaner).toBeDefined();
-      expect(typeof manager.cleaner.prepareConfigDir).toBe("function");
-      expect(typeof manager.cleaner.cleanDirectory).toBe("function");
-      expect(typeof manager.cleaner.cleanPaths).toBe("function");
+      // Assert
+      expect(logs.detach).not.toHaveBeenCalled();
+      expect(compose.compose).not.toHaveBeenCalled();
     });
   });
 });

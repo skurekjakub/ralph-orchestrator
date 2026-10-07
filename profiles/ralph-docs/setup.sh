@@ -27,14 +27,6 @@ else
     echo "⚠️ No package-lock.json found, skipping npm install"
 fi
 
-# ── AI CLIs ────────────────────────────────────────────────
-# Installed at runtime (not in Dockerfile) to always get the latest version.
-# npm global prefix is set to ~/.npm-global in the Dockerfile (user-writable, no sudo needed).
-echo "📦 Installing GitHub Copilot CLI..."
-npm install -g @github/copilot@1.0.3
-echo "📦 Installing Claude Code CLI..."
-npm install -g @anthropic-ai/claude-code
-
 # ── Development config ────────────────────────────────────
 echo "⚙️  Setting up development configuration..."
 if [ -f "src/_configs/_config_development.yml.sample" ] && [ ! -f "src/_configs/_config_development.yml" ]; then

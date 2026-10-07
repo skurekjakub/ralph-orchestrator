@@ -1,14 +1,27 @@
-import { mkdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
 import type { ResultPromise } from "execa";
-import type { IAgentProfile } from "../../config/types";
-import { DEFAULT_COPILOT_MODEL } from "../../cli/model-catalog";
+import type { ICliRuntime } from "../../cli/cli-runtime";
 import { COPILOT_CONTAINER_LAYOUT } from "../../cli/copilot/copilot-layout";
-import type { ContainerExecResult, CliPaths } from "../types";
+import { DEFAULT_COPILOT_MODEL } from "../../cli/model-catalog";
+import { CliType, type IAgentProfile } from "../../config/types";
 import type { Logger } from "../../logger";
+import type { ICliExecutor } from "../cli-executor-factory";
 import type { IComposeClient } from "../compose-client";
-import { ICliExecutor } from "../cli-executor-factory";
-import { executeCliCommand, killActiveProcess } from "./shared-exec";
+import { MCP_CONFIG_CONTAINER_PATH } from "../setup/compose-overlay";
+import type { ContainerExecResult } from "../types";
+import { executeCliCommand, killActiveProcess, writePromptFile } from "./shared-exec";
+
+/** The prompt file inside the container, read with `$(cat …)` so the exec command line stays free of prompt text. */
+const PROMPT_FILE = "/workspace/.ralph/prompt.txt";
+
+/** Dependencies of one stage's Copilot CLI executor. */
+export interface CopilotExecutorDeps {
+  readonly compose: IComposeClient;
+  /** The variant with the stage's overrides applied (`deriveStageProfile`): agent, model, timeout, repo path. */
+  readonly profile: IAgentProfile;
+  /** The Copilot runtime, for its output decoder. */
+  readonly runtime: ICliRuntime;
+  readonly logger: Logger;
+}
 
 /**
  * Executes the Copilot CLI agent inside a running container.
@@ -20,27 +33,20 @@ import { executeCliCommand, killActiveProcess } from "./shared-exec";
  * - Active process tracking for graceful shutdown
  */
 export class CopilotExecutor implements ICliExecutor {
-  /** Path inside the container where the MCP server config is mounted. */
-  static readonly MCP_CONFIG_PATH = "/workspace/.ralph/mcp-config.json";
-
-  /** Prompt file path inside the container — used with `$(cat ...)` to avoid passing large prompts as CLI args. */
-  static readonly PROMPT_FILE = "/workspace/.ralph/prompt.txt";
-
+  readonly cli = CliType.Copilot;
   activeProcess: ResultPromise | null = null;
 
-  /** Filesystem paths specific to the Copilot CLI. */
-  readonly paths: CliPaths = {
-    configDir: COPILOT_CONTAINER_LAYOUT.configDir,
-    writableDirs: COPILOT_CONTAINER_LAYOUT.writableDirs,
-    transcriptPath: COPILOT_CONTAINER_LAYOUT.transcriptPath,
-    logDir: COPILOT_CONTAINER_LAYOUT.debugLog.path,
-  };
+  private readonly compose: IComposeClient;
+  private readonly profile: IAgentProfile;
+  private readonly runtime: ICliRuntime;
+  private readonly logger: Logger;
 
-  constructor(
-    private readonly compose: IComposeClient,
-    private readonly profile: IAgentProfile,
-    private readonly containerLogger: Logger,
-  ) {}
+  constructor({ compose, profile, runtime, logger }: CopilotExecutorDeps) {
+    this.compose = compose;
+    this.profile = profile;
+    this.runtime = runtime;
+    this.logger = logger;
+  }
 
   /** Kill the active copilot process if one is running. */
   killActive(): void {
@@ -74,19 +80,6 @@ export class CopilotExecutor implements ICliExecutor {
   }
 
   /**
-   * Write the prompt to a file on the host, visible inside the container via
-   * the target-repo bind mount (`${TARGET_REPO_PATH}:/workspace`).
-   *
-   * Avoids passing multi-KB prompts (with shell metacharacters, quotes,
-   * newlines) as `docker compose exec` CLI arguments.
-   */
-  private writePromptFile(prompt: string): void {
-    const dir = join(this.profile.repoPath, ".ralph");
-    mkdirSync(dir, { recursive: true });
-    writeFileSync(join(dir, "prompt.txt"), prompt, "utf-8");
-  }
-
-  /**
    * Internal: build and execute a Copilot CLI command with shared flags.
    *
    * The prompt is written to a file on the host and read inside the container
@@ -97,15 +90,16 @@ export class CopilotExecutor implements ICliExecutor {
    * @param prompt The full prompt text.
    */
   private async exec(promptFlags: string[], prompt: string): Promise<ContainerExecResult> {
-    this.writePromptFile(prompt);
+    writePromptFile(this.profile.repoPath, prompt);
+    const layout = COPILOT_CONTAINER_LAYOUT;
 
     const shellCmd = [
       "exec",
       "copilot",
       "--config-dir",
-      COPILOT_CONTAINER_LAYOUT.configDir,
+      layout.configDir,
       "--additional-mcp-config",
-      `@${CopilotExecutor.MCP_CONFIG_PATH}`,
+      `@${MCP_CONFIG_CONTAINER_PATH}`,
       "--agent",
       this.profile.agentName,
       "--model",
@@ -114,18 +108,24 @@ export class CopilotExecutor implements ICliExecutor {
       "--log-level",
       "debug",
       "--log-dir",
-      COPILOT_CONTAINER_LAYOUT.debugLog.path,
+      layout.debugLog.path,
       "--experimental",
       "--allow-all-tools",
       "--allow-all-paths",
       "--share",
-      COPILOT_CONTAINER_LAYOUT.transcriptPath,
+      layout.transcriptPath,
       ...promptFlags,
-      `"$(cat ${CopilotExecutor.PROMPT_FILE})"`,
+      `"$(cat ${PROMPT_FILE})"`,
     ].join(" ");
 
-    const args = ["--user", "vscode", "app", "sh", "-c", shellCmd];
-
-    return executeCliCommand(this.compose, args, this.profile.timeoutMs, this.containerLogger, "copilot", this);
+    return executeCliCommand({
+      compose: this.compose,
+      args: ["--user", "vscode", "app", "sh", "-c", shellCmd],
+      timeoutMs: this.profile.timeoutMs,
+      logger: this.logger,
+      tag: "copilot",
+      tracker: this,
+      decoder: this.runtime.createOutputDecoder(),
+    });
   }
 }

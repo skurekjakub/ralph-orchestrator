@@ -35,6 +35,23 @@ RUN mkdir -p /home/vscode/.npm-global && chown vscode:vscode /home/vscode/.npm-g
 ENV NPM_CONFIG_PREFIX=/home/vscode/.npm-global
 ENV PATH="/home/vscode/.npm-global/bin:$PATH"
 
+# ============================================================
+# 4. Agent CLIs
+#    Versions come from `agentCliVersions` in the orchestrator's
+#    package.json (passed by the generated compose overlay).
+#    Installed root-owned under /usr/local so the agent cannot
+#    replace or patch its own CLI.
+# ============================================================
+ARG CLAUDE_CODE_VERSION
+ARG COPILOT_CLI_VERSION
+RUN test -n "${CLAUDE_CODE_VERSION}" && test -n "${COPILOT_CLI_VERSION}" \
+        || { echo "Build args CLAUDE_CODE_VERSION and COPILOT_CLI_VERSION are required" >&2; exit 1; } \
+    && npm install -g --prefix /usr/local --allow-scripts=@anthropic-ai/claude-code \
+        "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}" "@github/copilot@${COPILOT_CLI_VERSION}" \
+    && npm cache clean --force \
+    && /usr/local/bin/claude --version \
+    && /usr/local/bin/copilot --version
+
 USER vscode
 WORKDIR /workspace
 ENV DEBIAN_FRONTEND=dialog

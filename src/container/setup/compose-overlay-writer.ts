@@ -1,82 +1,121 @@
-import { writeFileSync, readFileSync, existsSync } from "node:fs";
-import { resolve } from "node:path";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { join, resolve } from "node:path";
+import { mergeComposeContributions, type ICliRuntimeRegistry } from "../../cli/cli-runtime";
+import { AGENT_CLI_VERSIONS, agentCliBuildArgs } from "../../cli/cli-versions";
+import type { AgentGraph } from "../../cli/agent-file-writer";
 import type { IAgentProfile } from "../../config/types";
 import type { Logger } from "../../logger";
-import { generateAgentVolumeMounts, generateSkillVolumeMounts } from "./artifact-mounts";
-import { generateResourceVolumeMounts, type ResourceConfig } from "./resource-mounts";
+import type { IAgentCatalogProvider } from "./agent-catalogs";
+import { profileBuildPaths } from "./build-paths";
 import { generateComposeOverlay } from "./compose-overlay";
 import { generateMcpConfig, generateGatewayConfig } from "./mcp-config";
+import { generateResourceVolumeMounts } from "./resource-mounts";
+import { generateProfileSquidConf } from "./squid-config";
+import { parseSquidDomains } from "./url-restrictions";
 
-/**
- * Regenerates the Docker Compose overlay, mcp-config.json, and gateway.json
- * per-task, scoping all three to the matched variant's effective MCP server
- * list and skill mounts.
- */
-export interface IComposeOverlayWriter {
-  /** Regenerate the compose overlay and MCP configs for a profile's task-scoped state. */
-  write(profile: IAgentProfile, logger: Logger): void;
+/** What one task's container artifacts are generated for. */
+export interface ComposeArtifactsInput {
+  /** The orchestrator checkout root. */
+  readonly rootDir: string;
+  readonly cliRuntimes: ICliRuntimeRegistry;
+  /** The matched variant, or a profile standing for all its variants at startup. */
+  readonly profile: IAgentProfile;
+  /** The profile's subagent graph. */
+  readonly agents: AgentGraph;
+  readonly logger: Logger;
 }
 
 /**
- * Per-task compose overlay writer.
+ * Writes a task's container artifacts into `profiles/<id>/.build/`, scoped to the variant's MCP servers,
+ * skills and container-stage CLIs: `squid.conf`, each CLI's own artifacts, `docker-compose.overlay.yml`,
+ * `mcp-config.json` and `gateway.json`.
  *
- * At startup, {@link resolveAllProfileSetup} generates the overlay with the
- * union of all variants' skills. Before each task, this writer regenerates
- * the overlay using only the matched variant's `profile.skills`, keeping
- * agent and resource mounts unchanged.
+ * `squid.conf` is written first because Copilot's URL allowlist is derived from it. Only the credential of
+ * a CLI some container stage runs reaches the agent container.
+ *
+ * @throws Error when a CLI's artifact inputs are missing or malformed (see `ICliRuntime.writeTaskArtifacts`).
  */
+export function writeComposeArtifacts({ rootDir, cliRuntimes, profile, agents, logger }: ComposeArtifactsInput): void {
+  const paths = profileBuildPaths(rootDir, profile.id);
+  const runtimes = cliRuntimes.forClis(profile.containerClis);
+  const input = { profile, paths, agents };
+  mkdirSync(paths.buildDir, { recursive: true });
+
+  const baselineSquidPath = resolve(rootDir, "shared/security/squid.conf");
+  if (existsSync(baselineSquidPath)) {
+    const squidConf = generateProfileSquidConf(baselineSquidPath, {
+      cliDomains: runtimes.flatMap((r) => r.egressDomains),
+      profileDomains: profile.allowlistDomains,
+    });
+    writeFileSync(join(paths.buildDir, "squid.conf"), squidConf, "utf-8");
+    const domains = parseSquidDomains(squidConf);
+    logger.info(`Wrote squid.conf with ${domains.length} allowed domains: ${domains.join(", ")}`);
+  } else {
+    logger.warn(`Baseline squid.conf not found at ${baselineSquidPath}; squid.conf not generated`);
+  }
+
+  for (const runtime of runtimes) runtime.writeTaskArtifacts(input, logger);
+
+  const contribution = mergeComposeContributions(runtimes.map((r) => r.composeContribution(input)));
+  const resourceVolumes = profile.resources ? generateResourceVolumeMounts(paths.profileDir, profile.resources) : [];
+  const mcpServersDir = resolve(rootDir, "shared/mcp-servers");
+  const serverNames = [...profile.mcpServers];
+
+  const overlay = generateComposeOverlay({
+    mcpServersDir,
+    serverNames,
+    buildDir: paths.buildDir,
+    sidecarDir: resolve(rootDir, "shared/mcp-sidecar"),
+    appVolumes: [...contribution.volumes, ...resourceVolumes],
+    appEnv: contribution.env,
+    appBuildArgs: agentCliBuildArgs(AGENT_CLI_VERSIONS),
+    sidecarEnv: profile.mcpSidecarEnv,
+    hasPreInit: existsSync(join(paths.buildDir, "pre-init.sh")),
+  });
+  writeFileSync(join(paths.buildDir, "docker-compose.overlay.yml"), overlay, "utf-8");
+
+  const mcpConfig = generateMcpConfig(mcpServersDir, serverNames);
+  writeFileSync(join(paths.buildDir, "mcp-config.json"), JSON.stringify(mcpConfig, null, 2) + "\n", "utf-8");
+
+  // JitMcpConfigWriter runs after this to inject task-scoped env vars.
+  const gatewayConfig = generateGatewayConfig(mcpServersDir, serverNames, process.env);
+  writeFileSync(join(paths.buildDir, "gateway.json"), JSON.stringify(gatewayConfig, null, 2) + "\n", "utf-8");
+
+  const clis = profile.containerClis.length > 0 ? profile.containerClis.join(", ") : "none";
+  logger.info(
+    `Regenerated compose overlay, mcp-config and gateway: container CLIs ${clis}, ` +
+      `${profile.skills.length} skill(s), ${serverNames.length} MCP server(s)`,
+  );
+}
+
+/** Regenerates the compose overlay and the configs it mounts for one task's variant. */
+export interface IComposeOverlayWriter {
+  /**
+   * Regenerate the task-scoped container artifacts in the profile's build directory.
+   *
+   * @throws Error when the profile's agent templates are invalid or a CLI's artifact inputs are missing or malformed.
+   */
+  write(profile: IAgentProfile, logger: Logger): Promise<void>;
+}
+
+/** Per-task compose overlay writer rooted at the orchestrator's working directory. */
 export class ComposeOverlayWriter implements IComposeOverlayWriter {
-  write(profile: IAgentProfile, logger: Logger): void {
-    const root = process.cwd();
-    const profileDir = resolve(root, "profiles", profile.id);
-    const buildDir = resolve(profileDir, ".build");
-    const skillsDir = resolve(root, "shared/skills");
-    const mcpServersDir = resolve(root, "shared/mcp-servers");
-    const sidecarDir = resolve(root, "shared/mcp-sidecar");
+  private readonly cliRuntimes: ICliRuntimeRegistry;
+  private readonly agentCatalogs: IAgentCatalogProvider;
 
-    const serverNames = [...profile.mcpServers];
-    const agentVolumes = generateAgentVolumeMounts(profileDir);
-    const skillVolumes = generateSkillVolumeMounts(skillsDir, [...profile.skills]);
+  constructor({
+    cliRuntimes,
+    agentCatalogs,
+  }: {
+    cliRuntimes: ICliRuntimeRegistry;
+    agentCatalogs: IAgentCatalogProvider;
+  }) {
+    this.cliRuntimes = cliRuntimes;
+    this.agentCatalogs = agentCatalogs;
+  }
 
-    let resourceVolumes: string[] = [];
-    const profileJsonPath = resolve(profileDir, "profile.json");
-    if (existsSync(profileJsonPath)) {
-      try {
-        const parsed: { resources?: ResourceConfig } = JSON.parse(readFileSync(profileJsonPath, "utf-8"));
-        if (parsed.resources) {
-          resourceVolumes = generateResourceVolumeMounts(profileDir, parsed.resources);
-        }
-      } catch {
-        // Resources are optional — skip on parse error
-      }
-    }
-
-    const extraVolumes = [...agentVolumes, ...skillVolumes, ...resourceVolumes];
-    const sidecarEnv: Record<string, string> = { ...profile.mcpSidecarEnv };
-    const hasPreInit = existsSync(resolve(buildDir, "pre-init.sh"));
-    const overlay = generateComposeOverlay(
-      mcpServersDir,
-      serverNames,
-      buildDir,
-      sidecarDir,
-      extraVolumes,
-      sidecarEnv,
-      hasPreInit,
-    );
-
-    writeFileSync(resolve(buildDir, "docker-compose.overlay.yml"), overlay, "utf-8");
-
-    // Regenerate mcp-config.json with the variant's effective server list
-    const mcpConfig = generateMcpConfig(mcpServersDir, serverNames);
-    writeFileSync(resolve(buildDir, "mcp-config.json"), JSON.stringify(mcpConfig, null, 2) + "\n", "utf-8");
-
-    // Regenerate gateway.json so the sidecar only starts the variant's servers.
-    // JitMcpConfigWriter runs after this to inject task-scoped env vars.
-    const gatewayConfig = generateGatewayConfig(mcpServersDir, serverNames, process.env);
-    writeFileSync(resolve(buildDir, "gateway.json"), JSON.stringify(gatewayConfig, null, 2) + "\n", "utf-8");
-
-    logger.info(
-      `Regenerated compose overlay, mcp-config, and gateway with ${profile.skills.length} skill mount(s), ${serverNames.length} MCP server(s)`,
-    );
+  async write(profile: IAgentProfile, logger: Logger): Promise<void> {
+    const agents = await this.agentCatalogs.load(profile.id);
+    writeComposeArtifacts({ rootDir: process.cwd(), cliRuntimes: this.cliRuntimes, profile, agents, logger });
   }
 }

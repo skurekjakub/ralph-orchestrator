@@ -1,26 +1,53 @@
 import { join } from "node:path";
 
-/**
- * Base environment variables injected into every container overlay.
- * These are orchestrator-level requirements (CLI auth, config) — not MCP-specific.
- */
-const BASE_CONTAINER_ENV: Record<string, string> = {
-  GH_TOKEN: '"${GH_TOKEN}"',
-  ANTHROPIC_API_KEY: '"${ANTHROPIC_API_KEY}"',
-  CLAUDE_CODE_DISABLE_AUTOUPDATER: '"1"',
-  CLAUDE_CODE_DISABLE_COST_WARNINGS: '"1"',
-};
+/** URL-only MCP config inside the agent container, read by every agent CLI. */
+export const MCP_CONFIG_CONTAINER_PATH = "/workspace/.ralph/mcp-config.json";
 
 /**
  * Build args injected into every service that bind-mounts the host workspace.
  * Ensures the container process runs as the same UID/GID as the host user so
  * it can write to bind-mounted directories.
  */
-const HOST_BUILD_ARGS = ['        HOST_UID: "${HOST_UID}"', '        HOST_GID: "${HOST_GID}"'];
+const HOST_BUILD_ARGS: Readonly<Record<string, string>> = {
+  HOST_UID: "${HOST_UID}",
+  HOST_GID: "${HOST_GID}",
+};
+
+/** Everything one task's compose overlay is generated from. */
+export interface ComposeOverlayOptions {
+  /** Absolute path to `shared/mcp-servers/` on the host. */
+  readonly mcpServersDir: string;
+  /** MCP servers the sidecar runs; none means no sidecar service. */
+  readonly serverNames: readonly string[];
+  /** Absolute path to the profile's build directory on the host. */
+  readonly buildDir: string;
+  /** Absolute path to `shared/mcp-sidecar/` on the host. */
+  readonly sidecarDir: string;
+  /** Extra `app` bind mounts in compose short syntax: the agent CLIs' artifacts and the profile's resources. */
+  readonly appVolumes: readonly string[];
+  /** `app` environment: the agent CLIs' settings and credential references. */
+  readonly appEnv: Readonly<Record<string, string>>;
+  /** `app` image build args besides the host UID/GID (the pinned agent CLI versions). */
+  readonly appBuildArgs: Readonly<Record<string, string>>;
+  /** Sidecar container environment from the MCP servers' `sidecarEnv`. */
+  readonly sidecarEnv: Readonly<Record<string, string>>;
+  /** Whether `<buildDir>/pre-init.sh` exists and must be mounted into the sidecar. */
+  readonly hasPreInit: boolean;
+}
+
+/** A double-quoted YAML scalar. */
+function quoted(value: string): string {
+  return JSON.stringify(value);
+}
+
+/** `key: "value"` lines at `indent`. */
+function mappingLines(indent: string, entries: Readonly<Record<string, string>>): string[] {
+  return Object.entries(entries).map(([key, value]) => `${indent}${key}: ${quoted(value)}`);
+}
 
 /**
- * Generate a Docker Compose overlay YAML that injects environment variables,
- * volumes needed by the profile, and the MCP sidecar service.
+ * Generate a Docker Compose overlay YAML that adds the agent CLIs' build args, environment and mounts to
+ * the `app` service and defines the MCP sidecar service.
  *
  * The overlay follows the same merge pattern as the security overlay:
  * `docker compose -f base.yml -f security.yml -f overlay.yml`
@@ -28,50 +55,34 @@ const HOST_BUILD_ARGS = ['        HOST_UID: "${HOST_UID}"', '        HOST_GID: "
  * MCP servers run in a dedicated sidecar container. The agent container only
  * receives URL-based mcp-config.json entries — no server code or secrets.
  *
- * @param mcpServersDir Absolute path to `shared/mcp-servers/` on the host.
- * @param serverNames List of MCP server names to include.
- * @param buildDir Absolute path to the profile's build directory on the host.
- * @param sidecarDir Absolute path to `shared/mcp-sidecar/` on the host.
- * @param extraVolumes Additional volume mount lines to include in the overlay (pre-formatted YAML).
  * @returns YAML string for `docker-compose.overlay.yml`.
  */
-export function generateComposeOverlay(
-  mcpServersDir: string,
-  serverNames: string[],
-  buildDir: string,
-  sidecarDir: string,
-  extraVolumes: string[] = [],
-  sidecarEnv: Record<string, string> = {},
-  hasPreInit = false,
-): string {
+export function generateComposeOverlay(options: ComposeOverlayOptions): string {
+  const { mcpServersDir, serverNames, buildDir, sidecarDir, appVolumes, appEnv, appBuildArgs, sidecarEnv } = options;
   const lines: string[] = [];
 
   lines.push("# Auto-generated compose overlay — do not edit");
-  lines.push("# Regenerated at orchestrator startup from profile config");
+  lines.push("# Regenerated per task from the profile config and the variant's agent CLIs");
   lines.push("");
   lines.push("services:");
 
-  // ── app ──────────────────────────────────────────────────────────────────
   lines.push("  app:");
   lines.push("    build:");
   lines.push("      args:");
-  lines.push(...HOST_BUILD_ARGS);
-  lines.push("    environment:");
-  for (const [key, value] of Object.entries(BASE_CONTAINER_ENV)) {
-    lines.push(`      ${key}: ${value}`);
+  lines.push(...mappingLines("        ", { ...HOST_BUILD_ARGS, ...appBuildArgs }));
+  if (Object.keys(appEnv).length > 0) {
+    lines.push("    environment:");
+    lines.push(...mappingLines("      ", appEnv));
   }
-  // Agent container volumes — URL-only MCP config, CLI config, resources.
-  // No MCP server code or secrets are mounted here.
+  // No MCP server code or secrets are mounted into the agent container.
   lines.push("    volumes:");
   lines.push("      # Generated MCP config — contains HTTP URLs for servers inside mcp-sidecar");
-  lines.push(`      - ${join(buildDir, "mcp-config.json")}:/workspace/.ralph/mcp-config.json:ro`);
-  lines.push("      # Copilot CLI config with URL restrictions");
-  lines.push(`      - ${join(buildDir, "copilot-config.json")}:/workspace/.ralph/config.json:ro`);
+  lines.push(`      - ${join(buildDir, "mcp-config.json")}:${MCP_CONFIG_CONTAINER_PATH}:ro`);
   lines.push("      # Hides .ralph/ from git (blocks everything including itself)");
   lines.push(`      - ${join(buildDir, ".gitignore")}:/workspace/.ralph/.gitignore:ro`);
-  if (extraVolumes.length > 0) {
-    lines.push("      # Agent definitions, skills, and resource files");
-    lines.push(...extraVolumes);
+  if (appVolumes.length > 0) {
+    lines.push("      # Agent CLI settings, agents, skills and resource files");
+    lines.push(...appVolumes.map((volume) => `      - ${volume}`));
   }
   if (serverNames.length > 0) {
     // Shared attachment directory — agent writes files here, sidecar reads them.
@@ -83,7 +94,6 @@ export function generateComposeOverlay(
     lines.push("        condition: service_healthy");
   }
 
-  // ── mcp-sidecar ──────────────────────────────────────────────────────────
   // Runs MCP servers with credentials isolated from the agent container.
   if (serverNames.length > 0) {
     lines.push("");
@@ -92,7 +102,7 @@ export function generateComposeOverlay(
     lines.push(`      context: ${sidecarDir}`);
     lines.push("      dockerfile: Dockerfile");
     lines.push("      args:");
-    lines.push(...HOST_BUILD_ARGS);
+    lines.push(...mappingLines("        ", HOST_BUILD_ARGS));
     lines.push("    volumes:");
     lines.push("      # MCP server code (read-only, inaccessible to agent)");
     lines.push(`      - ${mcpServersDir}:/opt/mcp/servers:ro`);
@@ -106,15 +116,12 @@ export function generateComposeOverlay(
     lines.push(`      - ${join(buildDir, "attachments")}:/tmp/mcp-attachments:ro`);
     lines.push("      # Repo volume for git operations (push_progress, create_pr)");
     lines.push('      - "${TARGET_REPO_PATH}:/workspace"');
-    if (hasPreInit) {
+    if (options.hasPreInit) {
       lines.push("      # Generated pre-init script from MCP server initScript declarations");
       lines.push(`      - ${join(buildDir, "pre-init.sh")}:/opt/mcp/pre-init.sh:ro`);
     }
     lines.push("    environment:");
-    lines.push('      REPO_ROOT: "/workspace"');
-    for (const [key, value] of Object.entries(sidecarEnv)) {
-      lines.push(`      ${key}: "${value}"`);
-    }
+    lines.push(...mappingLines("      ", { REPO_ROOT: "/workspace", ...sidecarEnv }));
     lines.push("    extra_hosts:");
     lines.push('      - "host.docker.internal:host-gateway"');
     lines.push("    networks:");

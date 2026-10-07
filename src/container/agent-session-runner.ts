@@ -43,7 +43,7 @@ export interface IAgentSessionRunner {
  * Responsibilities:
  * 1. Build the prompt via {@link PromptBuilder}
  * 2. Delegate to {@link IContinuationRunner} for the retry loop
- * 3. Parse the `===RALPH_RESULT_START===` block from combined stdout
+ * 3. Parse the `===RALPH_RESULT_START===` block from the combined agent text
  * 4. Resolve the final task status
  * 5. Assemble and return the {@link RalphResult}
  */
@@ -76,7 +76,7 @@ export class AgentSessionRunner implements IAgentSessionRunner {
 
     const startTime = Date.now();
 
-    const { lastResult, combinedStdout, combinedStderr } = await this.continuationRunner.run(
+    const { lastResult, combinedAgentText, combinedStdout, combinedStderr } = await this.continuationRunner.run(
       executor,
       prompt,
       workItem,
@@ -85,7 +85,7 @@ export class AgentSessionRunner implements IAgentSessionRunner {
 
     const durationMs = Date.now() - startTime;
 
-    const { prUrl, agentStatus } = parseResultBlock(combinedStdout);
+    const { prUrl, agentStatus } = parseResultBlock(combinedAgentText);
     const status = resolveStatus(lastResult.exitCode, lastResult.timedOut, agentStatus, this.logger);
 
     return {

@@ -2,27 +2,38 @@ import { readFileSync } from "node:fs";
 
 const PROFILE_DOMAINS_MARKER = "# {{PROFILE_DOMAINS}}";
 
+/** Domains one task's agent container may reach, besides the baseline's. */
+export interface SquidDomains {
+  /** Domains the task's agent CLIs need (their model APIs). */
+  readonly cliDomains: readonly string[];
+  /** The profile's `allowlistDomains`. */
+  readonly profileDomains: readonly string[];
+}
+
+/** An `acl allowed_domains` block under a heading, or nothing when `domains` is empty. */
+function aclBlock(heading: string, domains: readonly string[]): string[] {
+  if (domains.length === 0) return [];
+  return [`# ${heading}`, ...domains.map((d) => `acl allowed_domains dstdomain ${d}`)];
+}
+
 /**
- * Build a per-profile squid.conf by reading the shared baseline and injecting
- * profile-level allowlist domains at the `{{PROFILE_DOMAINS}}` marker.
+ * Build a task's squid.conf from the shared baseline, injecting the agent CLIs' domains and the profile's
+ * `allowlistDomains` at the `{{PROFILE_DOMAINS}}` marker.
  *
- * The baseline only allows AI provider endpoints (Copilot, Anthropic).
- * Each profile declares additional domains it needs (package registries,
- * Azure DevOps feeds, etc.) via `allowlistDomains` in profile.json.
+ * The baseline allows no provider; each agent CLI's model API is allowed only for tasks whose container
+ * stages run that CLI. A domain listed twice is written once.
  *
  * @param baselineSquidPath Path to `shared/security/squid.conf`.
- * @param profileDomains Additional domains to allow for this profile.
- * @returns squid.conf content with profile domains injected.
+ * @returns squid.conf content.
  */
-export function generateProfileSquidConf(baselineSquidPath: string, profileDomains: string[] = []): string {
+export function generateProfileSquidConf(
+  baselineSquidPath: string,
+  { cliDomains, profileDomains }: SquidDomains,
+): string {
   const baseline = readFileSync(baselineSquidPath, "utf-8");
+  const cli = [...new Set(cliDomains)];
+  const profile = [...new Set(profileDomains)].filter((d) => !cli.includes(d));
 
-  if (profileDomains.length === 0) {
-    return baseline.replace(PROFILE_DOMAINS_MARKER, "# (no profile-specific domains)");
-  }
-
-  const domainLines = profileDomains.map((d) => `acl allowed_domains dstdomain ${d}`).join("\n");
-  const block = `# Profile-specific domains\n${domainLines}`;
-
-  return baseline.replace(PROFILE_DOMAINS_MARKER, block);
+  const lines = [...aclBlock("Agent CLI domains", cli), ...aclBlock("Profile-specific domains", profile)];
+  return baseline.replace(PROFILE_DOMAINS_MARKER, lines.length > 0 ? lines.join("\n") : "# (no extra domains)");
 }

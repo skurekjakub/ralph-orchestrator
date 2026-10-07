@@ -22,6 +22,9 @@ export const CLAUDE_BUILTIN_TOOLS: readonly ClaudeBuiltinTool[] = Object.values(
 /** The Claude Code tool that spawns a subagent; `Agent(a, b)` limits it to the named agents. */
 export const CLAUDE_SUBAGENT_TOOL = "Agent";
 
+/** Tools denied to every Claude Code session in a container, whatever its agent, flags or settings allow. */
+export const CLAUDE_DENIED_TOOLS = ["WebSearch", "WebFetch"] as const;
+
 /**
  * Claude Code's name for an MCP tool (`mcp__ado__ado_push_progress`), or for every tool of `server`
  * when `tool` is omitted (`mcp__ado`).

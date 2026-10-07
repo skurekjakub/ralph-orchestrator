@@ -1,16 +1,9 @@
+import type { CliError, CliRunUsage } from "../cli/output-decoder";
 import type { IAgentProfile, IStageConfig, StageMode } from "../config/types";
 import { IContainerManager } from "./manager";
 import type { ICliExecutor } from "./cli-executor-factory";
 
-/** Filesystem paths specific to the chosen CLI (Copilot or Claude Code). */
-export interface CliPaths {
-  readonly configDir: string;
-  readonly writableDirs: readonly string[];
-  readonly transcriptPath: string;
-  readonly logDir: string;
-}
-
-/** Raw result from a `docker compose exec` call (exit code, captured output, timeout flag). */
+/** Result of one CLI process: exit code, captured output, timeout flag and what its output decoded to. */
 export interface ContainerExecResult {
   /** Process exit code (0 = success). */
   exitCode: number;
@@ -20,6 +13,14 @@ export interface ContainerExecResult {
   stderr: string;
   /** True if the process was killed because it exceeded the configured timeout. */
   timedOut: boolean;
+  /** The agent's own text decoded from stdout: all of it for a plain-text CLI, main-thread assistant text for Claude Code. */
+  agentText: string;
+  /** Token, cost and turn usage the CLI reported. */
+  usage?: CliRunUsage;
+  /** CLI session id, for resuming the session and correlating logs. */
+  sessionId?: string;
+  /** Terminal error the CLI reported for its session. */
+  cliError?: CliError;
 }
 
 /**

@@ -200,6 +200,13 @@ export const profileFileSchema = z.object({
       z.array(z.string()).refine((a) => a.length > 0, "githubMcpTools must list at least one tool when enabled"),
     ])
     .default(false),
+  /** Claude Code options for the profile's container stages that run cli "claude". */
+  claude: z
+    .object({
+      /** Load the target repo's own CLAUDE.md files and `.claude/` project settings. Off by default for deterministic runs. */
+      loadRepoInstructions: z.boolean().default(false),
+    })
+    .default({ loadRepoInstructions: false }),
   /** Resource files auto-discovered from the profile's resources/ directory and mounted into the container. */
   resources: resourcesSchema,
   variants: z.array(variantSchema, "at least one variant is required").min(1, "at least one variant is required"),

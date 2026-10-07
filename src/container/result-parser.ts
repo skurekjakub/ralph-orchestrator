@@ -42,6 +42,15 @@ export function parseResultBlock(stdout: string): {
 }
 
 /**
+ * Whether `text` holds a result block whose STATUS is one {@link resolveStatus} accepts. The Claude Code
+ * result gate (`shared/hooks/claude/result-gate.sh`) allows a stop on the same condition.
+ */
+export function hasResultBlock(text: string): boolean {
+  const { agentStatus } = parseResultBlock(text);
+  return agentStatus !== undefined && RECOGNIZED_STATUSES.has(agentStatus);
+}
+
+/**
  * Determine the final {@link RalphResult} status from exit code, timeout flag,
  * and agent-reported status.
  *

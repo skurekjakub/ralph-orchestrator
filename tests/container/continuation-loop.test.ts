@@ -2,10 +2,12 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ContainerManager } from "../../src/container/manager";
 import { AgentSessionRunner } from "../../src/container/agent-session-runner";
 import { ContinuationRunner } from "../../src/container/continuation-runner";
-import { TaskStatus, type ContainerExecResult, type CliPaths } from "../../src/container/types";
+import { TaskStatus, type ContainerExecResult } from "../../src/container/types";
 import type { BuiltPrompt, PromptBuilder } from "../../src/prompt/prompt-builder";
-import { makeProfile, makeWorkItem } from "../helpers/factories";
-import { createSilentLogger } from "../helpers/mocks";
+import { makeExecResult, makeProfile, makeWorkItem } from "../helpers/factories";
+import { createMockCliRuntime, createMockExecutor, createSilentLogger } from "../helpers/mocks";
+import { CliRuntimeRegistry } from "../../src/cli/cli-runtime";
+import { CliType } from "../../src/config/types";
 import type { ICliExecutor, ICliExecutorFactory } from "../../src/container/cli-executor-factory";
 import type { IComposeClient } from "../../src/container/compose-client";
 import type { IContainerLogCollector } from "../../src/container/log-collector";
@@ -17,8 +19,9 @@ const KEY = "DF-100";
 
 // ── Test helpers ─────────────────────────────────────────────────────────────
 
-function makeExecResult(overrides: Partial<ContainerExecResult> = {}): ContainerExecResult {
-  return { exitCode: 0, stdout: "", stderr: "", timedOut: false, ...overrides };
+/** The result of a plain-text CLI run, whose agent text is its stdout. */
+function plainTextResult(overrides: Partial<ContainerExecResult> & { stdout: string }): ContainerExecResult {
+  return makeExecResult({ agentText: overrides.stdout, ...overrides });
 }
 
 const RESULT_BLOCK = [
@@ -34,25 +37,6 @@ const STATUS_ONLY_BLOCK = [
   "STATUS: blocked",
   "===RALPH_RESULT_END===",
 ].join("\n");
-
-const cliPaths: CliPaths = {
-  configDir: "/workspace/.ralph",
-  writableDirs: ["/workspace/.ralph/logs"],
-  transcriptPath: "/workspace/.ralph/logs/session-transcript.md",
-  logDir: "/workspace/.ralph/logs/cli-debug",
-};
-
-function createMockExecutor(): ICliExecutor & {
-  run: ReturnType<typeof vi.fn>;
-  continueSession: ReturnType<typeof vi.fn>;
-} {
-  return {
-    paths: cliPaths,
-    run: vi.fn().mockResolvedValue(makeExecResult()),
-    continueSession: vi.fn().mockResolvedValue(makeExecResult()),
-    killActive: vi.fn(),
-  };
-}
 
 function createMockPromptBuilder(): PromptBuilder {
   return {
@@ -100,14 +84,14 @@ function buildManager(maxContinuations: number, executor: ICliExecutor) {
   const sessionRunner = new AgentSessionRunner({ continuationRunner, promptBuilder, logger });
 
   const executorFactory: ICliExecutorFactory = {
-    create: vi.fn().mockReturnValue(executor),
+    create: vi.fn().mockResolvedValue(executor),
     createLocal: vi.fn().mockReturnValue(executor),
   };
 
   return new ContainerManager({
     profile,
     compose,
-    executor,
+    cliRuntimes: new CliRuntimeRegistry({ runtimes: [createMockCliRuntime(CliType.Copilot)] }),
     executorFactory,
     logs,
     cleaner,
@@ -145,7 +129,7 @@ describe("ContainerManager.execute — continuation loop", () => {
 
   it("does not continue when maxContinuations is 0", async () => {
     const executor = createMockExecutor();
-    executor.run.mockResolvedValue(makeExecResult({ stdout: "no result block" }));
+    executor.run.mockResolvedValue(plainTextResult({ stdout: "no result block" }));
     const manager = buildManager(0, executor);
 
     const result = await manager.execute(makeWorkItem(KEY));
@@ -158,7 +142,7 @@ describe("ContainerManager.execute — continuation loop", () => {
 
   it("does not continue when initial run produces a result block", async () => {
     const executor = createMockExecutor();
-    executor.run.mockResolvedValue(makeExecResult({ stdout: RESULT_BLOCK }));
+    executor.run.mockResolvedValue(plainTextResult({ stdout: RESULT_BLOCK }));
     const manager = buildManager(3, executor);
 
     const result = await manager.execute(makeWorkItem(KEY));
@@ -169,10 +153,25 @@ describe("ContainerManager.execute — continuation loop", () => {
     expect(result.prUrl).toContain("pullrequest/123");
   });
 
+  it("continues when the block is only in raw stdout, such as inside a tool call, not in the agent text", async () => {
+    // Arrange
+    const executor = createMockExecutor(CliType.Claude);
+    executor.run.mockResolvedValue(makeExecResult({ stdout: `{"input":"${RESULT_BLOCK}"}`, agentText: "working..." }));
+    executor.continueSession.mockResolvedValue(makeExecResult({ agentText: RESULT_BLOCK }));
+    const manager = buildManager(3, executor);
+
+    // Act
+    const result = await manager.execute(makeWorkItem(KEY));
+
+    // Assert
+    expect(executor.continueSession).toHaveBeenCalledOnce();
+    expect(result.prUrl).toContain("pullrequest/123");
+  });
+
   it("continues when initial run has no result block", async () => {
     const executor = createMockExecutor();
-    executor.run.mockResolvedValue(makeExecResult({ stdout: "working..." }));
-    executor.continueSession.mockResolvedValue(makeExecResult({ stdout: RESULT_BLOCK }));
+    executor.run.mockResolvedValue(plainTextResult({ stdout: "working..." }));
+    executor.continueSession.mockResolvedValue(plainTextResult({ stdout: RESULT_BLOCK }));
     const manager = buildManager(3, executor);
 
     const result = await manager.execute(makeWorkItem(KEY));
@@ -185,8 +184,8 @@ describe("ContainerManager.execute — continuation loop", () => {
 
   it("stops continuing after maxContinuations attempts", async () => {
     const executor = createMockExecutor();
-    executor.run.mockResolvedValue(makeExecResult({ stdout: "no block" }));
-    executor.continueSession.mockResolvedValue(makeExecResult({ stdout: "still no block" }));
+    executor.run.mockResolvedValue(plainTextResult({ stdout: "no block" }));
+    executor.continueSession.mockResolvedValue(plainTextResult({ stdout: "still no block" }));
     const manager = buildManager(2, executor);
 
     const result = await manager.execute(makeWorkItem(KEY));
@@ -198,7 +197,7 @@ describe("ContainerManager.execute — continuation loop", () => {
 
   it("stops continuing when the initial run timed out", async () => {
     const executor = createMockExecutor();
-    executor.run.mockResolvedValue(makeExecResult({ stdout: "partial work", timedOut: true }));
+    executor.run.mockResolvedValue(plainTextResult({ stdout: "partial work", timedOut: true }));
     const manager = buildManager(3, executor);
 
     const result = await manager.execute(makeWorkItem(KEY));
@@ -209,8 +208,8 @@ describe("ContainerManager.execute — continuation loop", () => {
 
   it("stops continuing when a continuation attempt times out", async () => {
     const executor = createMockExecutor();
-    executor.run.mockResolvedValue(makeExecResult({ stdout: "no block" }));
-    executor.continueSession.mockResolvedValue(makeExecResult({ stdout: "partial", timedOut: true }));
+    executor.run.mockResolvedValue(plainTextResult({ stdout: "no block" }));
+    executor.continueSession.mockResolvedValue(plainTextResult({ stdout: "partial", timedOut: true }));
     const manager = buildManager(3, executor);
 
     const result = await manager.execute(makeWorkItem(KEY));
@@ -221,8 +220,8 @@ describe("ContainerManager.execute — continuation loop", () => {
 
   it("stops continuing when agent reports status without PR URL", async () => {
     const executor = createMockExecutor();
-    executor.run.mockResolvedValue(makeExecResult({ stdout: "no block" }));
-    executor.continueSession.mockResolvedValue(makeExecResult({ stdout: STATUS_ONLY_BLOCK }));
+    executor.run.mockResolvedValue(plainTextResult({ stdout: "no block" }));
+    executor.continueSession.mockResolvedValue(plainTextResult({ stdout: STATUS_ONLY_BLOCK }));
     const manager = buildManager(3, executor);
 
     const result = await manager.execute(makeWorkItem(KEY));
@@ -233,10 +232,10 @@ describe("ContainerManager.execute — continuation loop", () => {
 
   it("accumulates stdout and stderr across continuations", async () => {
     const executor = createMockExecutor();
-    executor.run.mockResolvedValue(makeExecResult({ stdout: "part1", stderr: "err1" }));
+    executor.run.mockResolvedValue(plainTextResult({ stdout: "part1", stderr: "err1" }));
     executor.continueSession
-      .mockResolvedValueOnce(makeExecResult({ stdout: "part2", stderr: "err2" }))
-      .mockResolvedValueOnce(makeExecResult({ stdout: `part3\n${RESULT_BLOCK}`, stderr: "err3" }));
+      .mockResolvedValueOnce(plainTextResult({ stdout: "part2", stderr: "err2" }))
+      .mockResolvedValueOnce(plainTextResult({ stdout: `part3\n${RESULT_BLOCK}`, stderr: "err3" }));
     const manager = buildManager(5, executor);
 
     const result = await manager.execute(makeWorkItem(KEY));
@@ -251,8 +250,8 @@ describe("ContainerManager.execute — continuation loop", () => {
 
   it("passes continuation prompt with attempt number and issue key", async () => {
     const executor = createMockExecutor();
-    executor.run.mockResolvedValue(makeExecResult({ stdout: "no block" }));
-    executor.continueSession.mockResolvedValue(makeExecResult({ stdout: RESULT_BLOCK }));
+    executor.run.mockResolvedValue(plainTextResult({ stdout: "no block" }));
+    executor.continueSession.mockResolvedValue(plainTextResult({ stdout: RESULT_BLOCK }));
     const manager = buildManager(3, executor);
 
     await manager.execute(makeWorkItem("DF-200", "Fix the widget"));
@@ -267,8 +266,8 @@ describe("ContainerManager.execute — continuation loop", () => {
   it("uses exponential backoff between continuation attempts", async () => {
     vi.mocked(ContinuationRunner.sleep).mockClear();
     const executor = createMockExecutor();
-    executor.run.mockResolvedValue(makeExecResult({ stdout: "no block" }));
-    executor.continueSession.mockResolvedValue(makeExecResult({ stdout: "still no block" }));
+    executor.run.mockResolvedValue(plainTextResult({ stdout: "no block" }));
+    executor.continueSession.mockResolvedValue(plainTextResult({ stdout: "still no block" }));
     const manager = buildManager(3, executor);
 
     await manager.execute(makeWorkItem(KEY));
@@ -283,9 +282,9 @@ describe("ContainerManager.execute — continuation loop", () => {
   it("parses result block from combined stdout across continuations", async () => {
     const executor = createMockExecutor();
     // First run returns the start marker, continuation completes the block
-    executor.run.mockResolvedValue(makeExecResult({ stdout: "===RALPH_RESULT_START===\nPR_URL: " }));
+    executor.run.mockResolvedValue(plainTextResult({ stdout: "===RALPH_RESULT_START===\nPR_URL: " }));
     executor.continueSession.mockResolvedValue(
-      makeExecResult({ stdout: "https://dev.azure.com/pr/1\nSTATUS: completed\n===RALPH_RESULT_END===" }),
+      plainTextResult({ stdout: "https://dev.azure.com/pr/1\nSTATUS: completed\n===RALPH_RESULT_END===" }),
     );
     const manager = buildManager(3, executor);
 
