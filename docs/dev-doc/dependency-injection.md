@@ -90,7 +90,7 @@ interface OrchestratorCradle {
   jitMcpConfig: IJitMcpConfigWriter;
   overlayWriter: IComposeOverlayWriter;
   containerFactory: ContainerManagerFactory;
-  preExecuteHooks: readonly ILifecycleHook[];
+  workspaceManager: ITaskWorkspaceManager;
   profileSetup: IProfileSetupService;
   pipelineExecutor: IAgentPipelineExecutor;
 

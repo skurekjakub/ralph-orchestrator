@@ -52,8 +52,8 @@ Ralph Orchestrator is a standalone Node.js + TypeScript application that autonom
 3. Ledger ──(next pending)──▶ Orchestrator ──(profile lookup, re-fetch, status check, preflight)──▶ Profile selected
 4. TaskRunner ──(render templates + skills, regenerate overlay, JIT gateway.json)──▶ Profile .build/
 5. TaskRunner ──(JIRA beforeAgent transition + start comment)──▶ JIRA Cloud
-6. TaskRunner ──(docker compose up -d --build)──▶ Docker (app + sidecar + proxy)
-7. TaskRunner ──(lifecycle hooks: git exclude + sync + task branch)──▶ Target repo checkout on the host
+6. TaskWorkspaceManager ──(fetch repoUrl into cache/repos/<id>, clone cache/workspaces/<taskId>, task branch, git exclude)──▶ Task workspace on the host
+7. TaskRunner ──(docker compose up -d --build, workspace mounted at /workspace)──▶ Docker (app + sidecar + proxy)
 8. TaskRunner ──(docker compose exec <cli>)──▶ Agent container (one exec per stage)
 9. Agent ──(MCP tools via HTTP)──▶ MCP Sidecar ──(unrestricted direct internet)──▶ External APIs
 10. Agent ──(MCP: push branch, create PR)──▶ MCP Sidecar ──(git push, ADO REST)──▶ ADO
@@ -62,7 +62,8 @@ Ralph Orchestrator is a standalone Node.js + TypeScript application that autonom
 13. TaskResultWriter ──(attach transcript + save summary)──▶ JIRA Cloud + output/logs/<key>-<startTs>/
 14. TaskRunner ──(docker compose down --volumes --remove-orphans)──▶ Containers destroyed
 15. TaskRunner ──(post-task hooks, local stages)──▶ Orchestrator host
-16. Orchestrator ──(ledger completed | error, afterAgent transition on success)──▶ resume polling (back to step 1)
+16. TaskWorkspaceManager ──(delete on success, keep and log on error)──▶ Task workspace
+17. Orchestrator ──(ledger completed | error, afterAgent transition on success)──▶ resume polling (back to step 1)
 ```
 
 ## Component Details
@@ -107,10 +108,9 @@ Agent templates are **not** resolved at startup — they are rendered JIT before
 
 ### Container Manager (`src/container/manager.ts`)
 
-Orchestrates the full container lifecycle for a single task: build → setup → execute agent stages → collect logs → teardown. Uses **constructor-injected collaborators** (all `I`-prefixed interfaces) for compose operations, lifecycle hooks, CLI execution, log collection, and workspace cleanup.
+Orchestrates the full container lifecycle for a single task: build → setup → execute agent stages → collect logs → teardown. Uses **constructor-injected collaborators** (all `I`-prefixed interfaces) for compose operations, CLI execution, log collection, and workspace cleanup. Each manager is bound to one task's workspace: before compose up, `start()` creates `.ralph/`, each CLI home and every directory a container CLI mounts into on the host, so Docker never creates them as root and the workspace stays deletable.
 
-- **ComposeClient** — Low-level `docker compose` wrapper. Turns the file list from `ComposeFileResolver` into `-f` flags and passes the process environment plus computed paths (`TARGET_REPO_PATH`, `SQUID_CONF_PATH`, `SHARED_HOOKS_PATH`) for compose interpolation.
-- **Lifecycle hooks** — Pre-execution hooks (`ILifecycleHook`) that run between `setup()` and agent execution. The `RepoSyncHook` runs git on the host against the profile's `repo` checkout. It first writes orchestrator-managed exclusion patterns (`.ralph/`, `.github/skills/`, `.github/agents/`) to `.git/info/exclude` so Docker bind-mount artifacts don't block checkout or appear in status/add, then fetches and hard-resets to the resolved base branch (`source_branch`, inferred PR target branch on revisions when available, else `main`) before checking out the resolved task branch. The PAT (`repoPat`) is passed per command via `http.extraHeader`, never written to git config.
+- **ComposeClient** — Low-level `docker compose` wrapper. Turns the file list from `ComposeFileResolver` into `-f` flags and passes the process environment plus computed paths (`TARGET_REPO_PATH` — the task's workspace, `SQUID_CONF_PATH`, `SHARED_HOOKS_PATH`) for compose interpolation.
 - **Stage-based execution** — `createExecutorForStage(stage)` returns the appropriate CLI executor based on the stage's `mode`: `StageMode.Container` → standard `CopilotExecutor`/`ClaudeCodeExecutor` (inside Docker), `StageMode.Local` → `LocalCopilotExecutor` (on the host). `executeWithExecutor(executor, workItem, issueContext)` delegates to the `AgentSessionRunner` (`src/container/agent-session-runner.ts`) for prompt building, injection audit, and CLI invocation; the `ContinuationRunner` (`src/container/continuation-runner.ts`) handles the `--continue` loop.
 - **CopilotExecutor / ClaudeCodeExecutor** — CLI-specific command builders, sharing a common `executeCliCommand()` helper for stream capture and error handling. Each executor reads its container layout (absolute binary path, CLI home, debug log, transcript) from its `ICliRuntime`.
 - **LocalCopilotExecutor** — Host-side CLI executor for `mode: "local"` stages. Runs the Copilot CLI directly via `execa()` on the orchestrator host, bypassing Docker, with the orchestrator repo root as cwd. It symlinks the profile's rendered agents into `<orchestrator-repo>/.github/agents/` for the run and passes `--agent`, `--model`, `--log-dir .ralph/logs/cli-debug`, `--allow-all-tools` and `--allow-all-paths`, but no `--additional-mcp-config` or `--share`, so relative `.ralph/` paths resolve inside the orchestrator repo.
@@ -131,7 +131,7 @@ Main loop: poll → scan triggers → execute pending operations → repeat.
 
 The scanner caches each issue's `updated` timestamp between cycles in `cache/trigger-cache.json`. If an issue hasn't been updated since the last scan, comment fetching is skipped entirely — reducing API calls from N (all matching issues) to only those with new activity.
 
-**Processing a single operation:** Resolve profile → re-fetch issue → validate status match → preflight checks → delegate to `TaskRunner`. A missing profile or unreachable work item moves the operation from `pending` to `error`; a status mismatch or failed preflight moves it to `rejected`. Preflight can resolve existing pull-request metadata through `VcsSourceClient`, including source/target branches keyed by the profile's `vcsProvider`, and threads that into task context before repo sync and MCP macro resolution. The orchestrator records the result in the ledger and transitions JIRA (afterAgent) on success. Fatal errors (container start/setup) abort immediately. Non-critical failures (log collection, JIRA attachment) are logged but don't block the pipeline.
+**Processing a single operation:** Resolve profile → re-fetch issue → validate status match → preflight checks → delegate to `TaskRunner`. A missing profile or unreachable work item moves the operation from `pending` to `error`; a status mismatch or failed preflight moves it to `rejected`. Preflight can resolve existing pull-request metadata through `VcsSourceClient`, including source/target branches keyed by the profile's `vcsProvider`, and threads that into task context before the workspace is created and MCP macros are resolved. The orchestrator records the result in the ledger and transitions JIRA (afterAgent) on success. Fatal errors (container start/setup) abort immediately. Non-critical failures (log collection, JIRA attachment) are logged but don't block the pipeline.
 
 **Task callbacks:** The `DashboardServer` needs tool-output events from the `TaskRunner`, but depends on the orchestrator (which in turn depends on the task runner) — creating a circular init-order dependency. This is resolved via `setTaskCallbacks(callbacks: TaskCallbacks)` on the orchestrator, which copies the callbacks into each `TaskContext` built by `buildTaskContext()`. `TaskCallbacks` is an immutable interface with optional `onToolOutput` and `onPreToolUse` hooks, defined in `src/services/task-context.ts`.
 
@@ -139,16 +139,24 @@ The scanner caches each issue's `updated` timestamp between cycles in `cache/tri
 
 ### TaskRunner (`src/services/task-runner.ts`)
 
-Stateless, single-issue execution pipeline. All per-task state is scoped to the `run(ctx)` call (`ctx` is a `TaskContext`). Dependencies are injected from the cradle: `logger`, `containerFactory`, `resources`, `resultWriter`, `issueManager`, `profileSetup`, `pipelineExecutor`, `preExecuteHooks`.
+Stateless, single-issue execution pipeline. All per-task state is scoped to the `run(ctx)` call (`ctx` is a `TaskContext`). Dependencies are injected from the cradle: `logger`, `containerFactory`, `resources`, `resultWriter`, `issueManager`, `profileSetup`, `pipelineExecutor`, `workspaceManager`.
 
-The `run()` pipeline has four phases:
+The `run()` pipeline has four phases, then a workspace cleanup:
 
 1. **`prepareProfile`** — `ProfileSetupService.prepareForTask()` renders Liquid agent and skill templates (JIT), regenerates the compose overlay, `mcp-config.json` and `gateway.json` for the matched variant, and resolves task-scoped MCP macro params into `gateway.json`.
 2. **`transitionIssue`** — Transition JIRA to the `beforeAgent` status and post a start comment.
-3. **`prepareContainer`** — Delete `<repo>/.ralph` on the host, `docker compose up -d --build`, check prerequisites, prepare the CLI config directory, delete `cleanPaths`, register log sources, run `setup.sh`, execute lifecycle hooks (repo sync).
+3. **`prepareContainer`** — Create the task's workspace (`TaskWorkspaceManager.prepare`, below), `docker compose up -d --build` with it mounted at `/workspace`, check prerequisites, prepare the CLI config directory, delete `cleanPaths`, register log sources, run `setup.sh`.
 4. **`executeAgent`** — Fetch comments (and the previous handoff for revisions), then hand off to `AgentPipelineExecutor` (`src/services/agent-pipeline-executor.ts`). It loops over `ctx.profile.stages`, re-rendering templates per stage and creating the appropriate executor for each stage (container or local) via `ContainerManager.createExecutorForStage()`. For each stage, it builds the prompt, audits it for injection, and runs the CLI. If any stage fails, the pipeline aborts immediately. The last stage's `RalphResult` is authoritative; total `durationMs` is always computed as the sum of all stage durations.
 
-After the agent finishes (success or error), `TaskRunner` delegates result collection to the `TaskResultWriter`, then tears down the containers.
+After the agent finishes (success or error), `TaskRunner` delegates result collection to the `TaskResultWriter`, then tears down the containers. Once the post-task hooks are done, `TaskWorkspaceManager.cleanup` deletes the workspace when the task succeeded (completed or partial) and keeps it, logging its path, otherwise.
+
+### TaskWorkspaceManager (`src/services/task-workspace-manager.ts`)
+
+Gives each task its own checkout of the profile's `repoUrl`, so no two tasks share a working tree. The path, `cache/workspaces/<taskId>` (`<itemKey>-<startTs>`, the name of the task's output directory), is computed by `buildTaskContext()` and carried as `TaskContext.workspacePath`: the compose env, `ContainerManager` (host-side `.ralph/`, audit log) and the `repo` / `targetRepoPath` template variables read it.
+
+- **Source clone** — a bare clone per profile in `cache/repos/<profileId>`, cloned from `repoUrl` on the first task (into a `.partial` sibling renamed into place) and fetched before every later one (`+refs/heads/*:refs/heads/*`, `--prune`). The orchestrator runs one operation at a time, so the clone needs no lock.
+- **Workspace** — `git clone --local --branch <base>` of the source clone (hard-linked objects, no network), with `origin` then set to `repoUrl` so the agent and the sidecar push to the real remote. The task branch is checked out from `origin/<branch>` when the remote has it — required for a revision — else created from the base branch. `.ralph/` and the container CLIs' mount targets go into `.git/info/exclude`, and `.ralph/tasks/<key>/` is created.
+- **Credentials** — the `repoPat` PAT reaches git only as a per-command `-c http.extraHeader` (format by `vcsProvider`), with `GIT_TERMINAL_PROMPT=0`; errors carry `***` in its place, and no clone's config stores it.
 
 **Post-task hooks:** After result collection and container teardown, `TaskRunner` runs `postTaskHooks` — local-only agent pipelines for analysis, reporting, or improvement tasks. Each hook gets an output directory at `<taskOutputDir>/hooks/<hook-name>` (`hook.outputDir` in templates). Hook failures are warnings only; they never affect the task result or JIRA transitions. The `skip_hooks` trigger parameter (`@Ralph(skip_hooks)`) bypasses hook execution and writes a `hook-manifest.json` to the output directory, enabling manual replay via `scripts/run-hooks.ts`.
 
@@ -199,7 +207,7 @@ All Docker, agent, and hook infrastructure is centralized in the orchestrator re
 <orchestrator-repo>/
 ├── profiles/
 │   ├── ralph-docs/
-│   │   ├── profile.json                 # Profile config: repo, dataSource, cli, variants, MCP servers, allowlistDomains
+│   │   ├── profile.json                 # Profile config: repoUrl, dataSource, cli, variants, MCP servers, allowlistDomains
 │   │   ├── Dockerfile                   # Container image (ubuntu:22.04 with Ruby, Node, .NET, etc.)
 │   │   ├── docker-compose.yml           # Base compose: services, volumes, env vars
 │   │   ├── setup.sh                     # Post-create setup (CLI installs, git config)
@@ -259,12 +267,12 @@ All Docker, agent, and hook infrastructure is centralized in the orchestrator re
 ├── shared/skills/                       # Skill folders grouped by category (<category>/<name>/SKILL.md);
 │                                        #   rendered per stage into profiles/<id>/.build/skills/<name>/ and
 │                                        #   mounted at /workspace/.github/skills/<name>/ (excluded from
-│                                        #   the target repo's git via .git/info/exclude by RepoSyncHook)
+│                                        #   the workspace's git via .git/info/exclude)
 ```
 
 Profiles can also have a `resources/` directory (files mounted read-only at `/workspace/<resources.mountBase>/`); neither bundled profile has one.
 
-Agent template files (`.agent.md`) use Liquid syntax (`{% render 'name' %}`, `{% if isRevision %}`) with partials in `shared/agent-includes/*.md`. Includes support subdirectories (e.g. `{% render 'personality/ralph' %}`, `{% render 'ralph-docs/ralph-standard-workflow' %}`). Templates are rendered JIT before each task (and again before each stage) by `AgentTemplateRenderer`, which receives a pre-built `TemplateContext` (`src/container/setup/agent-includes.ts`) containing profile metadata (id, repo, `targetRepoPath`, cli, model, agent name, MCP servers), task data (id, title, description, status, type, priority, labels, components, project, created, updated), trigger metadata (`commentTrigger`, `triggerParams`), runtime flags (`isRevision`, `ralphchivesEnabled`, `prUrl`), `skills`, `artifactDir`, stage context (`stageRole`, `stageMode`, `stageIndex`, `stageCount`, `isFirstStage`, `isLastStage`, `previousStageRoles`), and post-task hook context (`hook.*`). The `triggerParams` is a `Record<string, string>` built by `buildTriggerParams()` — bare params map to `"true"`, key-value params (e.g. `branch_name=xyz`) map to the value. See [docs/dev-doc/agent-templates.md](docs/dev-doc/agent-templates.md) for template authoring details. Output goes to `profiles/<id>/.build/`. Compose files mount from `.build/` — the `.agent.md` templates are the source of truth.
+Agent template files (`.agent.md`) use Liquid syntax (`{% render 'name' %}`, `{% if isRevision %}`) with partials in `shared/agent-includes/*.md`. Includes support subdirectories (e.g. `{% render 'personality/ralph' %}`, `{% render 'ralph-docs/ralph-standard-workflow' %}`). Templates are rendered JIT before each task (and again before each stage) by `AgentTemplateRenderer`, which receives a pre-built `TemplateContext` (`src/container/setup/agent-includes.ts`) containing profile metadata (id, `repo` / `targetRepoPath` — the task's workspace, cli, model, agent name, MCP servers), task data (id, title, description, status, type, priority, labels, components, project, created, updated), trigger metadata (`commentTrigger`, `triggerParams`), runtime flags (`isRevision`, `ralphchivesEnabled`, `prUrl`), `skills`, `artifactDir`, stage context (`stageRole`, `stageMode`, `stageIndex`, `stageCount`, `isFirstStage`, `isLastStage`, `previousStageRoles`), and post-task hook context (`hook.*`). The `triggerParams` is a `Record<string, string>` built by `buildTriggerParams()` — bare params map to `"true"`, key-value params (e.g. `branch_name=xyz`) map to the value. See [docs/dev-doc/agent-templates.md](docs/dev-doc/agent-templates.md) for template authoring details. Output goes to `profiles/<id>/.build/`. Compose files mount from `.build/` — the `.agent.md` templates are the source of truth.
 
 **Three-file compose merge:** `ComposeClient` merges up to three compose files for every command: base (`profiles/<id>/docker-compose.yml`), security overlay (`shared/security/docker-compose.security.yml`), and optionally the resources overlay (`profiles/<id>/.build/docker-compose.overlay.yml`). The security overlay adds the Squid egress proxy sidecar, network isolation, proxy env vars, and resource limits. The resources overlay adds the agent's base env vars, the MCP sidecar service (with server code, gateway config, and secrets isolated from the agent), URL-only MCP config and Copilot CLI config for the agent, agent and skill folder mounts, and resource file mounts. It is generated for every profile at startup; `ComposeFileResolver` only leaves it out when the file is missing.
 
@@ -275,7 +283,7 @@ Currently configured target repos:
 
 ### Agent Phases (inside container)
 
-Before the agent starts, `RepoSyncHook` has already synced the target repo on the host (base branch from `source_branch`, the inferred PR target, or `main`) and checked out the task branch. The `ralph-docs` `ralph.ralph` standard workflow (`shared/agent-includes/ralph-docs/ralph-standard-workflow.md`, phase details in the `ralph-workflow` skill) then runs:
+Before the agent starts, `TaskWorkspaceManager` has already cloned the task's workspace on the host from the latest remote state (base branch from `source_branch`, the inferred PR target, or `main`) and checked out the task branch. The `ralph-docs` `ralph.ralph` standard workflow (`shared/agent-includes/ralph-docs/ralph-standard-workflow.md`, phase details in the `ralph-workflow` skill) then runs:
 
 1. **Setup** — Read the task, set up `state.md` and the scratchpad, search Ralphchives
 2. **Research** — Dispatch `ralph-researcher`, then `ralph-planner` to produce task files
@@ -300,7 +308,7 @@ Ralph communicates with JIRA via MCP tools (`jira_add_comment`, `jira_add_attach
 See [CONFIGURATION.md](CONFIGURATION.md) and [docs/user-guide/](docs/user-guide/README.md) for the full reference.
 
 - **`config.json`** — Global settings: data sources (JIRA connection, polling interval, `allowedUsers`, `excludeFields`), output paths, dashboard toggle, prompt audit mode, Ralphchives, `enableContinuation`.
-- **`profiles/<id>/profile.json`** — Per-profile config: target repo, data source, CLI preference, model, timeout, JIRA transitions, MCP servers, `allowlistDomains`, resources, and variants (match rules, stages, post-task hooks).
+- **`profiles/<id>/profile.json`** — Per-profile config: target repo URL (`repoUrl`), data source, CLI preference, model, timeout, JIRA transitions, MCP servers, `allowlistDomains`, resources, and variants (match rules, stages, post-task hooks).
 - **`.env`** — Secrets: `JIRA_PAT_<KEY>` / `JIRA_EMAIL_<KEY>` per JIRA data source, GitHub PAT, Anthropic API key, ADO PATs, Discord and NodeBB tokens, dashboard URL/secret.
 
 **Variant matching:** Each variant declares `match.projects`, `match.statuses`, `match.commentTrigger`, and optionally `match.revisionStatuses`. Variants are evaluated across all profiles; all matching triggers are planned. Each variant contains a `stages` array — one or more stage definitions with `agent`, `role`, `mode` (`container` or `local`), and optional overrides. Stage agent names must match `.agent.md` files in the profile's `agents/` directory. Trigger comments can include parenthesized parameters (e.g. `@RalphDf(verbose)`) — these are parsed into `triggerParams` and available in `TemplateContext`.

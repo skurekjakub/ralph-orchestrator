@@ -42,11 +42,11 @@ Any parameter name is valid — new parameters can be used in templates without 
 
 These parameters are recognized by the orchestrator itself (not just templates):
 
-| Parameter       | Type        | Used By                            | Description                                                                                                                           |
-| --------------- | ----------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `source_branch` | `key=value` | RepoSyncHook                       | Base branch for repo checkout and task branch creation. Default: `main`, or the existing PR target branch on revisions when available |
-| `branch`        | `key=value` | RepoSyncHook, `$task.branch` macro | Overrides the resolved task branch name. Use for pre-existing branches that don't follow the `ralph/<id>-<slug>` naming convention    |
-| `skip_hooks`    | bare        | TaskRunner                         | Skips post-task hook execution. Writes a `hook-manifest.json` to the output directory for manual replay                               |
+| Parameter       | Type        | Used By                                    | Description                                                                                                                                                      |
+| --------------- | ----------- | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `source_branch` | `key=value` | TaskWorkspaceManager                       | Base branch the task's workspace is cloned on and the task branch is created from. Default: `main`, or the existing PR target branch on revisions when available |
+| `branch`        | `key=value` | TaskWorkspaceManager, `$task.branch` macro | Overrides the resolved task branch name. Use for pre-existing branches that don't follow the `ralph/<id>-<slug>` naming convention                               |
+| `skip_hooks`    | bare        | TaskRunner                                 | Skips post-task hook execution. Writes a `hook-manifest.json` to the output directory for manual replay                                                          |
 
 ### source_branch
 
@@ -68,9 +68,9 @@ Overrides the resolved task branch name. Without this parameter, the orchestrato
 @Ralph(branch=code/my-existing-feature-branch)
 ```
 
-When set, the orchestrator checks out this branch directly instead of creating a new one. The `$task.branch` runtime macro also resolves to this value.
+When the remote has this branch, the task's workspace checks it out instead of creating a new one; otherwise the branch is created from the base branch. The `$task.branch` runtime macro also resolves to this value.
 
-When both `branch` and `source_branch` are provided, `source_branch` still controls the initial repo sync (fetch + checkout + reset), then `branch` is checked out as the working branch. This is useful when you need to sync the repo to a specific base but work on a pre-existing feature branch.
+When both `branch` and `source_branch` are provided, the workspace is cloned on `source_branch`, then `branch` is checked out as the working branch. This is useful when you need a specific base but work on a pre-existing feature branch.
 
 This explicit override always wins over automatic PR-based inference.
 

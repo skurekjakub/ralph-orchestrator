@@ -185,7 +185,7 @@ Then reference the data source key in a profile:
 ```json
 {
   "dataSource": "my-instance",
-  "repo": "~/repositories/my-repo",
+  "repoUrl": "https://github.com/my-org/my-repo",
   "cli": "copilot",
   "variants": [{ "..." }]
 }

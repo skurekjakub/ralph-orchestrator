@@ -6,7 +6,7 @@ Autonomous orchestrator that polls JIRA for documentation tasks, routes them to 
 
 - Node.js 24+
 - Docker Desktop running
-- Access to the target repos referenced in your profiles (e.g. `kentico-docs-jekyll`)
+- git on the host, and a PAT that can clone and push the target repos your profiles reference (e.g. `kentico-docs-jekyll`). The orchestrator clones them itself; you don't prepare a checkout.
 
 ## Setup
 
@@ -34,7 +34,7 @@ Autonomous orchestrator that polls JIRA for documentation tasks, routes them to 
    ```bash
    # Example: profiles/ralph-docs/profile.json
    {
-     "repo": "~/repositories/kentico-docs-jekyll",
+     "repoUrl": "https://dev.azure.com/my-org/my-project/_git/kentico-docs-jekyll",
      "dataSource": "my-jira",
      "cli": "copilot",
      "timeoutMs": 3600000,
@@ -50,6 +50,8 @@ Autonomous orchestrator that polls JIRA for documentation tasks, routes them to 
      ]
    }
    ```
+
+   `repoUrl` is the repository's `https://` URL without credentials. The orchestrator authenticates with the PAT in the env var the profile's `repoPat` names (`ADO_PAT` by default, `GH_TOKEN` for `"vcsProvider": "github"`): it clones the repository into `cache/repos/<profileId>` on the first task and gives every task its own clone under `cache/workspaces/` (see [Output](#output)).
 
    See [docs/user-guide/](docs/user-guide/README.md) for the operator reference (configuration, environment variables, profiles, trigger parameters, template variables, MCP servers, runtime macros, skills).
 
@@ -128,11 +130,11 @@ Press `Ctrl+C` to gracefully stop (kills active container, cleans up resources).
 5. **Selects CLI** — uses the profile's `cli` preference (`"copilot"` or `"claude"`). Falls back to the other CLI if the preferred one's credential is missing.
 6. **Processes one at a time:**
    - Renders agent templates (JIT) and resolves task-scoped MCP macros into `gateway.json`
-   - Resolves existing PR metadata for revision tasks when the profile's `vcsProvider` supports it, allowing repo sync and `$task.branch` to reuse the PR's real source/target branches
+   - Resolves existing PR metadata for revision tasks when the profile's `vcsProvider` supports it, allowing the task's workspace and `$task.branch` to reuse the PR's real source/target branches
    - Transitions the JIRA issue to the variant's `beforeAgent.targetStatus` + posts a start comment (with retry)
-   - Starts containers via `docker compose up -d --build` (base + security overlay + resources overlay) for the matched profile's repo
+   - Creates the task's workspace (`TaskWorkspaceManager`): fetches the profile's clone in `cache/repos/<profileId>`, clones it into `cache/workspaces/<key>-<startTs>` on the base branch and checks out the task branch
+   - Starts containers via `docker compose up -d --build` (base + security overlay + resources overlay) with the workspace mounted at `/workspace`
    - Runs the setup script inside the container (CLI installs, dependency setup)
-   - Syncs the target repo on the host and checks out the task branch (`RepoSyncHook`)
    - Loops over the variant's `stages` array, executing each stage sequentially with the appropriate executor:
      - **Container stages** (`mode: "container"`) — run the CLI inside Docker via `docker compose exec`
      - **Local stages** (`mode: "local"`) — run the CLI directly on the host
@@ -143,31 +145,32 @@ Press `Ctrl+C` to gracefully stop (kills active container, cleans up resources).
 8. **Attaches** the session transcript to the JIRA issue
 9. **Stops** the container and cleans up volumes
 10. **Runs post-task hooks** — local-only analysis pipelines declared in the variant's `postTaskHooks` (failures never affect the task result)
-11. **Transitions** the issue to the variant's `afterAgent.targetStatus` on success
-12. **Resumes** polling for the next task
+11. **Deletes the workspace** when the task succeeded; a failed task's workspace stays for inspection and its path is logged
+12. **Transitions** the issue to the variant's `afterAgent.targetStatus` on success
+13. **Resumes** polling for the next task
 
 ## Responsibility Split
 
-| Responsibility                                                             | Owner                                      |
-| -------------------------------------------------------------------------- | ------------------------------------------ |
-| Poll JIRA, queue issues, dedup                                             | Orchestrator                               |
-| Route to matching profile                                                  | Orchestrator                               |
-| CLI selection (Copilot/Claude Code) with fallback                          | TaskRunner (ContainerManager)              |
-| Stage pipeline execution (sequential, abort-on-fail)                       | TaskRunner                                 |
-| JIRA transition to "In Progress" + start comment                           | TaskRunner                                 |
-| Container lifecycle (start, exec, stop)                                    | TaskRunner (ContainerManager)              |
-| Create executor per stage (container vs local mode)                        | ContainerManager                           |
-| Manage `.git/info/exclude` for bind-mount artifacts                        | RepoSyncHook (lifecycle hook)              |
-| Sync target repo to the base branch, check out the task branch (host-side) | RepoSyncHook (lifecycle hook)              |
-| Render agent templates (JIT) + resolve MCP macros                          | TaskRunner (ProfileSetupService)           |
-| Research, write, review, revise                                            | Ralph and its subagents (inside container) |
-| Push branch + create ADO PR (`ado` MCP tools)                              | Ralph (inside container) → MCP sidecar     |
-| Post completion comment on JIRA (`jira-kentico` MCP tools)                 | Ralph (inside container) → MCP sidecar     |
-| Attach handoff.md to JIRA issue (`jira-kentico` MCP tools)                 | Ralph (inside container) → MCP sidecar     |
-| Post-task hooks (local analysis pipelines)                                 | TaskRunner                                 |
-| JIRA transition to `afterAgent.targetStatus`                               | Orchestrator                               |
-| Collect audit logs, transcript, proxy access log, save to disk             | TaskResultWriter                           |
-| Attach session transcript to JIRA issue                                    | TaskResultWriter                           |
+| Responsibility                                                          | Owner                                      |
+| ----------------------------------------------------------------------- | ------------------------------------------ |
+| Poll JIRA, queue issues, dedup                                          | Orchestrator                               |
+| Route to matching profile                                               | Orchestrator                               |
+| CLI selection (Copilot/Claude Code) with fallback                       | TaskRunner (ContainerManager)              |
+| Stage pipeline execution (sequential, abort-on-fail)                    | TaskRunner                                 |
+| JIRA transition to "In Progress" + start comment                        | TaskRunner                                 |
+| Container lifecycle (start, exec, stop)                                 | TaskRunner (ContainerManager)              |
+| Create executor per stage (container vs local mode)                     | ContainerManager                           |
+| Manage `.git/info/exclude` for bind-mount artifacts                     | TaskRunner (TaskWorkspaceManager)          |
+| Create the task's workspace on the task branch, delete it after success | TaskRunner (TaskWorkspaceManager)          |
+| Render agent templates (JIT) + resolve MCP macros                       | TaskRunner (ProfileSetupService)           |
+| Research, write, review, revise                                         | Ralph and its subagents (inside container) |
+| Push branch + create ADO PR (`ado` MCP tools)                           | Ralph (inside container) → MCP sidecar     |
+| Post completion comment on JIRA (`jira-kentico` MCP tools)              | Ralph (inside container) → MCP sidecar     |
+| Attach handoff.md to JIRA issue (`jira-kentico` MCP tools)              | Ralph (inside container) → MCP sidecar     |
+| Post-task hooks (local analysis pipelines)                              | TaskRunner                                 |
+| JIRA transition to `afterAgent.targetStatus`                            | Orchestrator                               |
+| Collect audit logs, transcript, proxy access log, save to disk          | TaskResultWriter                           |
+| Attach session transcript to JIRA issue                                 | TaskResultWriter                           |
 
 ## Output
 
@@ -198,6 +201,17 @@ output/
         └── <dataSource>/
             └── <key>.json                            # Operation ledger (per data source, per issue)
 ```
+
+Repositories and workspaces live under `cache/` (git-ignored):
+
+```
+cache/
+├── trigger-cache.json                                # Last-seen `updated` timestamp per issue
+├── repos/<profileId>/                                # The orchestrator's bare clone of the profile's repoUrl
+└── workspaces/<key>-<startTs>/                       # A task's own clone, mounted at /workspace; kept only when the task failed
+```
+
+A failed task's workspace stays until you delete it, so you can inspect what the agent left behind.
 
 Each task gets its own timestamped directory (`<key>-<startTs>/`). Collected files are named `<key>-<startTs>-<collectTs>-<sourceId>.<ext>`; in multi-stage pipelines the stage role is inserted before the source ID (`<key>-<startTs>-<collectTs>-<role>-<sourceId>.<ext>`). The per-task log streams container output in real-time — if the agent crashes mid-run, partial output is available immediately. The activity log (`activity-YYYY-MM-DD.log`) and container output log (`container-YYYY-MM-DD.log`) persist across tasks and restarts. Session transcripts are also attached to the JIRA issue. Handoff files are attached to the JIRA issue by Ralph directly.
 

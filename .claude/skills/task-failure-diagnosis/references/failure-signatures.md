@@ -82,17 +82,16 @@ Catalog of observed failure patterns. Each entry describes the signature (what y
 
 ---
 
-## 6. Git Checkout Failure (RepoSyncHook)
+## 6. Workspace Creation Failure (TaskWorkspaceManager)
 
 **Signature:**
 
-- Activity log shows errors during `RepoSyncHook`
-- Error mentions "modified files" or "untracked files" blocking checkout
-- The CLI may run but on the wrong branch
+- The task fails before `Starting containers`, with no container logs and `durationMs: 0`
+- The error names a git command (`clone --bare`, `fetch --prune origin`, `clone --local`, `checkout -B`) with `***` in place of the auth header, or reads `Base branch "…" does not exist on …`, `Revision branch "…" does not exist on …`, `<repoPat> must be set to clone …` or `Workspace … already exists`
 
-**Root cause:** Previous bind-mount artifacts (`.ralph/`, `.github/skills/`, `.github/agents/`) are present in the target repo's working directory and block `git checkout`. The `RepoSyncHook` should write these to `.git/info/exclude`, but if it fails, the patterns aren't excluded.
+**Root cause:** The remote is unreachable or rejects the PAT, the base branch (`source_branch` or the PR's target) or a revision's task branch is missing on the remote, or the profile's `cache/repos/<profileId>` clone is broken.
 
-**Fix:** Manually clean the target repo's working directory, or check that `RepoSyncHook` is executing before the checkout.
+**Fix:** Check the PAT in the `repoPat` env var and the branch names on `repoUrl`. A broken bare clone can be deleted; the next task clones it again.
 
 ---
 

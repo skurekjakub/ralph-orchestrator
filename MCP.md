@@ -234,7 +234,7 @@ At startup, `generatePreInitScript()` collects all init scripts from active serv
 ### Execution order
 
 ```
-template + skill rendering → overlay/mcp-config/gateway regeneration (variant scope) → JIT MCP param injection → JIRA transition → container start → setup → lifecycle hooks (repo sync) → execute
+template + skill rendering → overlay/mcp-config/gateway regeneration (variant scope) → JIT MCP param injection → JIRA transition → task workspace (clone + task branch) → container start → setup → execute
 ```
 
 The JIT write happens after templates are rendered but before the container starts, so the sidecar always sees the task-specific config.
@@ -291,7 +291,7 @@ Sidecar gateway configuration with commands, args, and embedded secrets. Mounted
 Compose overlay merged as the third file. Generates:
 
 - **Agent container** — the credential and env of each CLI a container stage runs, read-only mounts for `mcp-config.json`, that CLI's settings, rendered agents, skills and resources, the shared `attachments/` directory, and `depends_on: mcp-sidecar`
-- **MCP sidecar container** (when servers declared) — builds from `shared/mcp-sidecar/Dockerfile`, mounts server code read-only at `/opt/mcp/servers`, mounts `gateway.json`, joins `ralph-internal` and `ralph-sidecar-external`, hardened with `no-new-privileges`, `cap_drop: ALL`, resource limits (24G memory, 8 CPUs, 300 PIDs), mounts the target repo at `/workspace` for git-powered tools (`REPO_ROOT` env var), plus `sidecarEnv` values and the optional `pre-init.sh`
+- **MCP sidecar container** (when servers declared) — builds from `shared/mcp-sidecar/Dockerfile`, mounts server code read-only at `/opt/mcp/servers`, mounts `gateway.json`, joins `ralph-internal` and `ralph-sidecar-external`, hardened with `no-new-privileges`, `cap_drop: ALL`, resource limits (24G memory, 8 CPUs, 300 PIDs), mounts the task's workspace (its clone of the target repo) at `/workspace` for git-powered tools (`REPO_ROOT` env var), plus `sidecarEnv` values and the optional `pre-init.sh`
 
 No MCP server code, secrets, or gateway config is mounted into the agent container. Only the credential of a CLI some container stage runs reaches it; see [SECURITY.md](SECURITY.md#credentials-in-the-agent-container).
 

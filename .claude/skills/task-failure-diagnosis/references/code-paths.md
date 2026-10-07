@@ -10,10 +10,10 @@ Orchestrator.executeOperation()            # src/orchestrator.ts — resolve pro
     → TaskRunner.run(ctx)                  # src/services/task-runner.ts
       1. prepareProfile   → ProfileSetupService.prepareForTask()     # src/services/profile-setup-service.ts
       2. transitionIssue  → IssueManager.transitionWorkItem() + postStartComment()
-      3. prepareContainer → ContainerManager.start() / checkPrerequisites()
+      3. prepareContainer → TaskWorkspaceManager.prepare()           # src/services/task-workspace-manager.ts
+                            ContainerManager.start() / checkPrerequisites()
                             ContainerWorkspaceCleaner.prepareConfigDir() / cleanPaths()
                             ContainerManager.registerLogSources() / setup()
-                            preExecuteHooks (RepoSyncHook)           # src/container/lifecycle.ts
       4. executeAgent     → AgentPipelineExecutor.run()              # src/services/agent-pipeline-executor.ts
            per stage: ProfileSetupService.prepareForStage()          # multi-stage only
                       ContainerManager.createExecutorForStage()      # container → CopilotExecutor, local → LocalCopilotExecutor
@@ -28,6 +28,7 @@ Orchestrator.executeOperation()            # src/orchestrator.ts — resolve pro
                           → parseResultBlock() + resolveStatus()     # src/container/result-parser.ts
       5. TaskResultWriter.collectResults()                           # src/services/task-result-writer.ts — logs, transcript, summary
       6. teardown, then executePostTaskHooks()                        # local-only hook stages (e.g. ralph.scientist)
+      7. TaskWorkspaceManager.cleanup()                               # deletes the workspace on success, keeps it otherwise
 ```
 
 `CliExecutorFactory` (`src/container/cli-executor-factory.ts`) only builds Copilot executors and throws `GH_TOKEN is required` without a token. `ClaudeCodeExecutor` exists in `src/container/cli-executors/claude-code-executor.ts` but nothing instantiates it, so `cli: "claude"` profiles still run Copilot.
@@ -50,7 +51,7 @@ Startup (`src/app-startup.ts`) runs once: it builds custom MCP servers and the g
 
 Per task, `ProfileSetupService.prepareForTask()` runs `AgentTemplateRenderer.render()` (Liquid → `profiles/<id>/.build/<cli>/agents/`), `SkillTemplateRenderer.render()`, `ComposeOverlayWriter.write()` and `JitMcpConfigWriter.write()` (macro resolution into `gateway.json`). A Liquid error or an unknown MCP macro throws here, before any container starts.
 
-`ContainerManager.start()` runs `docker compose up -d --build` (output tagged `[build]`), and `setup()` runs the profile's setup script as `vscode` (tagged `[setup]`). `RepoSyncHook` runs host-side git against `profile.repoPath` after setup.
+`TaskWorkspaceManager.prepare()` runs host-side git before any container starts: it clones or fetches the profile's bare clone in `cache/repos/<profileId>` from `repoUrl`, clones `cache/workspaces/<taskId>` from it and checks out the task branch. `ContainerManager.start()` then runs `docker compose up -d --build` with that workspace mounted at `/workspace` (output tagged `[build]`), and `setup()` runs the profile's setup script as `vscode` (tagged `[setup]`). A failed task keeps its workspace; the activity log names its path.
 
 ## Local stages
 

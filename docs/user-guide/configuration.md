@@ -60,6 +60,8 @@ Data source connectors are built into the orchestrator. Adding a new type is a c
 | `logDir`     | `string` | `"./output/logs"`     | Per-task log directory     |
 | `handoffDir` | `string` | `"./output/handoffs"` | Handoff artifact directory |
 
+The repository clones are not configured here: the orchestrator keeps its clone of each profile's `repoUrl` in `cache/repos/<profileId>` and each task's workspace in `cache/workspaces/<key>-<startTs>`, both under the orchestrator checkout. See [Task Workspaces](profiles.md#task-workspaces).
+
 ## Dashboard
 
 ```json

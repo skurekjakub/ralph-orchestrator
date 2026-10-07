@@ -45,16 +45,16 @@ All variables are available in templates via `{{ variableName }}` interpolation 
 
 ### Profile Metadata
 
-| Variable         | Type       | Example                                         | Description                                  |
-| ---------------- | ---------- | ----------------------------------------------- | -------------------------------------------- |
-| `profileId`      | `string`   | `"ralph-docs"`                                  | Profile directory name                       |
-| `repo`           | `string`   | `"/home/user/repositories/kentico-docs-jekyll"` | Absolute path to the target repo on the host |
-| `targetRepoPath` | `string`   | _(same as `repo`)_                              | Alias for `repo`                             |
-| `cli`            | `string`   | `"copilot"`                                     | CLI type (`copilot` or `claude`)             |
-| `model`          | `string`   | `"claude-opus-4.6"`                             | Model override, empty string for CLI default |
-| `agentName`      | `string`   | `"ralph.ralph"`                                 | Raw CLI agent name                           |
-| `displayName`    | `string`   | `"ralph"`                                       | Human-friendly name (prefix stripped)        |
-| `mcpServers`     | `string[]` | `["jira-kentico", "ado"]`                       | MCP servers available to this profile        |
+| Variable         | Type       | Example                                                                  | Description                                  |
+| ---------------- | ---------- | ------------------------------------------------------------------------ | -------------------------------------------- |
+| `profileId`      | `string`   | `"ralph-docs"`                                                           | Profile directory name                       |
+| `repo`           | `string`   | `"/home/user/ralph-orchestrator/cache/workspaces/DOC-123-1767225600000"` | Absolute host path of the task's workspace   |
+| `targetRepoPath` | `string`   | _(same as `repo`)_                                                       | Alias for `repo`                             |
+| `cli`            | `string`   | `"copilot"`                                                              | CLI type (`copilot` or `claude`)             |
+| `model`          | `string`   | `"claude-opus-4.6"`                                                      | Model override, empty string for CLI default |
+| `agentName`      | `string`   | `"ralph.ralph"`                                                          | Raw CLI agent name                           |
+| `displayName`    | `string`   | `"ralph"`                                                                | Human-friendly name (prefix stripped)        |
+| `mcpServers`     | `string[]` | `["jira-kentico", "ado"]`                                                | MCP servers available to this profile        |
 
 ### Task Data
 

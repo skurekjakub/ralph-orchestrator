@@ -111,7 +111,7 @@ The agent CLI runs directly on the host machine in the **orchestrator repo direc
 copilot --agent ralph.analyst -p <prompt>
 ```
 
-The target repository path (where containerized stages work) is available in templates via `{{ targetRepoPath }}`. This lets local agents reference the target repo without running inside it.
+The host path of the task's workspace, its clone of the target repository where containerized stages work, is available in templates via `{{ targetRepoPath }}`. This lets local agents reference the target repo without running inside it. The workspace is deleted after a successful task, once the post-task hooks have run.
 
 **Local mode considerations:**
 
@@ -222,7 +222,7 @@ Stages share the container workspace at `/workspace`. Stage 1 can write files th
 | Task decomposition | `/workspace/tasks.jsonl`          | Agent template loads structured tasks   |
 | Quality metrics    | `/workspace/eval/metrics.json`    | Reviewer agent reads evaluation data    |
 
-For cross-container/host handoff (container → local stages), bind-mounted directories provide the bridge. The target repo at `{{ targetRepoPath }}` on the host corresponds to `/workspace` inside the container.
+For cross-container/host handoff (container → local stages), bind-mounted directories provide the bridge. The task's workspace at `{{ targetRepoPath }}` on the host corresponds to `/workspace` inside the container.
 
 ## Profile Setup
 
