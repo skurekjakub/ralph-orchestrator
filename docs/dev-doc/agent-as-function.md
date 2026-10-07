@@ -146,7 +146,7 @@ The orchestrator is a **pure router** with administrative duties. It:
 3. **Routes** based on `status`, `result`, `summary`, and `iteration`. Never based on artifact content.
 4. **Dispatches** the next subagent with nothing but the task-id and a one-line directive. The next subagent reads upstream artifacts on its own.
 5. **Enforces** iteration limits to prevent infinite loops (e.g. max 2 coder→reviewer rounds).
-6. **Does** administrative work itself: commit, push, PR creation, JIRA transitions/comments, handoff file, exit block.
+6. **Does** administrative work itself: commit, push, PR creation, JIRA transitions/comments, handoff file, the result.
 
 The orchestrator **never**:
 

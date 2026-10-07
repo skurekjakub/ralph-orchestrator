@@ -52,7 +52,7 @@ Collect all available artifacts from the run. The log directory is at `output/lo
 
 1. Read `pre-tool.log` first — it's compact (one JSON line per tool call) and gives you the complete tool sequence
 2. Read `summary.json` for metadata (duration, status, PR URL)
-3. Use `grep` on `transcript.md` to locate key markers before reading sections: ``Tool call `Agent` ``, `### Subagent` (Claude Code) or `📦 task`, `report_intent` (Copilot), and `APPROVED`, `REJECTED`, `===RALPH_RESULT`
+3. Use `grep` on `transcript.md` to locate key markers before reading sections: ``Tool call `Agent` ``, `### Subagent` (Claude Code) or `📦 task`, `report_intent` (Copilot), `APPROVED`, `REJECTED`, and the result: ``Tool call `StructuredOutput` `` (Claude Code) or `===RALPH_RESULT` (Copilot)
 4. Read transcript sections selectively — don't read the entire file linearly
 
 ### Phase 2: Decompose Task
@@ -87,7 +87,7 @@ Standard decomposition for a **review workflow** task:
 | T4  | Verify Technical Claims | Agent (investigator sub-agent)                                                                |
 | T5  | Review & Verdict        | Bash (convention analysis), Edit (state.md with findings + verdict)                           |
 | T6  | Deliver                 | MCP (jira_add_comment), MCP (ado PR thread comments)                                          |
-| T7  | Handoff & Exit          | Write (handoff), MCP (JIRA attachment), MCP (ralphchives), exit block                         |
+| T7  | Handoff & Exit          | Write (handoff), MCP (JIRA attachment), MCP (ralphchives), result                             |
 
 Review workflows use **D6a/D6b** instead of D6 — see the dimension definition below.
 
@@ -381,10 +381,10 @@ Did the agent stop at exactly the right time?
 
 **What to check:**
 
-- All deliverables submitted before `===RALPH_RESULT_START===` (handoff doc, JIRA attachments, completion comment, ralphchives report)
+- All deliverables submitted before the result (the `StructuredOutput` call on Claude Code, `===RALPH_RESULT_START===` on Copilot): handoff doc, JIRA attachments, completion comment, ralphchives report
 - No premature exit (missing attachments, uncommitted changes)
 - No unnecessary post-completion work (extra edits after review approval, redundant JIRA comments)
-- Exit block contains correct STATUS and PR_URL
+- The result carries the correct STATUS and PR_URL
 
 ## Grading Scale
 

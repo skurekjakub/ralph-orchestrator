@@ -84,7 +84,7 @@ Stages are declared in the `stages` array inside a variant in `profile.json`:
 | `skills`             | `string[]`                 | No       | `[]`                                         | Skill folder names for this stage.                                                                                                                                                                                    |
 | `model`              | `string`                   | No       | variant/profile default                      | Model override for this stage, in the stage CLI's form: a Claude Code alias (`opus`) or hyphenated id, or a dotted Copilot id (`claude-opus-4.6`).                                                                    |
 | `effort`             | `string`                   | No       | —                                            | Claude Code reasoning effort (`--effort`). Claude Code stages only.                                                                                                                                                   |
-| `requireResultBlock` | `boolean`                  | No       | `true` (variant stage), `false` (hook stage) | Fail the stage when the agent ends without a result block whose `STATUS` the orchestrator accepts.                                                                                                                    |
+| `requireResultBlock` | `boolean`                  | No       | `true` (variant stage), `false` (hook stage) | Fail the stage when the agent ends without a result whose `STATUS` the orchestrator accepts: structured output on Claude Code (`--json-schema`), the result block on Copilot CLI.                                     |
 | `timeoutMs`          | `number`                   | No       | profile-level `timeoutMs`                    | Execution timeout in milliseconds.                                                                                                                                                                                    |
 
 ### Validation rules
@@ -105,12 +105,12 @@ A single-element `stages` array runs the pipeline loop once, and all stage conte
 The default. The agent CLI runs inside the Docker container via `docker compose exec`, as the `vscode` user. The agent has access to the task's workspace at `/workspace`, MCP tools via the sidecar, and the Squid proxy for network access. A Claude Code stage takes its prompt on stdin:
 
 ```
-docker compose exec -T --user vscode -e RALPH_REQUIRE_RESULT_BLOCK=1 [-e CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH=<n>] app \
+docker compose exec -T --user vscode [-e CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH=<n>] app \
   /usr/local/bin/claude -p --output-format stream-json --verbose --agent <name> [--model <model>] [--effort <effort>] \
   --setting-sources user --settings /etc/ralph/claude-settings.json --mcp-config /workspace/.ralph/mcp-config.json \
   --strict-mcp-config --permission-mode bypassPermissions \
   --tools Read,Write,Edit,Bash,Skill,TaskCreate,TaskGet,TaskList,TaskUpdate,WebFetch,WebSearch[,Agent] \
-  --session-id <uuid> --debug-file /workspace/.ralph/logs/cli-debug/claude.log < prompt
+  [--json-schema <result schema>] --session-id <uuid> --debug-file /workspace/.ralph/logs/cli-debug/claude.log < prompt
 ```
 
 `<name>` is the root agent's frontmatter `name`; a continuation passes `--resume <uuid>` instead of `--session-id`. With `claude.loadRepoInstructions` the setting sources are `user,project`. A Copilot stage runs `/usr/local/bin/copilot --agent <fileId>` with its own flags, the prompt on stdin too (`src/container/cli-executors/copilot-executor.ts`).
@@ -145,7 +145,7 @@ The host path of the task's workspace, its clone of the target repository where 
 - No Docker isolation, no Squid proxy, no MCP sidecar. The CLI runs with the host user's permissions, so it is fenced in otherwise:
 - Its environment holds only `PATH`, `HOME`, `LANG`, its own credential (`extendEnv: false`) and, for Claude Code, the variables that set its home, its headless behaviour and Ralph's audit log directory; no other orchestrator secret (`ADO_PAT`, `JIRA_*`, another CLI's token) reaches it.
 - Its private home keeps the developer's own CLI settings, hooks, plugins, agents, skills, memory, login and MCP servers out.
-- Claude Code loads no `CLAUDE.md` (`CLAUDE_CODE_DISABLE_CLAUDE_MDS=1`; the output directory sits inside the orchestrator checkout), runs no MCP server and has no web tools. It runs in `dontAsk` mode under generated permissions (`src/cli/claude/claude-host-settings.ts`): read only the working directory and every `--add-dir` (the task's output directory, for a variant's stage the task's workspace, the task profile's `agents/`, and `shared/agent-includes`, `shared/skills` and `shared/mcp-servers`), with `blockReadsOutsideWorkingDirectories` on; write only in its working and artifact directories; run Claude Code's built-in read-only Bash commands plus `jq` and `date`; load skills; track tasks; spawn the stage's subagents. Reading the orchestrator's `.env` or a profile's `.build/` is denied. Ralph's audit hooks and result gate run from `shared/hooks/` and write to `<stageDir>/logs/`, so the host needs `jq` and `perl`.
+- Claude Code loads no `CLAUDE.md` (`CLAUDE_CODE_DISABLE_CLAUDE_MDS=1`; the output directory sits inside the orchestrator checkout), runs no MCP server and has no web tools. It runs in `dontAsk` mode under generated permissions (`src/cli/claude/claude-host-settings.ts`): read only the working directory and every `--add-dir` (the task's output directory, for a variant's stage the task's workspace, the task profile's `agents/`, and `shared/agent-includes`, `shared/skills` and `shared/mcp-servers`), with `blockReadsOutsideWorkingDirectories` on; write only in its working and artifact directories; run Claude Code's built-in read-only Bash commands plus `jq` and `date`; load skills; track tasks; spawn the stage's subagents. Reading the orchestrator's `.env` or a profile's `.build/` is denied. Ralph's audit hooks run from `shared/hooks/` and write to `<stageDir>/logs/`, so the host needs `jq` and `perl`.
 - Copilot CLI runs with `--allow-all-tools`, one `--add-dir` per directory a Claude Code host stage may read, the prompt on stdin, its home at `COPILOT_HOME=<stageDir>/home` with `COPILOT_AUTO_UPDATE=false`, and its debug log in `<stageDir>/logs/cli-debug/`, without Ralph's audit hooks.
 - No bundled local stage edits `profiles/` or `shared/`, and a Claude Code host session cannot: improvers write proposals into their artifact directory instead.
 
@@ -212,8 +212,8 @@ The target repository (where containerized agents work) is at: {{ targetRepoPath
    a. Re-render agent & skill templates with stage-specific context (multi-stage pipelines and local stages)
    b. Create per-stage executor for the stage's CLI (container or local)
    c. Build and audit the prompt from work item + issue context
-   d. Run CLI session (continuation retries when enabled and the stage requires a result block)
-   e. Parse the result block from the decoded agent text and resolve the stage status
+   d. Run CLI session (continuation retries when enabled and the stage requires a result)
+   e. Read the agent's result (its structured output, else the result block in the decoded agent text) and resolve the stage status
    f. For a container stage, check the audit log for each session's session_start (hookless sessions are listed in the summary)
    g. Multi-stage container stage: collect its logs under its role, then empty the single-file logs for the next stage
    h. Record StageResult
@@ -287,7 +287,7 @@ Log sources (audit trail, transcript, proxy log, sidecar log, CLI debug logs, se
 
 ### Continuation prompts lack stage context
 
-When the continuation loop retries a stage that didn't produce a result block, the continuation prompt includes the work item ID but not the current stage role or index. The agent retains stage context from its rendered template, so this is unlikely to cause confusion in practice.
+When the continuation loop retries a stage that did not produce its result, the continuation prompt includes the work item ID but not the current stage role or index. The agent retains stage context from its rendered template, so this is unlikely to cause confusion in practice.
 
 ### MCP config is task-scoped
 

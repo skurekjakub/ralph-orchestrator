@@ -80,7 +80,7 @@ Standard workflow:
 | 6     | `references/6-review.md`    | Code review gate (stacky-reviewer and stacky-bug-auditor).                     |
 | 7     | `references/7-commit.md`    | Pre-commit checks, commit, push.                                               |
 | 8     | `references/8-pr.md`        | Create an ADO pull request.                                                    |
-| 9     | `references/9-handoff.md`   | Write handoff, report to JIRA, print exit block.                               |
+| 9     | `references/9-handoff.md`   | Write handoff, report to JIRA, return the result.                              |
 
 Revision workflow:
 
@@ -89,7 +89,7 @@ Revision workflow:
 | 1     | `references/r1-setup.md`   | Review previous handoff, extract defects, plan fixes.        |
 | 2     | `references/r2-fix.md`     | Dispatch stacky-coder for fixes, full verification gauntlet. |
 | 3     | `references/r3-commit.md`  | Commit with `fix(TASKID)` prefix, push to update the PR.     |
-| 4     | `references/r4-handoff.md` | Update handoff, report to JIRA, print exit block.            |
+| 4     | `references/r4-handoff.md` | Update handoff, report to JIRA, return the result.           |
 
 ### Ralph — Documentation Writer (`ralph-workflow`)
 
@@ -104,7 +104,7 @@ Standard workflow:
 | 4–5   | `references/4-review.md`              | Review the current task, revise it if needed, then advance to the next task.                                                |
 | 6     | `references/6-commit.md`              | Pre-commit checks, commit, push.                                                                                            |
 | 7     | `references/7-pr.md`                  | Create an ADO pull request.                                                                                                 |
-| 8     | `references/8-handoff.md`             | Dispatch ralph-scribe, deliver to JIRA, print exit block.                                                                   |
+| 8     | `references/8-handoff.md`             | Dispatch ralph-scribe, deliver to JIRA, return the result.                                                                  |
 
 Revision workflow:
 
@@ -114,7 +114,7 @@ Revision workflow:
 | 3     | `references/r3-fix.md`     | Dispatch ralph-planner, then ralph-writer for the active `in_progress` fix task from `tasks.json`. |
 | 4     | `references/4-review.md`   | Review the current task, revise it if needed, then advance to the next task.                       |
 | 5     | `references/r5-commit.md`  | Commit, push, respond to PR threads.                                                               |
-| 6     | `references/r6-handoff.md` | Dispatch ralph-scribe, deliver the revision handoff, print exit block.                             |
+| 6     | `references/r6-handoff.md` | Dispatch ralph-scribe, deliver the revision handoff, return the result.                            |
 
 ### Malph — Documentation Reviewer (`malph-workflow-*`)
 
@@ -127,7 +127,7 @@ Review workflow, one skill per phase:
 | 3     | `malph-workflow-verify`      | Dispatch the technical reviewer and record its `status.json` result.                                 |
 | 4     | `malph-workflow-review`      | Dispatch the remaining specialist reviewers, determine the panel verdict from `status.json` results. |
 | 5     | `malph-workflow-deliver`     | Dispatch malph-verdict to aggregate findings, post the JIRA comment and PR threads.                  |
-| 6     | `malph-workflow-handoff`     | Attach the review handoff to JIRA, report to ralphchives, print exit block.                          |
+| 6     | `malph-workflow-handoff`     | Attach the review handoff to JIRA, report to ralphchives, return the result.                         |
 
 ### Malph (VS Code) — Extension Reviewer (`malph-vscode-workflow-*`)
 
@@ -140,7 +140,7 @@ Review workflow, one skill per phase:
 | 3     | `malph-vscode-workflow-review-panel` | Dispatch three independent reviewers in turn (Opus, Sonnet, Fable), each with its own lens. |
 | 4     | `malph-vscode-workflow-aggregate`    | Aggregate reviewer verdicts and findings, post a unified review comment to JIRA.            |
 | 5     | `malph-vscode-workflow-handoff`      | Write the review handoff and attach it to JIRA.                                             |
-| 6     | `malph-vscode-workflow-archive`      | Dispatch the scribe to archive review knowledge to Ralphchives, print exit block.           |
+| 6     | `malph-vscode-workflow-archive`      | Dispatch the scribe to archive review knowledge to Ralphchives, return the result.          |
 
 ### Ralph (VS Code) — Extension Developer (`vscode-workflow`)
 
@@ -157,7 +157,7 @@ Standard workflow:
 | 5     | `references/5-commit.md`         | Pre-commit build, commit, push via MCP            |
 | 6     | `references/6-pr.md`             | Create ADO pull request                           |
 | 7     | `references/7-handoff.md`        | Write handoff, report to JIRA                     |
-| 8     | `references/8-archive.md`        | Dispatch scribe, print exit block                 |
+| 8     | `references/8-archive.md`        | Dispatch scribe, return the result                |
 
 Revision workflow:
 
@@ -169,7 +169,7 @@ Revision workflow:
 | 4     | `references/4-package.md`        | Bump patch version, update CHANGELOG, build .vsix                          |
 | 5     | `references/r5-commit.md`        | Commit, push, reply to PR threads                                          |
 | 6     | `references/r6-handoff.md`       | Update handoff, report to JIRA                                             |
-| 7     | `references/8-archive.md`        | Dispatch scribe, print exit block                                          |
+| 7     | `references/8-archive.md`        | Dispatch scribe, return the result                                         |
 
 Domain reference: `references/test-guide.md` — test writing guide for the coder and reviewer subagents.
 

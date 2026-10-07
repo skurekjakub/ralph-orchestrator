@@ -99,14 +99,27 @@ Catalog of observed failure patterns. Each entry describes the signature (what y
 
 **Signature:**
 
-- Activity log: `No result block found — continuation k/N` repeated, then `All N continuation(s) exhausted without a result block`
-- `summary.json`: `exitCode: 0`, `status: "error"`, `failureReason: "missing-result-block"`, `failureCategory: "contract"`, no `prUrl`
-- No `===RALPH_RESULT_START===` block with an accepted `STATUS` in the agent text
-- On Claude Code, `result_gate_block` and then `result_gate_exhausted` records in the audit log
+- Activity log: `No result found — continuation k/N` repeated, then `All N continuation(s) exhausted without a result`
+- `summary.json`: `status: "error"`, `failureReason: "missing-result-block"`, `failureCategory: "contract"`, no `prUrl`
+- No result with an accepted `STATUS`: on Claude Code no `tool StructuredOutput` line in the per-task log, on Copilot no `===RALPH_RESULT_START===` block in the agent text
+- `The agent's structured output does not match the result schema` in the activity log when Claude Code returned an object the orchestrator's schema rejects
 
-**Root cause:** The agent ended its CLI sessions without producing a result block, and `ContinuationRunner` used up `maxContinuations`. The stage requires the block (`requireResultBlock`, on by default for variant stages), so the run fails and the work item gets an error comment instead of moving to review. With `maxContinuations: 0` you see the same outcome without the continuation lines.
+**Root cause:** The agent ended its CLI sessions without reporting a result, and `ContinuationRunner` used up `maxContinuations`. The stage requires a result (`requireResultBlock`, on by default for variant stages), so the run fails and the work item gets an error comment instead of moving to review. With `maxContinuations: 0` you see the same outcome without the continuation lines.
 
-**Fix:** Check the agent prompt to ensure it instructs the agent to emit the result block. Continuations need both `enableContinuation: true` in config.json and `maxContinuations > 0` in profile.json; the count may need to be higher, or the agent prompt may need clarification.
+**Fix:** Check that the stage root renders `<result-contract>` (`shared/agent-includes/result-contract.md`) and that its workflow's final phase sends it there. On Claude Code, check that the root's rendered agent file lists `StructuredOutput` in its `tools`: without it the session cannot return the result. Continuations need both `enableContinuation: true` in config.json and `maxContinuations > 0` in profile.json; the count may need to be higher.
+
+---
+
+## 9. Structured Output Retries Exhausted (Claude Code)
+
+**Signature:**
+
+- `summary.json`: `status: "error"`, `failureReason: "missing-result-block"`, `failureCategory: "contract"`, `cliError.subtype: "error_max_structured_output_retries"`, `cliError.message` naming the last validation error
+- Per-task log: `tool StructuredOutput …` lines followed by `result: error_max_structured_output_retries`
+
+**Root cause:** The agent called `StructuredOutput` with objects that kept failing `--json-schema` validation (a `STATUS` outside `completed`/`partial`/`blocked`, a field outside the schema, a non-string value) until Claude Code gave up. The retry limit is the CLI's `MAX_STRUCTURED_OUTPUT_RETRIES` environment variable; Ralph leaves it at its default.
+
+**Fix:** Compare the rejected input in the transcript's `StructuredOutput` tool calls with `agentResultSchema` (`src/container/agent-result.ts`) and the workflow's final phase, and fix whichever asks for a value the schema does not allow.
 
 ---
 

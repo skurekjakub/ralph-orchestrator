@@ -14,7 +14,7 @@ Claude Code, the default CLI and the one both bundled profiles run, logs differe
 | `<key>-<startTs>-<ts>-claude-run-telemetry.json` | **Primary source.** One span per main thread and subagent: tool calls with durations and errors, model calls, API errors, compactions, hook feedback. No token usage                               |
 | `<key>-<startTs>-<ts>-claude-sessions/`          | The raw, unredacted session logs the telemetry is derived from: `-workspace/<session id>.jsonl` per session, subagents in `-workspace/<session id>/subagents/agent-<id>.jsonl` with a `.meta.json` |
 | `<key>-<startTs>-<ts>-claude-cli-debug.log`      | Claude Code's own debug log (`--debug-file`): startup, settings, hook and MCP connection diagnostics, API errors. No span events                                                                   |
-| `<key>-<startTs>-<ts>-audit.jsonl`               | Ralph's hook records for both CLIs: tool arguments and results, subagent start and stop, the result gate                                                                                           |
+| `<key>-<startTs>-<ts>-audit.jsonl`               | Ralph's hook records for both CLIs: tool arguments and results, subagent start and stop                                                                                                            |
 
 For a Claude Code run, read the telemetry with `jq` (the runtime skill `shared/skills/analysis/run-telemetry-analysis/` has the recipes) and use the recipes below only on a Copilot `cli-debug.log`. A Claude Code host stage keeps its debug log at `logs/claude.log` and its sessions under `home/projects/` in its workspace.
 

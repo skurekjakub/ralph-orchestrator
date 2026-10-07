@@ -13,12 +13,12 @@ Read `references/log-map.md` first. Without the file layout you will waste time 
 
 `output/logs/<taskId>/<taskId>-<ts>-summary.json` (`<taskId>` = `<issueKey>-<startTs>`), written by `LogCollector.saveExecutionSummary()` in `src/logs/collector.ts`.
 
-- `status`: `completed` | `partial` | `blocked` | `error`. The agent's `STATUS:` line in the result block wins. Otherwise a timeout gives `partial`, a CLI error or a non-zero exit gives `error`, a stage that requires a result block (`requireResultBlock`, on by default for variant stages) gives `error` without one, and exit 0 gives `completed` (`resolveStatus()` in `src/container/result-parser.ts`).
-- `failureReason`: why an `error` run failed: `auth-failed`, `max-turns`, `execution-error`, `cli-error` (from the CLI's own error), `exit-code`, or `missing-result-block`. `cliError` holds the CLI's error subtype and message.
+- `status`: `completed` | `partial` | `blocked` | `error`. The `STATUS` of the agent's result wins: Claude Code's structured output (`--json-schema`), else the `STATUS:` line of the result block Copilot prints. Otherwise a timeout gives `partial`, a CLI error or a non-zero exit gives `error`, a stage that requires a result (`requireResultBlock`, on by default for variant stages) gives `error` without one, and exit 0 gives `completed` (`resolveStatus()` in `src/container/result-parser.ts`).
+- `failureReason`: why an `error` run failed: `auth-failed`, `max-turns`, `execution-error`, `cli-error` (from the CLI's own error), `exit-code`, or `missing-result-block` (no result, or Claude Code's `error_max_structured_output_retries`). `cliError` holds the CLI's error subtype and message.
 - `exitCode`: 0 clean, 137 OOM kill. A signal kill of the host-side `docker compose exec` usually shows as 1.
-- `failureCategory`: `contract` for a missing result block, `infra` for authentication and other CLI errors, `task` for the turn limit, otherwise heuristic `infra` / `task` / `timeout` / `unknown` (`classifyFailure()`).
+- `failureCategory`: `contract` for a missing result, `infra` for authentication and other CLI errors, `task` for the turn limit, otherwise heuristic `infra` / `task` / `timeout` / `unknown` (`classifyFailure()`).
 - `sessionIds`: the Claude Code session ids of the task's stages, which name the files in the `claude-sessions` export.
-- `hooklessSessions`: Claude Code container sessions whose audit log has no `session_start`, so Ralph's hooks from `/etc/ralph/claude-settings.json` did not run (likely the organisation's server-managed settings setting `allowManagedHooksOnly` or `disableAllHooks`). Present only when non-empty; the audit trail and the result gate are missing for those sessions.
+- `hooklessSessions`: Claude Code container sessions whose audit log has no `session_start`, so Ralph's hooks from `/etc/ralph/claude-settings.json` did not run (likely the organisation's server-managed settings setting `allowManagedHooksOnly` or `disableAllHooks`). Present only when non-empty; the audit trail is missing for those sessions.
 - `stderr`: first 5000 chars, present when non-empty. `agentText`: first 5000 chars of the decoded agent text, only for non-completed runs.
 - `durationMs` under ~10 s with empty `stderr` means the CLI likely never started → Step 2.
 
@@ -38,7 +38,7 @@ The operation ledger `<output.logDir>/history/<dataSource>/<issueKey>.json` also
 
 - Only build/setup lines → the CLI never started or crashed at launch. Check config-dir preparation (`ContainerWorkspaceCleaner.prepareConfigDir()`) and the CLI binary in the image.
 - CLI output that stops mid-work → killed (timeout, OOM, abort).
-- Ends without `===RALPH_RESULT_START===` → see continuation behaviour in `references/code-paths.md`.
+- Ends without a result (no `tool StructuredOutput` line from Claude Code, no `===RALPH_RESULT_START===` from Copilot) → see continuation behaviour in `references/code-paths.md`.
 - Empty file → the task failed before containers started (template render, compose up). Check the activity log.
 
 ## Step 4: Global logs

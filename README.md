@@ -146,7 +146,7 @@ Press `Ctrl+C` to gracefully stop (kills active container, cleans up resources).
      - **Container stages** (`mode: "container"`) — run the CLI inside the agent container via `docker compose exec`
      - **Local stages** (`mode: "local"`) — run the pinned CLI from `node_modules/.bin` on the host, in the stage's own workspace under the task's output directory (`stages/<role>/`)
    - Each stage uses its own agent, CLI, model, skills, and timeout (falling back to profile defaults)
-   - A stage must end with a `===RALPH_RESULT_START===` block unless it sets `requireResultBlock: false`; a stage that fails or ends without one aborts the pipeline, and the remaining stages are skipped
+   - A stage must end with the agent's result unless it sets `requireResultBlock: false`: structured output on Claude Code (`--json-schema`), the `===RALPH_RESULT_START===` block on Copilot CLI. A stage that fails or ends without one aborts the pipeline, and the remaining stages are skipped
    - The agent (e.g. Ralph) dispatches research, writing and review subagents, then pushes the branch and creates an ADO PR, posts a JIRA comment and attaches the handoff file through MCP tools that run in the MCP sidecar
 7. **Collects results** — `TaskResultWriter` collects the container logs (audit trail, CLI debug logs, session logs, proxy and sidecar logs, artifacts) into `output/logs/`, and `RunArtifactsDeriver` redacts the transcript and derives the Claude Code run telemetry
 8. **Attaches** the redacted session transcript to the JIRA issue

@@ -130,7 +130,7 @@ A Claude Code container session runs `claude -p --output-format stream-json --ve
 
 - The profile's `claude.loadRepoInstructions` sets `--setting-sources user,project` and leaves `CLAUDE_CODE_DISABLE_CLAUDE_MDS` unset; without it the target repo's `CLAUDE.md` and `.claude/` stay unloaded.
 - The `--tools` cap is Claude Code's built-in tools Ralph grants (`ClaudeBuiltinTool`, web tools included), plus `Agent` when the stage root has subagents; each agent's frontmatter `tools` narrows it further.
-- Every session gets `CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1` (subagents run in the foreground), `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1`, `CLAUDE_CODE_DISABLE_AUTO_MEMORY=1`, `DISABLE_AUTOUPDATER=1`, `DISABLE_COST_WARNINGS=1` and `ENABLE_TOOL_SEARCH=false`; each exec adds `RALPH_REQUIRE_RESULT_BLOCK` and, for a root with subagents, `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH`.
+- Every session gets `CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1` (subagents run in the foreground), `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1`, `CLAUDE_CODE_DISABLE_AUTO_MEMORY=1`, `DISABLE_AUTOUPDATER=1`, `DISABLE_COST_WARNINGS=1` and `ENABLE_TOOL_SEARCH=false`; the exec of a root with subagents adds `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH`.
 - An organisation's server-managed settings, delivered with the credential, outrank `--settings`. A container session whose audit log has no `session_start` record from Ralph's hooks is logged and listed in the summary's `hooklessSessions`.
 
 Both CLIs are pinned to the exact versions of `@anthropic-ai/claude-code` and `@github/copilot` in the orchestrator's `package.json` `dependencies` (`src/cli/cli-versions.ts`). The generated overlay passes them to the profile images as the `CLAUDE_CODE_VERSION` and `COPILOT_CLI_VERSION` build args, which install both CLIs root-owned under `/usr/local`; host stages run the copies `npm ci` installs in `node_modules/.bin`.
@@ -150,7 +150,7 @@ Orchestrates the full container lifecycle for a single task: build → setup →
 
 **CLI selection:** Per stage: the stage's `cli`, else the profile's (`"claude"` by default, or `"copilot"`). Startup validation requires each chosen CLI's credential; there is no fallback to the other CLI. Both bundled profiles run Claude Code in every stage.
 
-**Result contract:** A stage with `requireResultBlock` (the default for variant stages; post-task hook stages opt in) must end with a `===RALPH_RESULT_START===` block whose `STATUS` is `completed`, `partial` or `blocked`. On Claude Code, Ralph's `Stop` hook (`shared/hooks/claude/result-gate.sh`) keeps the session going until the block exists, up to a bounded number of blocks. A failed stage carries a `failureReason` (`auth-failed`, `max-turns`, `execution-error`, `cli-error`, `exit-code`, `missing-result-block`), which the execution summary records with a `failureCategory` and the CLI's own error.
+**Result contract:** A stage with `requireResultBlock` (the default for variant stages; post-task hook stages opt in) must end with a result whose `STATUS` is `completed`, `partial` or `blocked`, defined once as the zod schema `agentResultSchema` (`src/container/agent-result.ts`). On Claude Code the stage runs with `--json-schema`: the agent returns the result through the `StructuredOutput` tool, which the CLI validates and has the agent retry, and a session whose output never validates ends with `error_max_structured_output_retries`, which fails as `missing-result-block`. Copilot CLI has no schema option, so its agent prints the result as a `===RALPH_RESULT_START===` block. `shared/agent-includes/result-contract.md` tells each stage root which. A failed stage carries a `failureReason` (`auth-failed`, `max-turns`, `execution-error`, `cli-error`, `exit-code`, `missing-result-block`), which the execution summary records with a `failureCategory` and the CLI's own error.
 
 ### Orchestrator (`src/orchestrator.ts`)
 
@@ -290,8 +290,7 @@ All Docker, agent, and hook infrastructure is centralized in the orchestrator re
 │   │   └── squid.conf                   # Baseline domain allowlist for egress proxy
 │   ├── hooks/                           # Audit hooks for both CLIs, mounted at /workspace/.ralph/hooks
 │   │   ├── log-*.sh                     # Hook scripts, one per event (--cli claude|copilot)
-│   │   ├── claude/                      # hooks.json (the hooks of Ralph's Claude Code settings),
-│   │   │                                #   result-gate.sh (Stop hook enforcing the result block)
+│   │   ├── claude/                      # hooks.json (the hooks of Ralph's Claude Code settings)
 │   │   ├── lib/                         # Payload adapters, record layout, redact.pl
 │   │   └── ralph-audit.json             # Copilot CLI hook configuration
 │   ├── agent-includes/                  # Shared Liquid partials for agent templates
@@ -352,7 +351,7 @@ Before the agent starts, `TaskWorkspaceManager` has already cloned the task's wo
 4. **Review** — Review the current task with the reviewer subagents, revise if needed, advance to the next task (phases 4–5)
 5. **Commit** — Pre-commit checks, commit, push (via the `ado` MCP tools)
 6. **PR** — Create the ADO pull request (`ado_create_pull_request`)
-7. **Handoff & Exit** — Dispatch `ralph-scribe`, deliver the handoff to JIRA, print the structured result block for the orchestrator to parse
+7. **Handoff & Exit** — Dispatch `ralph-scribe`, deliver the handoff to JIRA, return the result for the orchestrator to read
 
 Revision runs (`isRevision`) use `ralph-docs/ralph-revision-workflow.md` instead. Other orchestrators (`malph`, `stacky`, `ralph-vscode`) define their own phases in their templates.
 
