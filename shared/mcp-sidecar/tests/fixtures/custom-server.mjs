@@ -1,8 +1,8 @@
 // Custom MCP server following the sidecar launch contract: `--transport http --host <host> --port <port>`,
 // stateless Streamable HTTP on /mcp. FIXTURE_TOOLS lists the tool names it registers.
 import { createServer } from "node:http";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { NodeStreamableHTTPServerTransport } from "@modelcontextprotocol/node";
+import { McpServer } from "@modelcontextprotocol/server";
 
 function arg(name) {
   const index = process.argv.indexOf(name);
@@ -29,7 +29,7 @@ createServer(async (req, res) => {
     return;
   }
   const server = buildServer();
-  const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
+  const transport = new NodeStreamableHTTPServerTransport({ sessionIdGenerator: undefined });
   res.on("close", () => {
     void transport.close();
     void server.close();

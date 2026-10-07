@@ -1,10 +1,10 @@
 import {
-  ErrorCode,
-  JSONRPCMessageSchema,
+  ProtocolErrorCode,
   type JSONRPCMessage,
   type JSONRPCRequest,
   type RequestId,
-} from "@modelcontextprotocol/sdk/types.js";
+} from "@modelcontextprotocol/client";
+import { JSONRPCMessageSchema } from "@modelcontextprotocol/core";
 
 const TOOLS_CALL = "tools/call";
 const TOOLS_LIST = "tools/list";
@@ -79,13 +79,13 @@ export function inspectInbound(rawBody: string, allowlist: ToolAllowlist): Inbou
   try {
     parsed = JSON.parse(rawBody);
   } catch {
-    return reject(400, errorPayload(null, ErrorCode.ParseError, "Parse error: Invalid JSON"), []);
+    return reject(400, errorPayload(null, ProtocolErrorCode.ParseError, "Parse error: Invalid JSON"), []);
   }
 
   const isBatch = Array.isArray(parsed);
   const candidates: unknown[] = isBatch ? (parsed as unknown[]) : [parsed];
   if (candidates.length === 0) {
-    return reject(400, errorPayload(null, ErrorCode.InvalidRequest, "Invalid Request: empty batch"), []);
+    return reject(400, errorPayload(null, ProtocolErrorCode.InvalidRequest, "Invalid Request: empty batch"), []);
   }
 
   const messages: JSONRPCMessage[] = [];
@@ -94,7 +94,7 @@ export function inspectInbound(rawBody: string, allowlist: ToolAllowlist): Inbou
     if (!result.success) {
       return reject(
         400,
-        errorPayload(null, ErrorCode.InvalidRequest, "Invalid Request: not a JSON-RPC 2.0 message"),
+        errorPayload(null, ProtocolErrorCode.InvalidRequest, "Invalid Request: not a JSON-RPC 2.0 message"),
         [],
       );
     }
@@ -119,7 +119,7 @@ export function inspectInbound(rawBody: string, allowlist: ToolAllowlist): Inbou
   if (requests.length === 0) {
     return reject(
       400,
-      errorPayload(null, ErrorCode.InvalidRequest, "Invalid Request: tools/call must be a request with an id"),
+      errorPayload(null, ProtocolErrorCode.InvalidRequest, "Invalid Request: tools/call must be a request with an id"),
       deniedTools,
     );
   }
@@ -133,7 +133,7 @@ export function inspectInbound(rawBody: string, allowlist: ToolAllowlist): Inbou
         ? denialFor(request)
         : errorPayload(
             request.id,
-            ErrorCode.InvalidRequest,
+            ProtocolErrorCode.InvalidRequest,
             "Invalid Request: batch rejected because it calls a tool that is not available",
           ),
     ),
@@ -177,8 +177,8 @@ function reject(
 function denialFor(request: JSONRPCRequest): JsonRpcErrorPayload {
   const name = toolNameOf(request);
   return name === undefined
-    ? errorPayload(request.id, ErrorCode.InvalidParams, "Invalid params: tools/call requires a tool name")
-    : errorPayload(request.id, ErrorCode.InvalidParams, `Unknown tool: ${name}`);
+    ? errorPayload(request.id, ProtocolErrorCode.InvalidParams, "Invalid params: tools/call requires a tool name")
+    : errorPayload(request.id, ProtocolErrorCode.InvalidParams, `Unknown tool: ${name}`);
 }
 
 function isAllowedCall(message: JSONRPCMessage, allowlist: ToolAllowlist): boolean {

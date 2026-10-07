@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ErrorCode } from "@modelcontextprotocol/sdk/types.js";
+import { ProtocolErrorCode } from "@modelcontextprotocol/client";
 import {
   filterListToolsResponse,
   inspectInbound,
@@ -45,7 +45,7 @@ describe("tool policy", () => {
       expect(verdict.payload).toEqual({
         jsonrpc: "2.0",
         id: 1,
-        error: { code: ErrorCode.InvalidParams, message: "Unknown tool: secret" },
+        error: { code: ProtocolErrorCode.InvalidParams, message: "Unknown tool: secret" },
       });
     });
 
@@ -88,7 +88,7 @@ describe("tool policy", () => {
       const verdict = rejected(inspectInbound(body, allowlist));
 
       expect(verdict.deniedTools).toEqual(["<missing>"]);
-      expect(verdict.payload).toMatchObject({ id: 5, error: { code: ErrorCode.InvalidParams } });
+      expect(verdict.payload).toMatchObject({ id: 5, error: { code: ProtocolErrorCode.InvalidParams } });
     });
   });
 

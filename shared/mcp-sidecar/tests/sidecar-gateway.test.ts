@@ -1,7 +1,7 @@
 import { createServer, type Server } from "node:http";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ErrorCode } from "@modelcontextprotocol/sdk/types.js";
+import { ProtocolErrorCode } from "@modelcontextprotocol/client";
 import { parseGatewayConfig, UPSTREAM_PORT_OFFSET } from "../src/gateway-config";
 import { ServerStatus } from "../src/managed-server";
 import { SidecarGateway } from "../src/sidecar-gateway";
@@ -86,7 +86,7 @@ describe("SidecarGateway", () => {
     cleanups.push(() => client.close());
     expect((await client.listTools()).tools.map((tool) => tool.name)).toEqual(["echo"]);
     await expect(client.callTool({ name: "secret", arguments: {} })).rejects.toMatchObject({
-      code: ErrorCode.InvalidParams,
+      code: ProtocolErrorCode.InvalidParams,
     });
 
     const response = await fetch(`http://127.0.0.1:${healthPort}/health`);

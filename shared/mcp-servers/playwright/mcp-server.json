@@ -3,7 +3,7 @@
   "description": "Browser automation via Playwright — navigate, screenshot, interact with web pages",
   "type": "npm",
   "command": "playwright-mcp",
-  "args": [],
+  "args": ["--browser", "chromium"],
   "sidecarPort": 9103,
   "tools": [
     "browser_navigate",

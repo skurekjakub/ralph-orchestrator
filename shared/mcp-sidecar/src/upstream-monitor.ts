@@ -1,8 +1,7 @@
 import { connect } from "node:net";
 import { networkInterfaces } from "node:os";
 import { setTimeout as delay } from "node:timers/promises";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
 import type { Logger } from "./logger";
 import type { ListenAddress } from "./managed-server";
 import { MCP_PATH } from "./tool-filter-proxy";
@@ -155,23 +154,18 @@ export class UpstreamMonitor {
 /**
  * List every tool name the MCP server at `url` exposes, following pagination.
  *
+ * @param timeoutMs Timeout of the handshake and of each `tools/list` page request.
  * @throws If the server cannot be reached, the handshake or a `tools/list` call fails or times out,
  *   or the listing does not end within {@link MAX_LIST_PAGES} pages.
  */
 export async function listUpstreamToolNames(url: URL, timeoutMs: number): Promise<string[]> {
-  const client = new Client({ name: "ralph-mcp-sidecar-monitor", version: "1.0.0" });
+  const client = new Client({ name: "ralph-mcp-sidecar-monitor", version: "1.0.0" }, { listMaxPages: MAX_LIST_PAGES });
   const transport = new StreamableHTTPClientTransport(url);
   try {
     await client.connect(transport, { timeout: timeoutMs });
-    const names: string[] = [];
-    let cursor: string | undefined;
-    for (let page = 0; page < MAX_LIST_PAGES; page++) {
-      const result = await client.listTools(cursor === undefined ? undefined : { cursor }, { timeout: timeoutMs });
-      names.push(...result.tools.map((tool) => tool.name));
-      cursor = result.nextCursor;
-      if (cursor === undefined) return names;
-    }
-    throw new Error(`tools/list did not finish within ${MAX_LIST_PAGES} pages`);
+    // Without a cursor the client walks every page itself; "bypass" keeps each check a fresh read.
+    const { tools } = await client.listTools(undefined, { timeout: timeoutMs, cacheMode: "bypass" });
+    return tools.map((tool) => tool.name);
   } finally {
     // Ending the session is best effort: the listing is already decided, and stateless servers have no session.
     await transport.terminateSession().catch(() => undefined);

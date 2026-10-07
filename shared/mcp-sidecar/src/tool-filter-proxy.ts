@@ -10,7 +10,7 @@ import {
 } from "node:http";
 import type { AddressInfo } from "node:net";
 import { pipeline } from "node:stream";
-import { ErrorCode, type RequestId } from "@modelcontextprotocol/sdk/types.js";
+import { ProtocolErrorCode, type RequestId } from "@modelcontextprotocol/client";
 import type { Logger } from "./logger";
 import type { ListenAddress } from "./managed-server";
 import { SseEventFilter } from "./sse-filter";
@@ -26,7 +26,7 @@ import {
 /** Path of the Streamable HTTP endpoint, on both the proxy and the upstream server. */
 export const MCP_PATH = "/mcp";
 
-/** The SDK's `MAXIMUM_MESSAGE_SIZE`; the proxy buffers whole POST bodies to inspect them. */
+/** The SDK's `DEFAULT_MAX_REQUEST_BODY_SIZE`; the proxy buffers whole POST bodies to inspect them. */
 const DEFAULT_MAX_BODY_BYTES = 4 * 1024 * 1024;
 const MAX_LOGGED_NAME_LENGTH = 200;
 const MAX_TRACKED_SESSIONS = 256;
@@ -157,7 +157,11 @@ export class ToolFilterProxy {
       sendJson(
         res,
         413,
-        errorPayload(null, ErrorCode.InvalidRequest, `Payload too large: the limit is ${this.maxBodyBytes} bytes`),
+        errorPayload(
+          null,
+          ProtocolErrorCode.InvalidRequest,
+          `Payload too large: the limit is ${this.maxBodyBytes} bytes`,
+        ),
       );
       return;
     }
@@ -210,7 +214,7 @@ export class ToolFilterProxy {
         return;
       }
       logger.error(`[proxy] ${serverName}: upstream ${upstream.host}:${upstream.port} failed: ${err.message}`);
-      sendJson(res, 502, errorPayload(ctx.replyId, ErrorCode.InternalError, "Upstream MCP server unavailable"));
+      sendJson(res, 502, errorPayload(ctx.replyId, ProtocolErrorCode.InternalError, "Upstream MCP server unavailable"));
     });
     upstreamReq.end(ctx.body);
   }
@@ -280,7 +284,7 @@ export class ToolFilterProxy {
       res.destroy();
       return;
     }
-    sendJson(res, 500, errorPayload(null, ErrorCode.InternalError, "Internal error in the tool-filter proxy"));
+    sendJson(res, 500, errorPayload(null, ProtocolErrorCode.InternalError, "Internal error in the tool-filter proxy"));
   }
 }
 

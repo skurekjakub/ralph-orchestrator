@@ -1,15 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { createServer, type IncomingMessage, type Server as HttpServer, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import {
-  CallToolRequestSchema,
-  ErrorCode,
-  ListToolsRequestSchema,
-  McpError,
-  type Tool,
-} from "@modelcontextprotocol/sdk/types.js";
+import { NodeStreamableHTTPServerTransport } from "@modelcontextprotocol/node";
+import { ProtocolError, ProtocolErrorCode, Server, type Tool } from "@modelcontextprotocol/server";
 
 /** Streamable HTTP flavours the sidecar's real servers use. */
 export enum UpstreamMode {
@@ -46,7 +39,7 @@ export interface UpstreamOptions {
 export async function startUpstream(options: UpstreamOptions): Promise<TestUpstream> {
   const calls: string[] = [];
   const closedSessions: string[] = [];
-  const sessions = new Map<string, StreamableHTTPServerTransport>();
+  const sessions = new Map<string, NodeStreamableHTTPServerTransport>();
   const createMcpServer = (): Server => buildServer(options, calls);
 
   const http = createServer((req, res) => {
@@ -90,21 +83,22 @@ function buildServer(options: UpstreamOptions, calls: string[]): Server {
     inputSchema: { type: "object" },
   }));
 
-  server.setRequestHandler(ListToolsRequestSchema, async (request) => {
+  server.setRequestHandler("tools/list", async (request) => {
     if (!options.pageSize) return { tools };
     const start = request.params?.cursor ? Number(request.params.cursor) : 0;
     const end = start + options.pageSize;
     return { tools: tools.slice(start, end), ...(end < tools.length ? { nextCursor: String(end) } : {}) };
   });
 
-  server.setRequestHandler(CallToolRequestSchema, async (request, extra) => {
+  server.setRequestHandler("tools/call", async (request, ctx) => {
     const { name } = request.params;
-    if (!options.tools.includes(name)) throw new McpError(ErrorCode.InvalidParams, `Tool ${name} not found`);
+    if (!options.tools.includes(name))
+      throw new ProtocolError(ProtocolErrorCode.InvalidParams, `Tool ${name} not found`);
     calls.push(name);
     const progressToken = request.params._meta?.progressToken;
     if (name === PROGRESS_TOOL && progressToken !== undefined) {
       for (const progress of [1, 2]) {
-        await extra.sendNotification({
+        await ctx.mcpReq.notify({
           method: "notifications/progress",
           params: { progressToken, progress, total: 2 },
         });
@@ -123,7 +117,7 @@ async function handleStateless(
   createMcpServer: () => Server,
 ): Promise<void> {
   const server = createMcpServer();
-  const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse });
+  const transport = new NodeStreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse });
   res.on("close", () => {
     void transport.close();
     void server.close();
@@ -135,7 +129,7 @@ async function handleStateless(
 async function handleStateful(
   req: IncomingMessage,
   res: ServerResponse,
-  sessions: Map<string, StreamableHTTPServerTransport>,
+  sessions: Map<string, NodeStreamableHTTPServerTransport>,
   closedSessions: string[],
   createMcpServer: () => Server,
 ): Promise<void> {
@@ -150,7 +144,7 @@ async function handleStateful(
     return;
   }
 
-  const transport: StreamableHTTPServerTransport = new StreamableHTTPServerTransport({
+  const transport: NodeStreamableHTTPServerTransport = new NodeStreamableHTTPServerTransport({
     sessionIdGenerator: () => randomUUID(),
     onsessioninitialized: (id) => {
       sessions.set(id, transport);

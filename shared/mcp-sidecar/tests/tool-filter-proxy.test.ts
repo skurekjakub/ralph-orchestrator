@@ -1,6 +1,6 @@
 import { createServer } from "node:http";
 import { afterEach, describe, expect, it } from "vitest";
-import { ErrorCode } from "@modelcontextprotocol/sdk/types.js";
+import { ProtocolErrorCode } from "@modelcontextprotocol/client";
 import { ToolFilterProxy } from "../src/tool-filter-proxy";
 import { ToolAllowlist } from "../src/tool-policy";
 import { createRecordingLogger, type RecordingLogger } from "./helpers/logger";
@@ -90,7 +90,7 @@ describe("ToolFilterProxy", () => {
         const { client } = await connect(url);
 
         await expect(client.callTool({ name: "secret_tool", arguments: {} })).rejects.toMatchObject({
-          code: ErrorCode.InvalidParams,
+          code: ProtocolErrorCode.InvalidParams,
           message: expect.stringContaining("Unknown tool: secret_tool"),
         });
 
@@ -109,9 +109,10 @@ describe("ToolFilterProxy", () => {
       const { client } = await connect(url);
       const progress: number[] = [];
 
-      const result = await client.callTool({ name: PROGRESS_TOOL, arguments: {} }, undefined, {
-        onprogress: (update) => progress.push(update.progress),
-      });
+      const result = await client.callTool(
+        { name: PROGRESS_TOOL, arguments: {} },
+        { onprogress: (update) => progress.push(update.progress) },
+      );
 
       expect(progress).toEqual([1, 2]);
       expect(result.content).toEqual([{ type: "text", text: `called ${PROGRESS_TOOL}` }]);
@@ -167,10 +168,10 @@ describe("ToolFilterProxy", () => {
 
       expect(response.status).toBe(200);
       expect(messages).toEqual([
-        expect.objectContaining({ id: 1, error: expect.objectContaining({ code: ErrorCode.InvalidRequest }) }),
+        expect.objectContaining({ id: 1, error: expect.objectContaining({ code: ProtocolErrorCode.InvalidRequest }) }),
         expect.objectContaining({
           id: 2,
-          error: { code: ErrorCode.InvalidParams, message: "Unknown tool: secret_tool" },
+          error: { code: ProtocolErrorCode.InvalidParams, message: "Unknown tool: secret_tool" },
         }),
       ]);
       expect(upstream.calls).toEqual([]);
@@ -194,21 +195,21 @@ describe("ToolFilterProxy", () => {
       const response = await postRaw(url, body);
 
       expect(response.status).toBe(400);
-      expect(await response.json()).toMatchObject({ error: { code: ErrorCode.InvalidRequest } });
+      expect(await response.json()).toMatchObject({ error: { code: ProtocolErrorCode.InvalidRequest } });
       expect(upstream.calls).toEqual([]);
     });
   });
 
   describe("malformed requests", () => {
     it.each([
-      ["not JSON", "{", ErrorCode.ParseError],
-      ["not a JSON-RPC message", JSON.stringify({ hello: "world" }), ErrorCode.InvalidRequest],
+      ["not JSON", "{", ProtocolErrorCode.ParseError],
+      ["not a JSON-RPC message", JSON.stringify({ hello: "world" }), ProtocolErrorCode.InvalidRequest],
       [
         "a JSON-RPC message with an unknown member",
         JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list", x: 1 }),
-        ErrorCode.InvalidRequest,
+        ProtocolErrorCode.InvalidRequest,
       ],
-      ["an empty batch", "[]", ErrorCode.InvalidRequest],
+      ["an empty batch", "[]", ProtocolErrorCode.InvalidRequest],
     ])("rejects a body that is %s with HTTP 400", async (_label, body, code) => {
       const { url } = await startHarness(UpstreamMode.StatelessSse);
 
@@ -225,7 +226,7 @@ describe("ToolFilterProxy", () => {
       const response = await postRaw(url, body);
 
       expect(response.status).toBe(200);
-      expect(await response.json()).toMatchObject({ id: 9, error: { code: ErrorCode.InvalidParams } });
+      expect(await response.json()).toMatchObject({ id: 9, error: { code: ProtocolErrorCode.InvalidParams } });
       expect(upstream.calls).toEqual([]);
     });
 
@@ -277,7 +278,7 @@ describe("ToolFilterProxy", () => {
       expect(await response.json()).toEqual({
         jsonrpc: "2.0",
         id: 5,
-        error: { code: ErrorCode.InternalError, message: "Upstream MCP server unavailable" },
+        error: { code: ProtocolErrorCode.InternalError, message: "Upstream MCP server unavailable" },
       });
       expect(logger.messages("error")).toEqual([expect.stringContaining("[proxy] test: upstream 127.0.0.1:")]);
     });
