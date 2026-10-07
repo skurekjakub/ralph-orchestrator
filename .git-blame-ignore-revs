@@ -4,3 +4,6 @@
 
 # Prettier 3.9 reformat
 a98574496ac902e814ef6c04dcaa9072a21d8ce5
+
+# Codemod: relative imports lose their .js extension (with the esbuild bundle switch)
+b17d358036502f17f78894b2284aba150a66e23b
