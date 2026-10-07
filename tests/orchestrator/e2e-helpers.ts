@@ -69,7 +69,7 @@ export function buildMockDeps(
   const historyDir = join(logDir, "history");
   mkdirSync(historyDir, { recursive: true });
 
-  const activityLog = new ActivityLog({ outputConfig: { logDir }, rootDir: process.cwd() });
+  const activityLog = new ActivityLog({ outputConfig: { logDir }, rootDir: tempDir });
   const router = new ProfileRouter({ profiles: [profile] });
   const ledger = new OperationLedger({ outputConfig: { logDir } });
 
@@ -208,7 +208,7 @@ export function buildBaseDeps(
   return {
     dataSources: config.dataSources,
     profiles: config.profiles,
-    activityLog: new ActivityLog({ outputConfig: { logDir }, rootDir: process.cwd() }),
+    activityLog: new ActivityLog({ outputConfig: { logDir }, rootDir: tempDir }),
     issueManager,
     resources: createMockResources(),
     vcsSourceClient: createMockVcsSourceClient(),
