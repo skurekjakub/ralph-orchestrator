@@ -26,14 +26,91 @@ vi.mock("ws", async (importOriginal) => {
   return { ...orig, WebSocketServer: UnboundWebSocketServer };
 });
 
-import { createCradle } from "../src/awilix-cradle";
-import { ClaudeAuthMode, CliType, StageMode, type IAppConfig } from "../src/config/types";
-import { makeConfig, makeHostWorkspace, makeProfile, makeStage } from "./helpers/factories";
-import { TaskWorkspaceManager } from "../src/services/task-workspace-manager";
+import { Lifetime } from "awilix";
+import { createCradle, createRootContainer } from "../src/awilix-cradle";
+import type {
+  ClaudeHostStageCradle,
+  ClaudeHostStageValues,
+  ClaudeStageCradle,
+  CopilotHostStageCradle,
+  CopilotStageCradle,
+  OrchestratorCradle,
+  TaskCradle,
+  TaskValues,
+} from "../src/awilix-cradle-types";
+import { CliRuntimeRegistry } from "../src/cli/cli-runtime";
+import { ClaudeAuthMode, CliType, StageMode, type IAppConfig, type IStageConfig } from "../src/config/types";
+import { ClaudeCodeExecutor } from "../src/container/cli-executors/claude-code-executor";
+import { CopilotExecutor } from "../src/container/cli-executors/copilot-executor";
+import { LocalClaudeCodeExecutor } from "../src/container/cli-executors/local-claude-code-executor";
+import { LocalCopilotExecutor } from "../src/container/cli-executors/local-copilot-executor";
+import { AgentSessionRunner } from "../src/container/agent-session-runner";
+import type { ICliExecutor } from "../src/container/cli-executor";
+import { ComposeClient } from "../src/container/compose-client";
+import { openTaskScope } from "../src/container/container-manager-factory";
+import { ContinuationRunner } from "../src/container/continuation-runner";
+import { ContainerLogCollector } from "../src/container/log-collector";
+import { ContainerManager } from "../src/container/manager";
+import { AgentTemplateRenderer } from "../src/container/setup/agent-includes";
+import { ComposeOverlayWriter } from "../src/container/setup/compose-overlay-writer";
+import { deriveStageProfile } from "../src/container/types";
+import { ContainerWorkspaceCleaner } from "../src/container/workspace-cleaner";
+import { JiraConnector } from "../src/datasource/connectors/jira/jira-connector";
+import { JiraWorkItemPoller } from "../src/datasource/connectors/jira/jira-poller";
+import { LogCollector } from "../src/logs/collector";
+import { HookRulesRedactor } from "../src/logs/text-redactor";
+import { Orchestrator } from "../src/orchestrator";
+import { PromptBuilder } from "../src/prompt/prompt-builder";
+import { ActivityLog } from "../src/services/activity-log";
+import { AgentPipelineExecutor } from "../src/services/agent-pipeline-executor";
+import { DashboardServer } from "../src/services/dashboard-server";
+import { IssueManager } from "../src/services/issue-manager";
+import { OperationLedger } from "../src/services/operation-ledger";
+import { PostTaskHookRunner } from "../src/services/post-task-hook-runner";
+import { ProfileRouter } from "../src/services/profile-router";
+import { ProfileSetupService } from "../src/services/profile-setup-service";
+import { RunArtifactsDeriver } from "../src/services/run-artifacts-deriver";
 import { StageWorkspaceResolver } from "../src/services/stage-workspace";
+import { TaskResourceManager } from "../src/services/task-resource-manager";
+import { TaskResultWriter } from "../src/services/task-result-writer";
+import { TaskRunner } from "../src/services/task-runner";
+import { TaskWorkspaceManager } from "../src/services/task-workspace-manager";
+import { TriggerScanner } from "../src/services/trigger-scanner";
+import {
+  VcsSourceClient,
+  adoVcsSourceProviderClient,
+  githubVcsSourceProviderClient,
+} from "../src/services/vcs-source-client";
+import { makeAgentTemplate, makeConfig, makeHostWorkspace, makeProfile, makeStage } from "./helpers/factories";
+import { writeFixtureProfile } from "./helpers/fixture-checkout";
 
 // Ensure built-in data source factories are registered
 import "../src/datasource/connectors/jira/factory";
+
+/** The executor token of each stage cradle: it resolves only in a stage scope. */
+type StageExecutorToken = Exclude<
+  keyof ClaudeStageCradle | keyof CopilotStageCradle | keyof ClaudeHostStageCradle | keyof CopilotHostStageCradle,
+  keyof TaskCradle | keyof ClaudeHostStageValues
+>;
+
+/** Each stage cradle's executor token, with the kind of stage whose scope resolves it and the executor's class. */
+const STAGE_EXECUTORS: Record<
+  StageExecutorToken,
+  { cli: CliType; mode: StageMode; type: abstract new (...args: never[]) => ICliExecutor }
+> = {
+  claudeCodeExecutor: { cli: CliType.Claude, mode: StageMode.Container, type: ClaudeCodeExecutor },
+  copilotExecutor: { cli: CliType.Copilot, mode: StageMode.Container, type: CopilotExecutor },
+  localClaudeCodeExecutor: { cli: CliType.Claude, mode: StageMode.Local, type: LocalClaudeCodeExecutor },
+  localCopilotExecutor: { cli: CliType.Copilot, mode: StageMode.Local, type: LocalCopilotExecutor },
+};
+
+/** The variant the fixture checkout is set up for: its squid.conf is written and its stages' agent exists. */
+const SET_UP = makeProfile({ id: "set-up", agentName: "ralph.scientist" });
+
+/** A stage of {@link SET_UP} of the given kind. */
+function setUpStage(cli: CliType, mode: StageMode): IStageConfig {
+  return makeStage({ agent: "ralph.scientist", role: "write", cli, mode });
+}
 
 /**
  * Verifies that awilix resolves all cradle services without errors.
@@ -188,13 +265,92 @@ describe("createCradle", () => {
   describe("from a fixture checkout", () => {
     let checkout: string;
 
-    /** The test config, its logs under the fixture checkout. */
+    /** The test config, running {@link SET_UP}, its logs under the fixture checkout. */
     function fixtureConfig(): IAppConfig {
-      return { ...makeConfig(), output: { logDir: join(checkout, "output", "logs") } };
+      return { ...makeConfig([SET_UP]), output: { logDir: join(checkout, "output", "logs") } };
+    }
+
+    /** The values of a task running {@link SET_UP}, its workspace under the fixture checkout. */
+    function taskValues(): TaskValues {
+      return { profile: SET_UP, workspacePath: join(checkout, "cache", "workspaces", "DF-1-1000") };
+    }
+
+    /** What each root token of `config`'s cradle resolves to: an instance of its class, or its value. */
+    function rootExpectations(config: IAppConfig): Record<keyof OrchestratorCradle, unknown> {
+      const logger = { info: expect.any(Function), warn: expect.any(Function), error: expect.any(Function) };
+      return {
+        rootDir: checkout,
+        sourceReposDir: join(checkout, "cache", "repos"),
+        dataSources: config.dataSources,
+        outputConfig: config.output,
+        dashboardConfig: config.dashboard,
+        profiles: config.profiles,
+        promptAuditConfig: config.promptAudit,
+        ralphchivesConfig: config.ralphchives,
+        enableContinuation: config.enableContinuation,
+        claudeAuth: config.claudeAuth,
+        activityLog: expect.any(ActivityLog),
+        logger,
+        containerLogger: logger,
+        connectors: new Map([["test-source", expect.any(JiraConnector)]]),
+        pollers: new Map([["test-source", expect.any(JiraWorkItemPoller)]]),
+        issueManager: expect.any(IssueManager),
+        resources: expect.any(TaskResourceManager),
+        vcsProviderClients: [adoVcsSourceProviderClient, githubVcsSourceProviderClient],
+        vcsSourceClient: expect.any(VcsSourceClient),
+        ledger: expect.any(OperationLedger),
+        router: expect.any(ProfileRouter),
+        triggerScanner: expect.any(TriggerScanner),
+        orchestrator: expect.any(Orchestrator),
+        dashboardServer: expect.any(DashboardServer),
+        cliRuntimes: expect.any(CliRuntimeRegistry),
+        logCollector: expect.any(LogCollector),
+        promptBuilder: expect.any(PromptBuilder),
+        continuationRunner: expect.any(ContinuationRunner),
+        sessionRunner: expect.any(AgentSessionRunner),
+        templateRenderer: expect.any(AgentTemplateRenderer),
+        overlayWriter: expect.any(ComposeOverlayWriter),
+        containerFactory: {
+          create: expect.any(Function),
+          forceDown: expect.any(Function),
+          createLocalSession: expect.any(Function),
+        },
+        workspaceManager: expect.any(TaskWorkspaceManager),
+        stageWorkspaces: expect.any(StageWorkspaceResolver),
+        profileSetup: expect.any(ProfileSetupService),
+        pipelineExecutor: expect.any(AgentPipelineExecutor),
+        textRedactor: expect.any(HookRulesRedactor),
+        runArtifacts: expect.any(RunArtifactsDeriver),
+        resultWriter: expect.any(TaskResultWriter),
+        hookRunner: expect.any(PostTaskHookRunner),
+        taskRunner: expect.any(TaskRunner),
+        heartbeat: null,
+      };
+    }
+
+    /** What each token a task scope adds to the root's resolves to, in the scope of a task running `values`. */
+    function taskExpectations(
+      values: TaskValues,
+    ): Record<Exclude<keyof TaskCradle, keyof OrchestratorCradle>, unknown> {
+      return {
+        profile: values.profile,
+        workspacePath: values.workspacePath,
+        composeFiles: [
+          join(checkout, values.profile.composeFile),
+          join(checkout, "shared", "security", "docker-compose.security.yml"),
+        ],
+        squidConfPath: join(checkout, "profiles", values.profile.id, ".build", "squid.conf"),
+        compose: expect.any(ComposeClient),
+        containerLogs: expect.any(ContainerLogCollector),
+        workspaceCleaner: expect.any(ContainerWorkspaceCleaner),
+        containerManager: expect.any(ContainerManager),
+        stageExecutors: { create: expect.any(Function), createHost: expect.any(Function) },
+      };
     }
 
     beforeEach(() => {
       checkout = mkdtempSync(join(tmpdir(), "cradle-"));
+      writeFixtureProfile(checkout, SET_UP.id, { "ralph.scientist": makeAgentTemplate("scientist") });
       unboundServers.length = 0;
     });
 
@@ -217,5 +373,72 @@ describe("createCradle", () => {
         JSON.stringify({ type: "state", data: orchestrator.observer.getState() }),
       );
     });
+
+    it("resolves every root registration from the root container to its class or value", () => {
+      // Arrange
+      const config = fixtureConfig();
+      const root = createRootContainer(config, { rootDir: checkout });
+      const rootTokens = Object.entries(root.registrations)
+        .filter(([, registration]) => registration.lifetime !== Lifetime.SCOPED)
+        .map(([token]) => token);
+
+      // Act
+      const resolved = Object.fromEntries(rootTokens.map((token) => [token, root.resolve(token)]));
+
+      // Assert
+      expect(resolved).toEqual(rootExpectations(config));
+    });
+
+    it("resolves every task registration from a task scope to its class or value", () => {
+      // Arrange
+      const config = fixtureConfig();
+      const values = taskValues();
+      const scope = openTaskScope(createRootContainer(config, { rootDir: checkout }), values);
+      const taskTokens = Object.keys(scope.registrations).filter((token) => !(token in STAGE_EXECUTORS));
+
+      // Act
+      const resolved = Object.fromEntries(taskTokens.map((token) => [token, scope.resolve(token)]));
+
+      // Assert
+      expect(resolved).toEqual({ ...rootExpectations(config), ...taskExpectations(values) });
+    });
+
+    it.each(Object.entries(STAGE_EXECUTORS))(
+      "resolves %s for a stage of its kind from a task scope",
+      async (_token, { cli, mode, type }) => {
+        // Arrange
+        const stage = setUpStage(cli, mode);
+        const stageProfile = deriveStageProfile(SET_UP, stage);
+        const root = createRootContainer(fixtureConfig(), { rootDir: checkout });
+        const { stageExecutors } = openTaskScope(root, taskValues()).cradle;
+
+        // Act
+        const executor =
+          mode === StageMode.Container
+            ? await stageExecutors.create(stageProfile, stage)
+            : await stageExecutors.createHost(stageProfile, stage, makeHostWorkspace());
+
+        // Assert
+        expect(executor).toBeInstanceOf(type);
+      },
+    );
+
+    it.each(Object.entries(STAGE_EXECUTORS).filter(([, { mode }]) => mode === StageMode.Local))(
+      "resolves %s for a post-task hook stage of its kind from the root",
+      async (_token, { cli, mode, type }) => {
+        // Arrange
+        const { containerFactory } = createCradle(fixtureConfig(), { rootDir: checkout });
+
+        // Act
+        const { executor } = await containerFactory.createLocalSession(
+          SET_UP,
+          setUpStage(cli, mode),
+          makeHostWorkspace(),
+        );
+
+        // Assert
+        expect(executor).toBeInstanceOf(type);
+      },
+    );
   });
 });

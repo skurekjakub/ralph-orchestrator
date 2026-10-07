@@ -24,6 +24,7 @@ npm test                                            # lint (src, tests and scrip
 - `tests/helpers/factories.ts`: pure value constructors with `overrides`, no mocks or `vi` (`makeWorkItem`, `makeProfile`, `makeResult`, `makeTaskContext`, `makeTemplateContext`, `makeConfig`, …).
 - `tests/helpers/mocks.ts`: the repo's own `Mocked<T>` type plus `createMock*` factories returning `Mocked<IInterface>` with `vi.fn()` spies and per-method overrides (`createMockLogger`, `createSilentLogger`, `createMockConnector`, `createMockIssueManager`, `createMockResources`, `createMockCompose`, `createMockContainer` → `{ container, spies }`, `createMockTaskRunner`, `fakeExecResult`, …).
 - `tests/helpers/mcp-fs.ts`: temp dirs and manifest writers for MCP setup tests.
+- `tests/helpers/fixture-checkout.ts`: writes a profile's agent templates and `squid.conf` into a fixture orchestrator checkout, so a task scope and a Claude Code stage scope resolve against it.
 - When a second suite needs the same mock or factory, move it into `tests/helpers/`.
 
 ## Rules

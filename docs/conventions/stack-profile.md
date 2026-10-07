@@ -75,7 +75,7 @@
   - Relative import with an extension (`./foo.js`, `./foo.ts`) → `./foo`
     (esbuild resolves it; `.json` imports keep their extension).
   - A consumer importing or `new`-ing a concrete service class → depend on its
-    `I`-interface; register the class in `createCradle()`
+    `I`-interface; register the class in `createRootContainer()`
     (`src/awilix-cradle.ts`) and add the token to `OrchestratorCradle`
     (`src/awilix-cradle-types.ts`). A per-task object registers `.scoped()`
     in `taskRegistrations` (`src/awilix-cradle.ts`), its token on

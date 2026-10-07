@@ -5,12 +5,12 @@ Data source connectors are built into the orchestrator. Each data source type (J
 ## How It Works
 
 ```
-DATA_SOURCE_CONNECTORS → literal import() → factory self-registers → createCradle() builds connectors
+DATA_SOURCE_CONNECTORS → literal import() → factory self-registers → createRootContainer() builds connectors
 ```
 
 1. **Connector loading** — After `loadConfig()`, `AppStartup` imports each module listed in `DATA_SOURCE_CONNECTORS` (`src/app-startup.ts`), in order. Each entry names its module in a literal `import()`, so esbuild includes it in the `dist/index.js` bundle.
 2. **Self-registration** — Each factory module calls `registerDataSourceFactory(type, factory)` at top level, as a side effect of its import.
-3. **Connector creation** — `createCradle()` registers the root services, then calls `buildDataSourceMaps()` (`src/datasource/registry.ts`). It iterates `config.dataSources`, opens one awilix scope per entry holding the entry's `sourceKey` and `dataSourceConfig`, and calls the factory registered for the entry's `type` with that scope to build a connector + poller pair. This runs outside any resolution of the root container, because awilix refuses a scope's scoped registrations while a root singleton resolves.
+3. **Connector creation** — `createRootContainer()` registers the root services, then calls `buildDataSourceMaps()` (`src/datasource/registry.ts`). It iterates `config.dataSources`, opens one awilix scope per entry holding the entry's `sourceKey` and `dataSourceConfig`, and calls the factory registered for the entry's `type` with that scope to build a connector + poller pair. This runs outside any resolution of the root container, because awilix refuses a scope's scoped registrations while a root singleton resolves.
 
 ## Adding a New Data Source
 

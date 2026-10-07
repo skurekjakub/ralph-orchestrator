@@ -49,6 +49,7 @@ import {
   createMockSessionRunner,
   createSilentLogger,
 } from "../helpers/mocks";
+import { writeFixtureProfile } from "../helpers/fixture-checkout";
 
 /** Profile setup has written this profile's squid.conf in the fixture checkout. */
 const SET_UP = makeProfile({ id: "set-up" });
@@ -94,12 +95,7 @@ beforeEach(() => {
   mockExeca.mockClear();
   composeClientBuilt.mockClear();
   rootDir = mkdtempSync(join(tmpdir(), "container-manager-factory-"));
-  const buildDir = join(rootDir, "profiles", SET_UP.id, ".build");
-  mkdirSync(buildDir, { recursive: true });
-  writeFileSync(join(buildDir, "squid.conf"), "");
-  const agentsDir = join(rootDir, "profiles", SET_UP.id, "agents");
-  mkdirSync(agentsDir, { recursive: true });
-  writeFileSync(join(agentsDir, "ralph.scientist.agent.md"), makeAgentTemplate("scientist"));
+  writeFixtureProfile(rootDir, SET_UP.id, { "ralph.scientist": makeAgentTemplate("scientist") });
   const hooksDir = join(rootDir, "shared", "hooks", "claude");
   mkdirSync(hooksDir, { recursive: true });
   writeFileSync(join(hooksDir, "hooks.json"), "{}");

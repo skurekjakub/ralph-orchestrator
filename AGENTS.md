@@ -106,12 +106,12 @@ Orchestrator loop: one operation at a time; it sleeps until poller.onItems / led
 
 1. In the same file, define `IFoo` and `class Foo implements IFoo`. The constructor takes **one destructured deps object** whose keys are cradle tokens (awilix `InjectionMode.PROXY`, `strict: true`). Depend on interfaces and config slices, never on the whole `IAppConfig`.
 2. Add `foo: IFoo` to `OrchestratorCradle` in `src/awilix-cradle-types.ts`.
-3. Register it in `createCradle()` in `src/awilix-cradle.ts` (`asClass(Foo).singleton()`).
+3. Register it in `createRootContainer()` in `src/awilix-cradle.ts` (`asClass(Foo).singleton()`).
 4. Tests construct `Foo` directly with mocks, not with the container. Add `createMockFoo(overrides)` returning `Mocked<IFoo>` to `tests/helpers/mocks.ts` when more than one suite needs it.
 
 Config slices: `dataSources`, `outputConfig`, `dashboardConfig`, `profiles`, `promptAuditConfig`, `ralphchivesConfig`, `enableContinuation`, `claudeAuth`.
 
-A data-source connector's classes register in its own `factory.ts`, not in `createCradle()`: each data source gets an awilix scope, and the factory registers its classes there and resolves the connector and poller (`docs/dev-doc/data-source-registration.md`).
+A data-source connector's classes register in its own `factory.ts`, not in `createRootContainer()`: each data source gets an awilix scope, and the factory registers its classes there and resolves the connector and poller (`docs/dev-doc/data-source-registration.md`).
 
 `awilix-cradle.ts` is the composition root for services, but not the only place that constructs things:
 
@@ -156,7 +156,7 @@ Details: `docs/dev-doc/dependency-injection.md`.
   - On restart, active operations are marked `error`.
   - Each trigger is consumed once per `variantKey`.
   - `TriggerScanner` also persists `cache/trigger-cache.json` and skips issues whose `updated` timestamp hasn't changed. Clear the issue's entry there when re-testing triggers.
-- **Data-source connectors.** Connectors are built in: each lives under `src/datasource/connectors/<name>/`, and `DATA_SOURCE_CONNECTORS` (`src/app-startup.ts`) imports its factory module with a literal `import()`, so the bundle includes it. Each factory module calls `registerDataSourceFactory()` on import, then `createCradle()` calls `buildDataSourceMaps()` (`src/datasource/registry.ts`), which hands each factory its data source's awilix scope. Guide: `docs/dev-doc/data-source-registration.md`.
+- **Data-source connectors.** Connectors are built in: each lives under `src/datasource/connectors/<name>/`, and `DATA_SOURCE_CONNECTORS` (`src/app-startup.ts`) imports its factory module with a literal `import()`, so the bundle includes it. Each factory module calls `registerDataSourceFactory()` on import, then `createRootContainer()` calls `buildDataSourceMaps()` (`src/datasource/registry.ts`), which hands each factory its data source's awilix scope. Guide: `docs/dev-doc/data-source-registration.md`.
 - **Stages and post-task hooks.**
   - Each variant has a `stages` array. Each stage has `agent`, `role`, `mode` (`container` | `local`) and optional `cli`, `skills`, `model`, `timeoutMs`, the Claude-only `effort`, and `requireResultBlock` (default true for variant stages, false for hook stages; a stage that requires a result fails with `FailureReason.MissingResultBlock` without one, also when Claude Code gives up on structured output that keeps failing the schema, `error_max_structured_output_retries`; see `resolveStatus`); `deriveStageProfile` applies the stage overrides.
   - `local` stages run on the host, each in a workspace of its own that `StageWorkspaceResolver` (`src/services/stage-workspace.ts`) lays out: `<outputDir>/hooks/<hook>/<role>/` for a hook stage, `<outputDir>/stages/<role>/` for a variant stage, holding the CLI's cwd (`work/`), a private CLI home (`home/`, where Claude Code finds its agents and skills; Copilot finds them in `work/.github/`) and its logs (`logs/`). A hook's stages share `<outputDir>/hooks/<hook>/artifacts` as `artifactDir`; a variant's local stage shares the container stages' artifacts. Nothing a host stage writes lands in this repo.
@@ -187,6 +187,7 @@ Details: `docs/dev-doc/dependency-injection.md`.
   - `factories.ts`: pure `make*` value builders.
   - `mocks.ts`: `createMock*` factories, the custom `Mocked<T>` type, `createMockLogger` and `createSilentLogger`.
   - `mcp-fs.ts`.
+  - `fixture-checkout.ts`: writes a profile's agent templates and `squid.conf` into a fixture orchestrator checkout.
 - Mock `I`-interfaces, never classes. For ESM modules use `vi.mock` (not `vi.spyOn` on namespaces). Pass `{ delayMs: 1 }` `RetryOptions` instead of raising timeouts. More rules: `.claude/rules/`.
 - **Claude Code contract test** (`tests/cli/claude/claude-contract.test.ts`): runs the pinned `node_modules/.bin/claude` with no credential and a private home. The CLI emits its `system/init` event, runs the hooks, writes the transcript and fails the login without a network request or tokens.
   - It renders test-owned agents, skills and settings with Ralph's own writers and checks what Ralph relies on: the version, the agents, skills, tools and resolved model aliases in `init`, `--agent`, `--effort`, `--resume`, `--json-schema` with Ralph's result schema and the `StructuredOutput` tool a stage root needs for it, the settings' hooks and the payload fields the audit adapter reads, the transcript, and the auth failure mapping to `auth-failed`.

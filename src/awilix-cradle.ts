@@ -120,22 +120,25 @@ export function registerScopedServices(container: AwilixContainer<OrchestratorCr
 }
 
 /**
- * Create the awilix DI container: register the root services, among them the container manager factory, and the
+ * Create the root awilix container: register the root services, among them the container manager factory, and the
  * scoped task services and stage executors its scopes resolve, then build each data source's connector and poller in
  * a scope of its own.
  *
  * The data-source scopes resolve here, together with the root services they depend on (`activityLog`, `logger`);
- * every other root service resolves on first access through the returned cradle.
+ * every other root service resolves on first access.
  *
  * @param config The loaded config: its slices become root tokens, and each `dataSources` entry gets a scope.
  * @param options.rootDir The orchestrator checkout: the profile build directories, `shared/` sources, `cache/` and
  *   the output directory resolve against it.
- * @returns The root cradle.
+ * @returns The root container, from which `openTaskScope` opens a task's scope.
  * @throws Error with `resolveJiraCredentials`' message when a JIRA data source's `JIRA_PAT_<KEY>` or
  *   `JIRA_EMAIL_<KEY>` is unset, or when a data source's type has no registered factory; ZodError when a JIRA
  *   data source's connection fails its schema.
  */
-export function createCradle(config: IAppConfig, { rootDir }: { rootDir: string }): OrchestratorCradle {
+export function createRootContainer(
+  config: IAppConfig,
+  { rootDir }: { rootDir: string },
+): AwilixContainer<OrchestratorCradle> {
   const container = createContainer<OrchestratorCradle>({
     injectionMode: InjectionMode.PROXY,
     strict: true,
@@ -200,5 +203,15 @@ export function createCradle(config: IAppConfig, { rootDir }: { rootDir: string 
   const { connectors, pollers } = buildDataSourceMaps(container, config);
   container.register({ connectors: asValue(connectors), pollers: asValue(pollers) });
 
-  return container.cradle;
+  return container;
+}
+
+/**
+ * The cradle of {@link createRootContainer}'s root container, through which every root service resolves on first
+ * access.
+ *
+ * @throws As {@link createRootContainer}.
+ */
+export function createCradle(config: IAppConfig, options: { rootDir: string }): OrchestratorCradle {
+  return createRootContainer(config, options).cradle;
 }
