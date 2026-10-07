@@ -106,6 +106,7 @@ export class LogSourceRegistry implements ILogSourceRegistry {
       containerPath: `/workspace/.ralph/tasks/${workItemId}/state.md`,
       extension: "md",
       mode: CaptureMode.Collect,
+      keepAcrossStages: true,
     });
 
     logs.addExport({

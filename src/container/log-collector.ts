@@ -37,6 +37,9 @@ export interface LogSourceDef {
   useComposeLogs?: boolean;
   /** Optional callback invoked for each streamed line (only used in `"stream"` mode). */
   onLine?: (line: string) => void;
+  /** When true, {@link IContainerLogCollector.clearCollectSources} leaves the file alone. Use for
+   *  files the agent carries from one pipeline stage to the next (e.g. its state file). */
+  keepAcrossStages?: boolean;
 }
 
 /** Definition of a folder to export wholesale from the container via `docker compose cp`. */
@@ -81,8 +84,9 @@ export interface IContainerLogCollector {
    * Truncate container-side log files for all collect-mode sources.
    *
    * Call between pipeline stages so the next stage starts with fresh files.
-   * Stream-mode and compose-logs sources are skipped (they're append-only
-   * container stdout or continuously tailed).
+   * Stream-mode, compose-logs and {@link LogSourceDef.keepAcrossStages}
+   * sources are skipped (they're continuously tailed, append-only container
+   * stdout, or state the next stage needs).
    */
   clearCollectSources(): Promise<void>;
 }
@@ -212,11 +216,14 @@ export class ContainerLogCollector implements IContainerLogCollector {
    * Truncate container-side log files for all collect-mode sources.
    *
    * Runs `truncate -s 0` inside the container for each source that uses
-   * file-based collection (not compose-logs). Safe to call between pipeline
+   * file-based collection (not compose-logs, stream-mode or
+   * {@link LogSourceDef.keepAcrossStages}). Safe to call between pipeline
    * stages so the next stage starts with fresh log files.
    */
   async clearCollectSources(): Promise<void> {
-    const fileSources = this.sources.filter((s) => !s.useComposeLogs && s.containerPath);
+    const fileSources = this.sources.filter(
+      (s) => !s.useComposeLogs && s.containerPath && s.mode === CaptureMode.Collect && !s.keepAcrossStages,
+    );
     for (const source of fileSources) {
       const truncatePath = source.collectArgs
         ? undefined // Custom collect commands (e.g. glob) — skip, not a single file

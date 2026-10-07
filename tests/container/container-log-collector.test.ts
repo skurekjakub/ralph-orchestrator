@@ -520,6 +520,54 @@ describe("ContainerLogCollector", () => {
       expect(compose.exec).not.toHaveBeenCalled();
     });
 
+    it("leaves streamed sources untouched", async () => {
+      // Arrange
+      const { compose } = createMockCompose();
+      const collector = createCollector(compose);
+      collector.addSource({
+        id: "pre-tool",
+        service: SVC_APP,
+        containerPath: "/workspace/.ralph/logs/pre-tool.log",
+        extension: "log",
+        mode: CaptureMode.Stream,
+      });
+
+      // Act
+      await collector.clearCollectSources();
+
+      // Assert
+      const truncations = vi.mocked(compose.exec).mock.calls.filter((c) => c[0].some((a) => a.includes("truncate")));
+      expect(truncations).toEqual([]);
+    });
+
+    it("leaves keepAcrossStages sources untouched while still clearing the others", async () => {
+      // Arrange
+      const { compose } = createMockCompose();
+      const collector = createCollector(compose);
+      collector.addSource({
+        id: "state",
+        service: SVC_APP,
+        containerPath: "/workspace/.ralph/tasks/DOC-1/state.md",
+        extension: "md",
+        mode: CaptureMode.Collect,
+        keepAcrossStages: true,
+      });
+      collector.addSource({
+        id: "audit",
+        service: SVC_APP,
+        containerPath: "/workspace/.ralph/logs/audit.jsonl",
+        extension: "jsonl",
+        mode: CaptureMode.Collect,
+      });
+
+      // Act
+      await collector.clearCollectSources();
+
+      // Assert
+      const sent = vi.mocked(compose.exec).mock.calls.map((c) => c[0].join(" "));
+      expect(sent).toEqual([expect.stringContaining("audit.jsonl")]);
+    });
+
     it("handles truncation failures without throwing", async () => {
       const { compose } = createMockCompose();
       vi.mocked(compose.exec).mockRejectedValue(new Error("container not running"));

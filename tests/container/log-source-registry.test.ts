@@ -280,6 +280,17 @@ describe("LogSourceRegistry", () => {
       expect(source(collector, "state")?.containerPath).toBe(`/workspace/.ralph/tasks/${WORK_ITEM_ID}/state.md`);
     });
 
+    it("marks the state source to survive the clearing between pipeline stages", () => {
+      // Arrange
+      const collector = createFakeCollector();
+
+      // Act
+      registry.registerAll(collector, profile, TASK_ID, WORK_ITEM_ID, {}, [COPILOT]);
+
+      // Assert
+      expect(source(collector, "state")?.keepAcrossStages).toBe(true);
+    });
+
     it("uses workItemId (not taskId) for the artifacts export path", () => {
       const collector = createFakeCollector();
 
