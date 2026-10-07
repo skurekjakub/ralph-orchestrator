@@ -1,8 +1,12 @@
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { createCradle } from "../src/awilix-cradle";
 import { ClaudeAuthMode, CliType } from "../src/config/types";
 import { makeConfig, makeProfile } from "./helpers/factories";
 import { TaskWorkspaceManager } from "../src/services/task-workspace-manager";
+import { StageWorkspaceResolver } from "../src/services/stage-workspace";
 
 // Ensure built-in data source factories are registered
 import "../src/datasource/connectors/jira/factory";
@@ -15,6 +19,7 @@ import "../src/datasource/connectors/jira/factory";
  * `retryOptions`, `fetchComments`).
  */
 describe("createCradle", () => {
+  const rootDir = process.cwd();
   const savedEnv: Record<string, string | undefined> = {};
   const JIRA_ENV_KEYS = ["JIRA_PAT_TEST_SOURCE", "JIRA_EMAIL_TEST_SOURCE"];
 
@@ -36,7 +41,7 @@ describe("createCradle", () => {
 
   it("resolves all cradle services without AwilixResolutionError", () => {
     const config = makeConfig();
-    const cradle = createCradle(config);
+    const cradle = createCradle(config, { rootDir });
 
     expect(cradle.activityLog).toBeDefined();
     expect(cradle.pollers).toBeDefined();
@@ -52,7 +57,7 @@ describe("createCradle", () => {
 
   it("returns dataSources and profiles from the config", () => {
     const config = makeConfig();
-    const cradle = createCradle(config);
+    const cradle = createCradle(config, { rootDir });
 
     expect(cradle.dataSources).toBe(config.dataSources);
     expect(cradle.profiles).toBe(config.profiles);
@@ -60,14 +65,14 @@ describe("createCradle", () => {
 
   it("returns null heartbeat when dashboard is disabled", () => {
     const config = makeConfig();
-    const cradle = createCradle(config);
+    const cradle = createCradle(config, { rootDir });
 
     expect(cradle.heartbeat).toBeNull();
   });
 
   it("registers the Copilot CLI runtime", () => {
     // Arrange
-    const cradle = createCradle(makeConfig());
+    const cradle = createCradle(makeConfig(), { rootDir });
 
     // Act
     const runtime = cradle.cliRuntimes.get(CliType.Copilot);
@@ -78,7 +83,7 @@ describe("createCradle", () => {
 
   it("registers the Claude Code runtime with the configured credential", () => {
     // Arrange
-    const cradle = createCradle({ ...makeConfig(), claudeAuth: ClaudeAuthMode.ApiKey });
+    const cradle = createCradle({ ...makeConfig(), claudeAuth: ClaudeAuthMode.ApiKey }, { rootDir });
 
     // Act
     const runtime = cradle.cliRuntimes.get(CliType.Claude);
@@ -89,7 +94,7 @@ describe("createCradle", () => {
 
   it("resolves the executor factory, overlay writer and workspace manager with their CLI runtime dependencies", () => {
     // Arrange
-    const cradle = createCradle(makeConfig());
+    const cradle = createCradle(makeConfig(), { rootDir });
 
     // Act & Assert
     expect(cradle.executorFactory).toBeDefined();
@@ -97,12 +102,25 @@ describe("createCradle", () => {
     expect(cradle.workspaceManager).toBeInstanceOf(TaskWorkspaceManager);
   });
 
+  it("takes the orchestrator checkout from its caller", () => {
+    // Arrange
+    const checkout = mkdtempSync(join(tmpdir(), "cradle-"));
+
+    // Act
+    const cradle = createCradle(makeConfig(), { rootDir: checkout });
+
+    // Assert
+    expect(cradle.rootDir).toBe(checkout);
+    expect(cradle.sourceReposDir).toBe(join(checkout, "cache", "repos"));
+    expect(cradle.stageWorkspaces).toBeInstanceOf(StageWorkspaceResolver);
+  });
+
   it("exposes claudeAuth from the config", () => {
     // Arrange
     const config = { ...makeConfig(), claudeAuth: ClaudeAuthMode.ApiKey };
 
     // Act
-    const cradle = createCradle(config);
+    const cradle = createCradle(config, { rootDir });
 
     // Assert
     expect(cradle.claudeAuth).toBe(ClaudeAuthMode.ApiKey);
@@ -110,7 +128,7 @@ describe("createCradle", () => {
 
   it("refuses to build a container stack for a profile whose squid.conf was never generated", () => {
     // Arrange
-    const cradle = createCradle(makeConfig());
+    const cradle = createCradle(makeConfig(), { rootDir });
     const profile = makeProfile({ id: "never-set-up" });
 
     // Act & Assert

@@ -1,8 +1,9 @@
 import { join } from "node:path";
 import { existsSync } from "node:fs";
-import { createContainer, asClass, asFunction, asValue, InjectionMode } from "awilix";
+import { createContainer, asValue, InjectionMode } from "awilix";
 import type { IAppConfig, IAgentProfile } from "./config/types";
 import type { OrchestratorCradle } from "./awilix-cradle-types";
+import { wiring, type Registrations } from "./di/registration";
 import { deriveStageProfile, type ContainerManagerFactory } from "./container/types";
 import { buildDataSourceMaps } from "./datasource/registry";
 import { LogCollector } from "./logs/collector";
@@ -124,8 +125,11 @@ function buildContainerFactory({
  * Returns the full cradle proxy — services are lazily resolved on access.
  * The Orchestrator picks what it needs; other callers (e.g. index.tsx)
  * can access any registered service.
+ *
+ * @param options.rootDir The orchestrator checkout: the profile build directories, `shared/` sources, `cache/` and
+ *   the output directory resolve against it.
  */
-export function createCradle(config: IAppConfig): OrchestratorCradle {
+export function createCradle(config: IAppConfig, { rootDir }: { rootDir: string }): OrchestratorCradle {
   const container = createContainer<OrchestratorCradle>({
     injectionMode: InjectionMode.PROXY,
     strict: true,
@@ -133,78 +137,61 @@ export function createCradle(config: IAppConfig): OrchestratorCradle {
 
   const { connectors, pollers } = buildDataSourceMaps(config);
 
-  container.register({
-    // ── Config slices ─────────────────────────────────────────────────────────
+  const w = wiring<OrchestratorCradle>();
+  const root: Registrations<Omit<OrchestratorCradle, "connectors" | "pollers">> = {
+    rootDir: asValue(rootDir),
+    sourceReposDir: asValue(repoCachePaths(rootDir).sourceReposDir),
+
     dataSources: asValue(config.dataSources),
     outputConfig: asValue(config.output),
     dashboardConfig: asValue(config.dashboard),
-    secrets: asValue(config.secrets),
     profiles: asValue(config.profiles),
     promptAuditConfig: asValue(config.promptAudit),
     ralphchivesConfig: asValue(config.ralphchives),
     enableContinuation: asValue(config.enableContinuation),
     claudeAuth: asValue(config.claudeAuth),
 
-    // ── Infrastructure ────────────────────────────────────────────────────────
-    activityLog: asClass(ActivityLog).singleton(),
-    logger: asFunction(({ activityLog }) => activityLog.createLogger()).singleton(),
-    containerLogger: asFunction(({ activityLog }) => activityLog.createContainerLogger()).singleton(),
+    activityLog: w.service(ActivityLog).singleton(),
+    logger: w.factory(({ activityLog }) => activityLog.createLogger()).singleton(),
+    containerLogger: w.factory(({ activityLog }) => activityLog.createContainerLogger()).singleton(),
 
-    // ── Data sources ──────────────────────────────────────────────────────────
-    connectors: asValue(connectors),
-    pollers: asValue(pollers),
-    issueManager: asClass(IssueManager).singleton(),
-    resources: asClass(TaskResourceManager).singleton(),
-    vcsSourceClient: asFunction(() => new VcsSourceClient()).singleton(),
+    issueManager: w.service(IssueManager).singleton(),
+    resources: w.service(TaskResourceManager).singleton(),
+    vcsSourceClient: w.factory(() => new VcsSourceClient()).singleton(),
 
-    // ── Orchestration ─────────────────────────────────────────────────────────
-    ledger: asClass(OperationLedger).singleton(),
-    router: asClass(ProfileRouter).singleton(),
-    triggerScanner: asClass(TriggerScanner).singleton(),
+    ledger: w.service(OperationLedger).singleton(),
+    router: w.service(ProfileRouter).singleton(),
+    triggerScanner: w.service(TriggerScanner).singleton(),
 
-    // ── Execution infrastructure ──────────────────────────────────────────────
-    cliRuntimes: asFunction(({ claudeAuth }: Pick<OrchestratorCradle, "claudeAuth">) =>
-      createCliRuntimeRegistry(claudeAuth),
-    ).singleton(),
-    logCollector: asClass(LogCollector).singleton(),
-    promptBuilder: asClass(PromptBuilder).singleton(),
-    agentCatalogs: asFunction(() => new AgentCatalogProvider({ rootDir: process.cwd() })).singleton(),
-    executorFactory: asFunction(
-      ({ cliRuntimes, agentCatalogs }: Pick<OrchestratorCradle, "cliRuntimes" | "agentCatalogs">) =>
-        new CliExecutorFactory({ cliRuntimes, agentCatalogs, rootDir: process.cwd() }),
-    ).singleton(),
-    stageWorkspaces: asFunction(
-      ({ cliRuntimes }: Pick<OrchestratorCradle, "cliRuntimes">) =>
-        new StageWorkspaceResolver({ cliRuntimes, rootDir: process.cwd() }),
-    ).singleton(),
-    templateRenderer: asClass(AgentTemplateRenderer).singleton(),
-    skillRenderer: asClass(SkillTemplateRenderer).singleton(),
-    jitMcpConfig: asClass(JitMcpConfigWriter).singleton(),
-    overlayWriter: asClass(ComposeOverlayWriter).singleton(),
-    containerFactory: asFunction(buildContainerFactory).singleton(),
-    workspaceManager: asFunction(
-      ({ logger, cliRuntimes }: Pick<OrchestratorCradle, "logger" | "cliRuntimes">) =>
-        new TaskWorkspaceManager({
-          logger,
-          cliRuntimes,
-          sourceReposDir: repoCachePaths(process.cwd()).sourceReposDir,
-        }),
-    ).singleton(),
-    profileSetup: asClass(ProfileSetupService).singleton(),
-    pipelineExecutor: asClass(AgentPipelineExecutor).singleton(),
+    cliRuntimes: w.factory(({ claudeAuth }) => createCliRuntimeRegistry(claudeAuth)).singleton(),
+    logCollector: w.service(LogCollector).singleton(),
+    promptBuilder: w.service(PromptBuilder).singleton(),
+    agentCatalogs: w.service(AgentCatalogProvider).singleton(),
+    executorFactory: w.service(CliExecutorFactory).singleton(),
+    stageWorkspaces: w.service(StageWorkspaceResolver).singleton(),
+    templateRenderer: w.service(AgentTemplateRenderer).singleton(),
+    skillRenderer: w.service(SkillTemplateRenderer).singleton(),
+    jitMcpConfig: w.service(JitMcpConfigWriter).singleton(),
+    overlayWriter: w.service(ComposeOverlayWriter).singleton(),
+    containerFactory: w.factory(buildContainerFactory).singleton(),
+    workspaceManager: w.service(TaskWorkspaceManager).singleton(),
+    profileSetup: w.service(ProfileSetupService).singleton(),
+    pipelineExecutor: w.service(AgentPipelineExecutor).singleton(),
 
-    // ── Task runner ───────────────────────────────────────────────────────────
-    textRedactor: asFunction(() => new HookRulesRedactor()).singleton(),
-    runArtifacts: asClass(RunArtifactsDeriver).singleton(),
-    resultWriter: asClass(TaskResultWriter).singleton(),
-    hookRunner: asClass(PostTaskHookRunner).singleton(),
-    taskRunner: asClass(TaskRunner).singleton(),
+    textRedactor: w.service(HookRulesRedactor).singleton(),
+    runArtifacts: w.service(RunArtifactsDeriver).singleton(),
+    resultWriter: w.service(TaskResultWriter).singleton(),
+    hookRunner: w.service(PostTaskHookRunner).singleton(),
+    taskRunner: w.service(TaskRunner).singleton(),
 
-    // ── Optional ──────────────────────────────────────────────────────────────
-    heartbeat: asFunction(({ dashboardConfig, logger }) =>
-      dashboardConfig.enabled ? new HeartbeatSender({ dashboardConfig, logger }) : null,
-    ).singleton(),
-  });
+    heartbeat: w
+      .factory(({ dashboardConfig, logger }) =>
+        dashboardConfig.enabled ? new HeartbeatSender({ dashboardConfig, logger }) : null,
+      )
+      .singleton(),
+  };
+  container.register(root);
+  container.register({ connectors: asValue(connectors), pollers: asValue(pollers) });
 
   return container.cradle;
 }

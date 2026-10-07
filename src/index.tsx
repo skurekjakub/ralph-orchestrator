@@ -9,7 +9,7 @@ import { DashboardServer } from "./services/dashboard-server";
 async function main(): Promise<void> {
   const startup = new AppStartup();
   const config = await startup.run();
-  const cradle = createCradle(config);
+  const cradle = createCradle(config, { rootDir: process.cwd() });
 
   const orchestrator = new Orchestrator(cradle);
 

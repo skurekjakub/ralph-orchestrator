@@ -73,7 +73,7 @@ async function main() {
   }
 
   // 4. Build DI cradle
-  const cradle = createCradle(config);
+  const cradle = createCradle(config, { rootDir: process.cwd() });
 
   // 5. Determine which hooks to run (manifest hooks, optionally filtered)
   let hooks = [...manifest.hooks];

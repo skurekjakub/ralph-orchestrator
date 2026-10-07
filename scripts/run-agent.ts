@@ -50,7 +50,7 @@ async function main() {
   const stage = profile.stages[0];
   logger.info(`Matched variant ${profile.variantKey}: stage ${stage.role} runs ${stage.agent} on ${stage.cli}`);
 
-  const cradle = createCradle(config);
+  const cradle = createCradle(config, { rootDir: process.cwd() });
   const taskId = `local-run-${Date.now()}`;
   const outputDir = join(resolve(config.output.logDir), taskId);
   mkdirSync(outputDir, { recursive: true });

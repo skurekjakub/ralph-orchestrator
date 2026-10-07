@@ -2,7 +2,6 @@ import type {
   IDataSourceConfig,
   IOutputConfig,
   IDashboardConfig,
-  ISecretsConfig,
   IPromptAuditConfig,
   IRalphchivesConfig,
   IAgentProfile,
@@ -48,11 +47,14 @@ import type { IStageWorkspaceResolver } from "./services/stage-workspace";
  * `container.cradle` and `container.register()`.
  */
 export interface OrchestratorCradle {
+  // Orchestrator checkout
+  rootDir: string;
+  sourceReposDir: string;
+
   // Config slices
   dataSources: Readonly<Record<string, IDataSourceConfig>>;
   outputConfig: IOutputConfig;
   dashboardConfig: IDashboardConfig;
-  secrets: ISecretsConfig;
   profiles: readonly IAgentProfile[];
   promptAuditConfig: IPromptAuditConfig;
   ralphchivesConfig: IRalphchivesConfig;

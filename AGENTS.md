@@ -109,7 +109,7 @@ Orchestrator loop: one operation at a time; it sleeps until poller.onItems / led
 3. Register it in `createCradle()` in `src/awilix-cradle.ts` (`asClass(Foo).singleton()`).
 4. Tests construct `Foo` directly with mocks, not with the container. Add `createMockFoo(overrides)` returning `Mocked<IFoo>` to `tests/helpers/mocks.ts` when more than one suite needs it.
 
-Config slices: `dataSources`, `outputConfig`, `dashboardConfig`, `secrets`, `profiles`, `promptAuditConfig`, `ralphchivesConfig`, `enableContinuation`, `claudeAuth`.
+Config slices: `dataSources`, `outputConfig`, `dashboardConfig`, `profiles`, `promptAuditConfig`, `ralphchivesConfig`, `enableContinuation`, `claudeAuth`.
 
 `awilix-cradle.ts` is the composition root for services, but not the only place that constructs things:
 

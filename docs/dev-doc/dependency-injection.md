@@ -57,7 +57,6 @@ interface OrchestratorCradle {
   dataSources: Readonly<Record<string, IDataSourceConfig>>;
   outputConfig: IOutputConfig;
   dashboardConfig: IDashboardConfig;
-  secrets: ISecretsConfig;
   profiles: readonly IAgentProfile[];
   promptAuditConfig: IPromptAuditConfig;
   ralphchivesConfig: IRalphchivesConfig;
@@ -111,11 +110,11 @@ interface OrchestratorCradle {
 }
 ```
 
-`createCradle(config)` in `awilix-cradle.ts` builds the container with `InjectionMode.PROXY` and `strict: true`. It calls `buildDataSourceMaps(config)` to create the `connectors` and `pollers` maps through the registered data source factories, then registers:
+`createCradle(config, { rootDir })` in `awilix-cradle.ts` builds the container with `InjectionMode.PROXY` and `strict: true`. It calls `buildDataSourceMaps(config)` to create the `connectors` and `pollers` maps through the registered data source factories, then registers:
 
 - config slices with `asValue(...)`
 - service classes with `asClass(X).singleton()`
-- values that need custom construction with `asFunction(...)` — the two loggers (created by `activityLog`), `vcsSourceClient`, `cliRuntimes` (`createCliRuntimeRegistry(claudeAuth)`), `agentCatalogs`, `executorFactory`, `stageWorkspaces` and `workspaceManager` (which take the orchestrator checkout, `process.cwd()`, or a path under it), `containerFactory` (`buildContainerFactory`), `textRedactor` (`HookRulesRedactor` with its defaults), and `heartbeat` (`null` unless the dashboard is enabled)
+- values that need custom construction with `asFunction(...)` — the two loggers (created by `activityLog`), `vcsSourceClient`, `cliRuntimes` (`createCliRuntimeRegistry(claudeAuth)`), `agentCatalogs`, `executorFactory`, `stageWorkspaces` and `workspaceManager` (which take the orchestrator checkout, the `rootDir` token, or the `sourceReposDir` token under it), `containerFactory` (`buildContainerFactory`), `textRedactor` (`HookRulesRedactor`), and `heartbeat` (`null` unless the dashboard is enabled)
 
 The orchestrator and all services destructure their dependencies from the cradle — they never know which classes were instantiated.
 

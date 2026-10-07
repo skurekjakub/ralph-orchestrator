@@ -14,7 +14,7 @@ import { createMockCliRuntime, createMockLogger, createMockTextRedactor, type Mo
 import type { Logger } from "../../src/logger";
 
 const SESSIONS = join(import.meta.dirname, "../cli/claude/fixtures/claude-sessions");
-const HOOK_REDACTOR = join(import.meta.dirname, "../../shared/hooks/lib/redact.pl");
+const ROOT_DIR = join(import.meta.dirname, "../..");
 
 const TELEMETRY: RunTelemetry = {
   schemaVersion: RUN_TELEMETRY_SCHEMA_VERSION,
@@ -222,7 +222,7 @@ describe("RunArtifactsDeriver", () => {
     it("stores and records a transcript of the collected sessions with credentials scrubbed", async () => {
       // Arrange
       const runtime = new ClaudeCodeRuntime({ claudeAuth: ClaudeAuthMode.OAuthToken });
-      const hookRules = new HookRulesRedactor({ scriptPath: HOOK_REDACTOR, env: { PATH: process.env.PATH } });
+      const hookRules = new HookRulesRedactor({ rootDir: ROOT_DIR }, { PATH: process.env.PATH });
       const result = makeResult("DF-1", { collectedLogs: { "claude-sessions": SESSIONS } });
 
       // Act
@@ -251,7 +251,7 @@ describe("RunArtifactsDeriver", () => {
       ];
       writeFileSync(join(project, "s-1.jsonl"), entries.map((entry) => JSON.stringify(entry)).join("\n"));
       const runtime = new ClaudeCodeRuntime({ claudeAuth: ClaudeAuthMode.OAuthToken });
-      const hookRules = new HookRulesRedactor({ scriptPath: HOOK_REDACTOR, env: { PATH: process.env.PATH } });
+      const hookRules = new HookRulesRedactor({ rootDir: ROOT_DIR }, { PATH: process.env.PATH });
       const result = makeResult("DF-1", { collectedLogs: { "claude-sessions": join(outputDir, "claude-sessions") } });
 
       // Act
