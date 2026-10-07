@@ -41,7 +41,6 @@ export default [
       "**/node_modules/",
       "ralph-dashboard/",
       "dashboard-local/",
-      "scripts/",
       "shared/",
       "profiles/",
       "containment/",
@@ -80,6 +79,17 @@ export default [
       ...extensionlessImportRules,
       "@typescript-eslint/no-explicit-any": "off",
     },
+  },
+
+  {
+    files: ["scripts/**/*.ts"],
+    languageOptions: {
+      parserOptions: {
+        project: "./scripts/tsconfig.json",
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+    rules: { ...sharedRules, ...extensionlessImportRules },
   },
 
   // Ralphchives — standalone scripts (plain JS/MJS with Node.js globals)

@@ -17,7 +17,10 @@
  */
 import "dotenv/config";
 import { resolve } from "node:path";
-import type { ResetContext, JiraEnv, TaskDifficulty } from "./reset-testenv/types";
+import { loadConfig } from "../src/config/loader";
+import { jiraConnectionSchema } from "../src/config/schemas";
+import { resolveJiraCredentials } from "../src/datasource/connectors/jira/factory";
+import { RESET_PROFILE_ID, type ResetContext, type JiraEnv, type TaskDifficulty } from "./reset-testenv/types";
 import {
   fetchIssue,
   deleteComments,
@@ -55,15 +58,20 @@ const difficulty: TaskDifficulty = flags.includes("--very-hard-admin")
             ? "medium"
             : "easy";
 
-const jiraEnv: JiraEnv = {
-  email: process.env.JIRA_EMAIL || "",
-  apiToken: process.env.JIRA_PAT || "",
-  cloudId: "37df0bb1-cba3-49a3-a001-61b91bdd8c08",
-};
-
-if (!jiraEnv.email || !jiraEnv.apiToken) {
-  console.error("❌ JIRA_EMAIL and JIRA_PAT must be set in .env");
-  process.exit(1);
+/**
+ * The JIRA connection the orchestrator itself uses for the reset profile: its data source's `connection`
+ * from config.json and that data source's `JIRA_PAT_<KEY>` / `JIRA_EMAIL_<KEY>`.
+ *
+ * @throws Error when the profile or its data source is missing, or the credentials are unset.
+ */
+function resolveJiraEnv(): JiraEnv {
+  const config = loadConfig();
+  const profile = config.profiles.find((p) => p.id === RESET_PROFILE_ID);
+  if (!profile) throw new Error(`Profile "${RESET_PROFILE_ID}" not found`);
+  const source = config.dataSources[profile.dataSource];
+  if (!source) throw new Error(`Data source "${profile.dataSource}" is not in config.json`);
+  const { baseUrl, cloudId } = jiraConnectionSchema.parse(source.connection);
+  return { ...resolveJiraCredentials(profile.dataSource), baseUrl, cloudId };
 }
 
 const ctx: ResetContext = {
@@ -72,6 +80,7 @@ const ctx: ResetContext = {
 };
 
 async function main() {
+  const jiraEnv = resolveJiraEnv();
   console.log(`\n🔄 Resetting ${issueKey} to clean state (${difficulty} task)...\n`);
 
   console.log("1. Fetching issue...");

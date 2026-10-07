@@ -24,6 +24,8 @@ import { createCradle } from "../src/awilix-cradle";
 import { TaskStatus } from "../src/container/types";
 import { consoleLogger } from "../src/logger";
 import type { IPostTaskHook } from "../src/config/types";
+import type { TaskContext } from "../src/services/task-context";
+import { repoCachePaths } from "../src/services/task-workspace-manager";
 
 interface HookManifest {
   taskId: string;
@@ -107,7 +109,7 @@ async function main() {
   }
 
   // 6. Build a minimal TaskContext from the manifest
-  const ctx = {
+  const ctx: TaskContext = {
     workItem: {
       id: manifest.workItemId,
       source: manifest.source,
@@ -131,6 +133,7 @@ async function main() {
     ralphchivesEnabled: config.ralphchives.enabled,
     prUrl: null,
     outputDir: absOutputDir,
+    workspacePath: join(repoCachePaths(process.cwd()).workspacesDir, manifest.taskId),
     signal: new AbortController().signal,
     onToolOutput: undefined,
     onPreToolUse: undefined,

@@ -7,9 +7,13 @@ export interface ResetContext {
   rootDir: string;
 }
 
-/** JIRA connection config loaded from environment. */
+/** The profile whose data source, repository and workspaces the reset cleans. */
+export const RESET_PROFILE_ID = "ralph-docs";
+
+/** JIRA connection of the reset profile's data source, with its credentials from the environment. */
 export interface JiraEnv {
   email: string;
   apiToken: string;
+  baseUrl: string;
   cloudId: string;
 }

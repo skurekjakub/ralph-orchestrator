@@ -3,9 +3,7 @@ import { join, resolve } from "node:path";
 import { execFileSync } from "node:child_process";
 import { readProfileFile, resolveProfileVariants } from "../../src/config/profile-variants";
 import { gitAuthHeader, repoCachePaths } from "../../src/services/task-workspace-manager";
-import type { ResetContext } from "./types";
-
-const PROFILE_ID = "ralph-docs";
+import { RESET_PROFILE_ID, type ResetContext } from "./types";
 
 /** Run git with the profile's PAT as a per-command auth header; git never prompts. */
 function authGit(authHeader: string, args: string[]): string {
@@ -18,12 +16,12 @@ function authGit(authHeader: string, args: string[]): string {
 
 /** Delete the issue's `ralph/<KEY>*` branches on the ralph-docs remote. */
 function deleteRemoteBranches(ctx: ResetContext): void {
-  const profileJson = resolve(ctx.rootDir, `profiles/${PROFILE_ID}/profile.json`);
+  const profileJson = resolve(ctx.rootDir, `profiles/${RESET_PROFILE_ID}/profile.json`);
   if (!existsSync(profileJson)) {
-    console.log(`  ⚠ profiles/${PROFILE_ID}/profile.json not found, skipping remote branches`);
+    console.log(`  ⚠ profiles/${RESET_PROFILE_ID}/profile.json not found, skipping remote branches`);
     return;
   }
-  const [profile] = resolveProfileVariants(readProfileFile(profileJson), PROFILE_ID);
+  const [profile] = resolveProfileVariants(readProfileFile(profileJson), RESET_PROFILE_ID);
   const pat = process.env[profile.repoPat];
   if (!pat) {
     console.log(`  ⚠ ${profile.repoPat} is not set, skipping remote branches`);

@@ -30,7 +30,7 @@ No quick fixes. Always diagnose to the root cause and devise proper solutions. N
 Safe (local only, no external side effects):
 
 ```bash
-npm run lint         # tsc type-check (src + tests) + eslint . + prettier --check . (lint fails on unformatted files)
+npm run lint         # tsc type-check (src, tests, scripts) + eslint . + prettier --check . (lint fails on unformatted files)
 npm run format       # prettier --write . + eslint --fix (the format-on-edit hook does this per edited file)
 npm test             # lint + build + vitest run (CI runs these three gates as separate steps)
 npm run test:watch   # vitest watch, no lint/build
@@ -48,10 +48,10 @@ Side-effecting. Run these only when the user asks:
 | `npm run dev`, `npm start`                     | The real orchestrator. It polls live JIRA, posts comments, transitions issues, rebuilds custom MCP servers, starts Docker stacks, clones and fetches each profile's `repoUrl` into `cache/repos/` and a workspace per task into `cache/workspaces/`, lets agents push branches and open PRs, and writes `cache/trigger-cache.json` and `output/`. `start` runs validate + build first. |
 | `npm run agent <trigger> "<prompt>"`           | `scripts/run-agent.ts`: runs one variant in the full container stack with live MCP credentials.                                                                                                                                                                                                                                                                                        |
 | `npx tsx scripts/run-hooks.ts <outputDir>`     | Replays post-task hooks from `hook-manifest.json` with the host `copilot` CLI.                                                                                                                                                                                                                                                                                                         |
-| `npm run reset-testenv[:medium\|:hard\|…]`     | `scripts/reset-issue.ts`: deletes the JIRA issue's comments and attachments, resets fields, transitions it to To Do, deletes the **remote** `ralph/<KEY>*` branches on the ralph-docs `repoUrl` and the issue's workspaces, and clears containers, logs and the trigger-cache entry.                                                                                                   |
+| `npm run reset-testenv[:medium\|:hard\|…]`     | `scripts/reset-issue.ts`, with the JIRA connection and credentials of ralph-docs' data source: deletes the JIRA issue's comments and attachments, resets fields, transitions it to To Do, deletes the **remote** `ralph/<KEY>*` branches on the ralph-docs `repoUrl` and the issue's workspaces, and clears containers, logs and the trigger-cache entry.                              |
 | `npm run ralphchives:backup-db`, `:restore-db` | NodeBB backup and restore (`ralphchives/scripts/*.sh`).                                                                                                                                                                                                                                                                                                                                |
 
-`scripts/` is neither type-checked (outside both tsconfigs) nor linted (eslint-ignored), so a broken script only fails when it runs.
+`npm run lint` type-checks and lints `scripts/` (`scripts/tsconfig.json`) like `src/` and `tests/`, though no test runs them.
 
 ## How it works
 

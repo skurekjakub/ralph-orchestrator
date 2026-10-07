@@ -730,7 +730,7 @@ function getDescription(difficulty: TaskDifficulty) {
 }
 
 function makeClient(env: JiraEnv) {
-  const base = `https://api.atlassian.com/ex/jira/${env.cloudId}/rest/api/3`;
+  const base = `${env.baseUrl.replace(/\/+$/, "")}/${env.cloudId}/rest/api/3`;
   const auth = "Basic " + Buffer.from(`${env.email}:${env.apiToken}`).toString("base64");
 
   return async function request(method: string, path: string, body?: unknown): Promise<Response> {
@@ -752,13 +752,22 @@ function makeClient(env: JiraEnv) {
   };
 }
 
-export async function fetchIssue(issueKey: string, env: JiraEnv) {
-  const request = makeClient(env);
-  const res = await request("GET", `/issue/${issueKey}?fields=status,comment,attachment,summary`);
-  return res.json();
+/** The fields of a JIRA issue the reset reads. */
+export interface ResetIssue {
+  fields?: {
+    status?: { name?: string };
+    comment?: { comments?: { id: string }[] };
+    attachment?: { id: string }[];
+  };
 }
 
-export async function deleteComments(issueKey: string, issue: any, env: JiraEnv) {
+export async function fetchIssue(issueKey: string, env: JiraEnv): Promise<ResetIssue> {
+  const request = makeClient(env);
+  const res = await request("GET", `/issue/${issueKey}?fields=status,comment,attachment,summary`);
+  return (await res.json()) as ResetIssue;
+}
+
+export async function deleteComments(issueKey: string, issue: ResetIssue, env: JiraEnv) {
   const request = makeClient(env);
   const comments = issue.fields?.comment?.comments ?? [];
   if (comments.length === 0) {
@@ -773,9 +782,9 @@ export async function deleteComments(issueKey: string, issue: any, env: JiraEnv)
   console.log(" done");
 }
 
-export async function deleteAttachments(issueKey: string, issue: any, env: JiraEnv) {
+export async function deleteAttachments(issueKey: string, issue: ResetIssue, env: JiraEnv) {
   const request = makeClient(env);
-  const attachments: any[] = issue.fields?.attachment ?? [];
+  const attachments = issue.fields?.attachment ?? [];
   if (attachments.length === 0) {
     console.log("  ✓ No attachments to delete");
     return;

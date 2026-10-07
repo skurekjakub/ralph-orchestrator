@@ -10,7 +10,7 @@ Vitest runs in ESM mode. `vitest.config.ts` includes only `tests/**/*.test.ts` a
 ```bash
 npx vitest run tests/services/task-runner.test.ts   # one file while iterating
 npm run test:watch                                  # watch, no lint/build
-npm test                                            # lint (src + tests tsconfig + eslint) → build → vitest; run before finishing
+npm test                                            # lint (src, tests and scripts tsconfigs + eslint) → build → vitest; run before finishing
 ```
 
 ## Layout and naming

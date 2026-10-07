@@ -23,7 +23,7 @@ import { buildJqlFromProfiles } from "./jql-builder";
  *
  * @throws if either env var is missing
  */
-function resolveJiraCredentials(sourceKey: string): { email: string; apiToken: string } {
+export function resolveJiraCredentials(sourceKey: string): { email: string; apiToken: string } {
   const envKey = sourceKey.toUpperCase().replace(/-/g, "_");
   const apiToken = process.env[`JIRA_PAT_${envKey}`];
   const email = process.env[`JIRA_EMAIL_${envKey}`];
