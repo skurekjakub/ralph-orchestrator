@@ -15,8 +15,9 @@ Orchestrator.executeOperation()            # src/orchestrator.ts — resolve pro
                             ContainerWorkspaceCleaner.prepareConfigDir() / cleanPaths()
                             ContainerManager.registerLogSources() / setup()
       4. executeAgent     → AgentPipelineExecutor.run()              # src/services/agent-pipeline-executor.ts
-           per stage: ProfileSetupService.prepareForStage()          # multi-stage only
-                      ContainerManager.createExecutorForStage()      # container → CopilotExecutor, local → LocalCopilotExecutor
+           per stage: StageWorkspaceResolver.forStage()              # src/services/stage-workspace.ts
+                      ProfileSetupService.prepareForStage()          # multi-stage pipelines and local stages
+                      ContainerManager.createExecutorForStage()      # container → ClaudeCodeExecutor / CopilotExecutor, local → LocalClaudeCodeExecutor / LocalCopilotExecutor
                       ContainerManager.executeWithExecutor()         # src/container/manager.ts
                         → AgentSessionRunner.run()                   # src/container/agent-session-runner.ts
                           → PromptBuilder.build()                    # src/prompt/prompt-builder.ts
@@ -27,11 +28,11 @@ Orchestrator.executeOperation()            # src/orchestrator.ts — resolve pro
                                 → new StreamCapture(proc, ...)       # src/container/stream-capture.ts
                           → parseResultBlock() + resolveStatus()     # src/container/result-parser.ts
       5. TaskResultWriter.collectResults()                           # src/services/task-result-writer.ts — logs, transcript, summary
-      6. teardown, then executePostTaskHooks()                        # local-only hook stages (e.g. ralph.scientist)
+      6. teardown, then PostTaskHookRunner.run()                      # src/services/post-task-hook-runner.ts — local-only hook stages (e.g. ralph.scientist)
       7. TaskWorkspaceManager.cleanup()                               # deletes the workspace on success, keeps it otherwise
 ```
 
-`CliExecutorFactory` (`src/container/cli-executor-factory.ts`) only builds Copilot executors and throws `GH_TOKEN is required` without a token. `ClaudeCodeExecutor` exists in `src/container/cli-executors/claude-code-executor.ts` but nothing instantiates it, so `cli: "claude"` profiles still run Copilot.
+`CliExecutorFactory` (`src/container/cli-executor-factory.ts`) dispatches on each stage's `cli`: `ClaudeCodeExecutor` or `CopilotExecutor` in the container, `LocalClaudeCodeExecutor` or `LocalCopilotExecutor` on the host. Credentials are checked by startup validation, not by the factory.
 
 ## Where things are logged or decided
 
@@ -55,4 +56,15 @@ Per task, `ProfileSetupService.prepareForTask()` runs `AgentTemplateRenderer.ren
 
 ## Local stages
 
-`mode: "local"` stages (post-task hooks such as `ralph.scientist`) use `LocalCopilotExecutor` with `cwd = process.cwd()`, i.e. this repo's root. They have no container logs. Their output lands under `<outputDir>/hooks/<hookName>/`, and hook failures are only warnings that never change the task result.
+`mode: "local"` stages (post-task hooks such as `ralph.scientist`) run `node_modules/.bin/<cli>` on the host through `LocalClaudeCodeExecutor` or `LocalCopilotExecutor`, each in its own workspace. They have no container logs; everything they leave is in the task's output directory, and hook failures are only warnings that never change the task result.
+
+| Path (under `<outputDir>/`)                | Holds                                                                                                                                    |
+| ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `hooks/<hook>/artifacts/`                  | The hook's subagent artifacts (`{{ artifactDir }}`), improver proposals under `agent-improver/<subagent>/proposals/`                     |
+| `hooks/<hook>/<role>/work/`                | The CLI's cwd; Copilot's rendered agents and skills in `.github/`                                                                        |
+| `hooks/<hook>/<role>/home/`                | Private CLI home: Claude Code's rendered agents and skills and its session transcripts (`projects/`); Copilot's config and session state |
+| `hooks/<hook>/<role>/logs/`                | Claude Code's debug log (`claude.log`) and audit hook output (`audit.jsonl`, `ralph.log`, …); Copilot's `cli-debug/`                     |
+| `hooks/<hook>/<role>/claude-settings.json` | Claude Code's hooks and permission rules for the stage                                                                                   |
+| `stages/<role>/`                           | The same layout for a variant's local stage; its artifacts are the container stages' own                                                 |
+
+A host stage that ends at once usually never started its CLI: look for `Rendered … agent … not found` (the stage's agents were not rendered into its workspace) or a missing binary (startup validation reports `node_modules/.bin/<cli> not found` or a version mismatch). A Claude Code stage whose tool calls fail with permission errors hit its `dontAsk` rules; compare the denied call with `claude-settings.json`.

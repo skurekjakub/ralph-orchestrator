@@ -196,7 +196,7 @@ output/
     │   ├── <key>-<startTs>-<ts>-session-db           # Exported CLI session store
     │   ├── <key>-<startTs>-<ts>-artifacts/           # Exported subagent artifacts (.ralph/tasks/<key>/artifacts)
     │   ├── <key>-<startTs>-<ts>-summary.json         # Execution metadata
-    │   ├── hooks/<hook-name>/                        # Post-task hook output directory (hook.outputDir)
+    │   ├── hooks/<hook-name>/                        # Post-task hook output (hook.outputDir): artifacts/ and one workspace per stage
     │   └── hook-manifest.json                        # Hook replay manifest (only when skip_hooks param is set)
     ├── activity-YYYY-MM-DD.log                       # Persistent activity log (all sessions)
     ├── container-YYYY-MM-DD.log                      # Persistent container output log

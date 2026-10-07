@@ -61,8 +61,9 @@
     React/Next.js code and `web-design-guidelines` for UI review.
   - Failed runs and `output/logs/` forensics: `task-failure-diagnosis`,
     `cli-debug-log-analysis`.
-  - Never rename `agent-eval`, `cli-debug-log-analysis`, `skill-creator` or
-    `mcp-builder`: the host-side `ralph.scientist` hook loads them by name.
+  - Never rename the runtime skills in `shared/skills/analysis/`
+    (`agent-eval`, `run-telemetry-analysis`, `skill-creator`, `mcp-builder`):
+    the host-side `ralph.scientist` hook loads them by name.
 
 ## Review hunt list (rubber-duk-review, rubber-duk-backend)
 
@@ -149,8 +150,11 @@
     surface and needs a reason. The sidecar has direct egress
     (`ralph-sidecar-external`), so an MCP tool that returns fetched content is
     an injection path into the agent.
-  - Host: `mode: "local"` stages and post-task hooks run `copilot` on the
-    host with cwd = this repo root, outside the container sandbox.
+  - Host: `mode: "local"` stages and post-task hooks run outside the
+    container sandbox, each in its own workspace under the task's output
+    directory with only its CLI credential in its environment; a change that
+    widens their permission rules (`claude-host-settings.ts`) or their
+    environment (`host-env.ts`) needs a reason.
   - Orchestrator → ralph-dashboard: `DASHBOARD_SECRET` leaves the orchestrator
     only as the bearer header in `src/services/heartbeat.ts`. It never appears
     in a response, a client component or a `NEXT_PUBLIC_*` var. `GET

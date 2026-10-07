@@ -4,7 +4,7 @@ All secrets and credentials are stored in `.env` at the project root. Never comm
 
 ## Required
 
-The credential of every CLI a stage runs must be set, plus each profile's `repoPat` variable. Startup validation reports what is missing. An agent container receives only the credential of each CLI its container stages run, as a `${VAR}` reference resolved at compose time.
+The credential of every CLI a stage runs must be set, plus each profile's `repoPat` variable. Startup validation reports what is missing. An agent container receives only the credential of each CLI its container stages run, as a `${VAR}` reference resolved at compose time. A host (`mode: "local"`) stage, post-task hooks included, gets the same one credential of its own CLI, chosen by `claudeAuth` for Claude Code, and from the rest of the orchestrator's environment only `PATH`, `HOME` and `LANG`.
 
 | Variable                  | Description                                                                                                              |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------ |

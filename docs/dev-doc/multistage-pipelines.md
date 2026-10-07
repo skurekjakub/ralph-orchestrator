@@ -28,7 +28,7 @@ A multistage pipeline defines an ordered list of agents within a single variant.
 - **Abort on failure** — if any stage returns `TaskStatus.Error`, the pipeline stops
 - **Last stage authoritative** — the final stage's `RalphResult` (status, PR URL, stdout) is the task outcome
 - **Duration = sum** — total task duration is the sum of all stage durations
-- **Shared workspace** — all container stages share `/workspace`; local stages run in the orchestrator repo
+- **Shared workspace** — all container stages share `/workspace`; each local stage runs in a workspace of its own under the task's output directory
 
 ## Configuration
 
@@ -105,20 +105,35 @@ docker compose exec --user vscode app copilot --agent ralph.ralph -p <prompt>
 
 ### Local mode (`"local"`)
 
-The agent CLI runs directly on the host machine in the **orchestrator repo directory** (`process.cwd()`). This is intended for self-improvement workflows where the agent modifies orchestrator files — agent templates, skills, profile configs.
+The agent CLI runs directly on the host machine, Claude Code (`LocalClaudeCodeExecutor`) or Copilot CLI (`LocalCopilotExecutor`), each from the orchestrator's own `node_modules/.bin` at the version `package.json` pins. It is intended for analysis and self-improvement workflows over the task's logs and the orchestrator's runtime sources (agent templates, skills, profile configs).
+
+Each local stage gets a workspace of its own (`StageWorkspaceResolver`, `src/services/stage-workspace.ts`) under the task's output directory: `<outputDir>/stages/<role>/` for a variant's stage, `<outputDir>/hooks/<hook>/<role>/` for a post-task hook stage.
 
 ```
-copilot --agent ralph.analyst -p <prompt>
+<stageDir>/
+  work/                  ← the CLI's cwd (Copilot finds its agents and skills in work/.github/)
+  home/                  ← private CLI home: CLAUDE_CONFIG_DIR (agents/, skills/, sessions) or Copilot --config-dir
+  logs/                  ← debug log (claude.log, cli-debug/) and, for Claude Code, Ralph's audit hook output
+  claude-settings.json   ← Claude Code only: hooks and permission rules, passed with --settings
 ```
 
-The host path of the task's workspace, its clone of the target repository where containerized stages work, is available in templates via `{{ targetRepoPath }}`. This lets local agents reference the target repo without running inside it. The workspace is deleted after a successful task, once the post-task hooks have run.
+```
+node_modules/.bin/claude -p --output-format stream-json --verbose --agent <name> --setting-sources user \
+  --settings <stageDir>/claude-settings.json --strict-mcp-config --permission-mode dontAsk \
+  --tools Read,Write,Edit,Bash,Skill,TaskCreate,TaskGet,TaskList,TaskUpdate[,Agent] \
+  --add-dir <outputDir> --add-dir <repo>/profiles --add-dir <repo>/shared --session-id <uuid> --debug-file <stageDir>/logs/claude.log
+```
+
+The host path of the task's workspace, its clone of the target repository where containerized stages work, is available in templates via `{{ targetRepoPath }}`; a variant's local stage may read it, and its `artifactDir` is the container stages' `.ralph/tasks/<key>/artifacts` in that workspace. The workspace is deleted after a successful task, once the post-task hooks have run.
 
 **Local mode considerations:**
 
-- The agent runs with the host user's permissions and environment
-- No Docker isolation, no Squid proxy, no MCP sidecar
-- The agent can read/write orchestrator files directly
-- Only `copilot` CLI is currently supported for local mode (via `LocalCopilotExecutor`)
+- No Docker isolation, no Squid proxy, no MCP sidecar. The CLI runs with the host user's permissions, so it is fenced in otherwise:
+- Its environment holds only `PATH`, `HOME`, `LANG` and its own credential (`extendEnv: false`); no other orchestrator secret (`ADO_PAT`, `JIRA_*`, another CLI's token) reaches it.
+- Its private home keeps the developer's own CLI settings, hooks, plugins, agents, skills, memory, login and MCP servers out.
+- Claude Code loads no `CLAUDE.md` (`CLAUDE_CODE_DISABLE_CLAUDE_MDS=1`; the output directory sits inside the orchestrator checkout), runs no MCP server and has no web tools. It runs in `dontAsk` mode under generated allow rules (`src/cli/claude/claude-host-settings.ts`): read the working directory, the task's output directory and the orchestrator's `profiles/` and `shared/`; write only in its working and artifact directories; run only `jq`, `grep`, `ls`, `wc`, `cat`, `head`, `tail` and `date` with Bash; load skills; spawn the stage's subagents. Reading the orchestrator's `.env` is denied. Ralph's audit hooks run from `shared/hooks/` and write to `<stageDir>/logs/`.
+- Copilot CLI keeps `--allow-all-tools --allow-all-paths`.
+- No local stage edits `profiles/` or `shared/`: improvers write proposals into their artifact directory instead.
 
 ## Agent Templates
 
@@ -126,9 +141,9 @@ Each stage references an agent by name (e.g. `ralph.ralph-researcher`). The corr
 
 ### Per-stage rendering
 
-Templates are re-rendered before each stage with stage-specific context, so each agent sees correct metadata for its position in the pipeline. Before the containers start, `ProfileSetupService.prepareForTask` renders the agents of the first stage and of every container stage, so every agent file the compose overlay mounts exists. Renders rewrite the files in `.build/` in place, so container stages see the changes through their bind mounts.
+Templates are re-rendered before each stage with stage-specific context, so each agent sees correct metadata for its position in the pipeline. Before the containers start, `ProfileSetupService.prepareForTask` renders the agents of every container stage, so every agent file the compose overlay mounts exists. Renders rewrite the files in `.build/` in place, so container stages see the changes through their bind mounts. A local stage renders its agents and skills into its own workspace right before it runs, even in a single-stage pipeline.
 
-Copilot CLI mounts each agent file and skill directory into the target repo's `.github/` one by one (`ICliRuntime.mountsEachRenderedItem`). While a variant with a Copilot container stage runs, renders therefore keep every rendered file in place. Claude Code mounts its agents directory whole, so each stage's render removes the agents its root cannot reach. Post-task hook stages render after teardown and always prune.
+Copilot CLI mounts each agent file and skill directory into the target repo's `.github/` one by one (`ICliRuntime.mountsEachRenderedItem`). While a variant with a Copilot container stage runs, renders therefore keep every rendered file in place. Claude Code mounts its agents directory whole, so each stage's render removes the agents its root cannot reach. Local stages, post-task hook stages included, render into their own workspace and always prune.
 
 ### Stage context variables
 
@@ -163,7 +178,7 @@ Previous stages completed: {{ previousStageRoles | join: ", " }}.
 {% endif %}
 
 {% if stageMode == "local" %}
-You are running on the host machine in the orchestrator repository.
+You are running on the host machine, in a workspace of your own.
 The target repository (where containerized agents work) is at: {{ targetRepoPath }}
 {% endif %}
 {% endsection %}
@@ -351,14 +366,16 @@ Add `postTaskHooks` to a variant alongside `stages`:
 
 Hook stages receive the `hook` object in addition to the standard stage context (empty values for main pipeline stages):
 
-| Variable             | Type                     | Description                                                            |
-| -------------------- | ------------------------ | ---------------------------------------------------------------------- |
-| `hook.taskOutputDir` | `string`                 | Absolute path to the task's log directory (`<output.logDir>/<taskId>`) |
-| `hook.collectedLogs` | `Record<string, string>` | Map of log source IDs to file paths from the main pipeline             |
-| `hook.name`          | `string`                 | Name of the current hook (e.g. `"run-analysis"`)                       |
-| `hook.outputDir`     | `string`                 | `<taskOutputDir>/hooks/<hook-name>` — created before the hook runs     |
+| Variable               | Type                     | Description                                                                                   |
+| ---------------------- | ------------------------ | --------------------------------------------------------------------------------------------- |
+| `hook.taskOutputDir`   | `string`                 | Absolute path to the task's log directory (`<output.logDir>/<taskId>`)                        |
+| `hook.collectedLogs`   | `Record<string, string>` | Map of log source IDs to file paths from the main pipeline                                    |
+| `hook.name`            | `string`                 | Name of the current hook (e.g. `"run-analysis"`)                                              |
+| `hook.outputDir`       | `string`                 | `<taskOutputDir>/hooks/<hook-name>` — created before the hook runs                            |
+| `hook.cli`             | `string`                 | CLI the task's first stage ran (`claude` or `copilot`): the run the hook analyses             |
+| `hook.orchestratorDir` | `string`                 | Absolute path of the orchestrator checkout, whose `profiles/` and `shared/` the hook may read |
 
-`artifactDir` stays `.ralph/tasks/<id>/artifacts`. Hook stages run with the orchestrator repo root as cwd, so subagent artifacts written there land in `<orchestrator-repo>/.ralph/tasks/<id>/artifacts/`, not in `hook.outputDir`.
+`artifactDir` is `<taskOutputDir>/hooks/<hook-name>/artifacts`, absolute and shared by all of the hook's stages.
 
 ### Output directory layout
 
@@ -368,11 +385,10 @@ output/logs/<taskId>/
   DF-100-...-summary.json
   DF-100-...-audit.jsonl
   hooks/
-    run-analysis/              ← hook.outputDir (created by TaskRunner)
-
-<orchestrator-repo>/.ralph/tasks/DF-100/artifacts/
-  subagent-mapper/ run-analyzer/<subagent>/ agent-improver/<subagent>/ run-synthesizer/
-                               ← scientist subagent artifacts ({{ artifactDir }})
+    run-analysis/              ← hook.outputDir (created by PostTaskHookRunner)
+      artifacts/               ← {{ artifactDir }}: subagent-mapper/ run-analyzer/<subagent>/
+                                 agent-improver/<subagent>/proposals/ run-synthesizer/
+      scientist/               ← the stage's workspace: work/ home/ logs/ claude-settings.json
 ```
 
 ### Execution flow
@@ -390,9 +406,9 @@ Main pipeline stages → collectResults → container teardown
 
 ### Built-in hooks
 
-Every variant in the bundled profiles (`ralph-docs`: `@Ralph`, `@Malph`, `@RalphDev`; `ralph-vscode`: `@RalphAutocomplete`, `@MalphAutocomplete`) declares a `run-analysis` hook with a single local stage, `ralph.scientist`. The scientist dispatches subagents:
+Every variant in the bundled profiles (`ralph-docs`: `@Ralph`, `@Malph`, `@RalphDev`; `ralph-vscode`: `@RalphAutocomplete`, `@MalphAutocomplete`) declares a `run-analysis` hook with a single local stage, `ralph.scientist`, which mounts the runtime skills in `shared/skills/analysis/`: `agent-eval`, `run-telemetry-analysis`, `skill-creator` and `mcp-builder`. The scientist dispatches subagents:
 
-1. **subagent-mapper** (`ralph-docs` only) — extracts per-subagent spans, tool calls and errors from the collected CLI debug log.
-2. **run-analyzer** — analyzes one subagent's execution per dispatch (`analyzed` or `skipped`).
-3. **agent-improver** — applies targeted changes to agent templates, skills, shared includes and MCP server configs based on one analysis (`improved` or `no-action`).
+1. **subagent-mapper** (`ralph-docs` only) — extracts per-subagent spans, tool calls and errors from the run telemetry (`*-claude-run-telemetry.json`), or from the collected Copilot CLI debug log when there is none.
+2. **run-analyzer** — analyzes one subagent's execution per dispatch (`analyzed` or `skipped`); its list of critical egress domains follows `hook.cli`.
+3. **agent-improver** — proposes targeted changes to agent templates, skills, shared includes and MCP server configs based on one analysis (`improved` or `no-action`). It never edits the live tree: each changed file is written whole to `{{ artifactDir }}/agent-improver/<subagent>/proposals/<path relative to the orchestrator checkout>`. Apply the proposals with `cp -r <proposals>/. <orchestrator checkout>/`, review `git diff`, and open a PR.
 4. **run-synthesizer** (`ralph-docs` only) — writes a cross-subagent synthesis.

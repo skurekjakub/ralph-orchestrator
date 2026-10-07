@@ -38,15 +38,17 @@ compose file or `squid.conf` is gone after the next task.
 `shared/agent-includes/`, `shared/skills/<name>/`, `profile.json` or
 `src/container/setup/*`.
 
-## Local stages write into this checkout
+## Local stages run beside this checkout, not in it
 
-**Symptom:** `.ralph/` and `.github/agents/` appear at the repo root, or a
-host-side hook reads or edits this repo's files.
-**Cause:** `mode: "local"` stages and post-task hooks run the host `copilot`
-CLI with cwd = this repo root; `LocalCopilotExecutor` symlinks the rendered
-agents into `.github/agents/` and writes `.ralph/` here.
-**Fix:** both paths are gitignored — never commit them. Paths in a local-stage
-template are host paths relative to this repo, not `/workspace/...`.
+**Symptom:** a host-side hook cannot find a file by a path relative to this
+repo, or an improver's change does not show up in `profiles/` or `shared/`.
+**Cause:** `mode: "local"` stages and post-task hooks run in a workspace of
+their own under the task's output directory, not with cwd = this repo root,
+and `agent-improver` writes proposals instead of editing the live tree.
+**Fix:** reach this repo through `{{ hook.orchestratorDir }}` and the task's
+logs through `{{ hook.taskOutputDir }}`; apply an improver's
+`proposals/` by PR. Paths in a local-stage template are host paths, not
+`/workspace/...`.
 
 ## Green root `npm test`, untested change
 

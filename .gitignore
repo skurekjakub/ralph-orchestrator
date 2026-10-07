@@ -29,13 +29,6 @@ config.json
 
 todo.md
 
-# Runtime output written into the repo root by host-side (local) stages and post-task hooks
-/.ralph/
-/logs/
-
-# Rendered runtime agents symlinked here by local stages (LocalCopilotExecutor)
-/.github/agents/
-
 # Agent scratch state
 /.agents/
 /.sisyphus/

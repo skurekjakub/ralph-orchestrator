@@ -274,7 +274,14 @@ The settings are mounted read-only at `/workspace/.ralph/settings.json`, and `CO
 
 ### Local-Mode Stages
 
-Stages with `mode: "local"` — including every post-task hook stage — run the Copilot CLI directly on the orchestrator host via `LocalCopilotExecutor`. They run in the orchestrator repo root with `--allow-all-tools --allow-all-paths` and inherit the orchestrator's environment, including the secrets loaded from `.env`. They read the host user's own Copilot settings, so they get neither the `copilot-settings.json` URL allowlist nor the audit hooks. None of the container controls in this document (network isolation, Squid, capability drop, resource limits) apply to them.
+Stages with `mode: "local"` — including every post-task hook stage — run Claude Code (`LocalClaudeCodeExecutor`) or Copilot CLI (`LocalCopilotExecutor`) directly on the orchestrator host. None of the container controls in this document (network isolation, Squid, capability drop, resource limits) apply to them. What fences them in instead:
+
+- **Own workspace.** Each stage runs in `<outputDir>/hooks/<hook>/<role>/` or `<outputDir>/stages/<role>/`, with a private CLI home, so the host user's own CLI settings, hooks, plugins, agents, skills, memory, login and MCP servers stay out and nothing the stage writes lands in the orchestrator checkout.
+- **Pinned CLI.** The stage runs `node_modules/.bin/<cli>` at the version `package.json` pins, never a CLI on `PATH`; startup validation checks it.
+- **No secrets.** The CLI starts with `extendEnv: false`: `PATH`, `HOME`, `LANG` and its own credential only. `ADO_PAT`, the `JIRA_*` credentials and other CLIs' tokens never reach it or its tools.
+- **Claude Code** loads no `CLAUDE.md` and no MCP server, has no `WebFetch`/`WebSearch`, runs Ralph's audit hooks, and runs in `dontAsk` mode under generated permission rules (`src/cli/claude/claude-host-settings.ts`): it reads the task's output directory and the orchestrator's `profiles/` and `shared/`, writes only in its working directory and its artifact directory, may run only `jq`, `grep`, `ls`, `wc`, `cat`, `head`, `tail` and `date` with Bash, and may not read the orchestrator's `.env` with its file tools. Bash permission rules match commands, not the paths they read, so an allowed command such as `cat` can still read files outside those directories; with no network tool and no secret in its environment, what it reads can reach only the model provider and the stage's own output files.
+- **Copilot CLI** keeps `--allow-all-tools --allow-all-paths`, gets no URL allowlist and no audit hooks.
+- **No live edits.** The `agent-improver` hook stage writes proposed files into its artifact directory; a maintainer applies them by pull request.
 
 ## What the Agent Can Still Do
 

@@ -58,12 +58,11 @@ Each task gets a shared artifact directory. Every subagent writes to its own sub
 │   └── ...                    # any additional files
 ```
 
-Templates get the artifact root as the `artifactDir` template variable, set in `buildTemplateContext()` (`src/container/setup/agent-includes.ts`). It is always the relative path `.ralph/tasks/{task-id}/artifacts`, for every stage type. The shared partial `agent-as-function-contract` tells subagents to write to `{{ artifactDir }}/{{ agentName }}/`.
+Templates get the artifact root as the `artifactDir` template variable, which `buildTemplateContext()` (`src/container/setup/agent-includes.ts`) takes from the stage's workspace (`StageWorkspaceResolver`, `src/services/stage-workspace.ts`). The shared partial `agent-as-function-contract` tells subagents to write to `{{ artifactDir }}/{{ self.name }}/`.
 
-The relative path resolves against the CLI's working directory:
-
-- **Container stages**: the CLI runs in `/workspace` (the target repo checkout), so artifacts land in `<target-repo>/.ralph/tasks/{task-id}/artifacts/`, alongside `state.md`. The orchestrator exports this folder into the task's log directory after the run.
-- **Local stages and post-task hooks**: the CLI runs on the host with the orchestrator repo root as cwd, so artifacts land in `<orchestrator-repo>/.ralph/tasks/{task-id}/artifacts/`. The hook output directory (`hook.outputDir`, `<output.logDir>/<key>-<startTs>/hooks/<hook-name>`) is available to templates but is not used as the artifact root.
+- **Container stages**: `.ralph/tasks/{task-id}/artifacts`, relative to the CLI's working directory `/workspace` (the target repo checkout), so artifacts land in `<target-repo>/.ralph/tasks/{task-id}/artifacts/`, alongside `state.md`. The orchestrator exports this folder into the task's log directory after the run.
+- **A variant's local stages**: the absolute host path of that same folder in the task's workspace, so they share the container stages' artifacts.
+- **Post-task hooks**: `<output.logDir>/<key>-<startTs>/hooks/<hook-name>/artifacts`, absolute and shared by all of the hook's stages, next to the hook output directory (`hook.outputDir`).
 
 ### status.json
 
@@ -186,10 +185,10 @@ On **revisions** (fixing a previously-reviewed PR), the orchestrator dispatches 
 
 ## Post-Hook Agents
 
-Post-hooks (the `ralph.scientist` stage in the bundled profiles) run locally on the host (not in Docker) and use the same artifact contract and the same `artifactDir`. Because their cwd is the orchestrator repo root, the artifacts land there:
+Post-hooks (the `ralph.scientist` stage in the bundled profiles) run locally on the host (not in Docker) and use the same artifact contract. Their `artifactDir` is in the hook's output directory:
 
 ```
-<orchestrator-repo>/.ralph/tasks/{task-id}/artifacts/
+<output.logDir>/<key>-<startTs>/hooks/<hook-name>/artifacts/
 ├── manifest.json
 ├── subagent-mapper/
 │   ├── output.md                  # subagent inventory
@@ -199,6 +198,7 @@ Post-hooks (the `ralph.scientist` stage in the bundled profiles) run locally on 
 │   └── status.json                # result: analyzed | skipped
 ├── agent-improver/<target-subagent>/
 │   ├── output.md                  # improvement summary
+│   ├── proposals/<path>           # each proposed file, whole, at its path relative to the orchestrator checkout
 │   └── status.json                # result: improved | no-action
 └── run-synthesizer/
     ├── output.md                  # cross-subagent synthesis

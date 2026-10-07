@@ -242,7 +242,7 @@ Each variant contains a `stages` array defining the sequential agent pipeline. T
 - Total `durationMs` is always the sum of all stage durations, regardless of stage count.
 - If `stages.length > 1`, individual `StageResult` objects are attached to the final result.
 - On stage failure (`TaskStatus.Error`), the pipeline aborts immediately — remaining stages are skipped.
-- Local-mode stages (`mode: "local"`) run the CLI on the host via `LocalCopilotExecutor`, not inside Docker.
+- Local-mode stages (`mode: "local"`) run the stage's CLI, Claude Code or Copilot, on the host in a workspace of their own, not inside Docker.
 
 **Matching order:** Variants are evaluated in order, across all profiles. All matching triggers are planned, not just the first.
 
