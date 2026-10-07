@@ -5,7 +5,7 @@ Audit hooks for the agent CLIs and the Claude Code result gate. The security ove
 | Path                               | Role                                                                                                                                                                   |
 | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `log-*.sh`                         | Hook entry points, one per event. `--cli copilot\|claude` picks the payload adapter (default `copilot`)                                                                |
-| `claude/hooks.json`                | Claude Code `hooks` object for Ralph's session settings                                                                                                                        |
+| `claude/hooks.json`                | Claude Code `hooks` object for Ralph's session settings                                                                                                                |
 | `claude/result-gate.sh`            | Claude Code `Stop` hook that enforces the result block                                                                                                                 |
 | `ralph-audit.json`                 | Copilot CLI hook config, mounted at `/workspace/.github/hooks/ralph-audit.json`                                                                                        |
 | `lib/common.sh`                    | Argument parsing, failure policy and the single audit writer                                                                                                           |
