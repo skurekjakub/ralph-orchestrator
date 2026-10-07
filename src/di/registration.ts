@@ -14,7 +14,7 @@ export type Unsatisfied<C, D> = Expand<{
   [K in keyof D as K extends keyof C ? (C[K] extends D[K] ? never : K) : K]-?: D[K];
 }>;
 
-type DepsOf<F> = F extends new (deps: infer D, ...rest: never[]) => unknown ? D : never;
+type DepsOf<F> = F extends new (deps: infer D) => unknown ? D : never;
 
 /** `unknown` when cradle `C` provides every dep `F`'s constructor takes, else a type naming the unprovided deps. */
 type CradleProvides<C, F> = [keyof Unsatisfied<C, DepsOf<F>>] extends [never]
@@ -32,13 +32,11 @@ export type Registrations<C> = { [K in keyof C]: Resolver<C[K]> };
  * `factory` takes a function whose parameter is `C` itself. Neither sets a lifetime.
  */
 export function wiring<C extends object>(): {
-  service<F extends new (deps: never, ...rest: never[]) => unknown>(
-    ctor: F & CradleProvides<C, F>,
-  ): BuildResolver<InstanceType<F>>;
+  service<F extends new (deps: never) => unknown>(ctor: F & CradleProvides<C, F>): BuildResolver<InstanceType<F>>;
   factory<R>(fn: (deps: C) => R): BuildResolver<R>;
 } {
   return {
-    service: <F extends new (deps: never, ...rest: never[]) => unknown>(ctor: F & CradleProvides<C, F>) =>
+    service: <F extends new (deps: never) => unknown>(ctor: F & CradleProvides<C, F>) =>
       asClass(ctor as unknown as Constructor<InstanceType<F>>),
     factory: <R>(fn: (deps: C) => R) => asFunction(fn as FunctionReturning<R>),
   };

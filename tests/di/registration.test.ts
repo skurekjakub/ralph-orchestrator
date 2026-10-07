@@ -32,6 +32,15 @@ class NeedsOptional implements Greeter {
     return String(this.deps.optional);
   }
 }
+class NeedsRequiredSecond implements Greeter {
+  constructor(
+    private readonly deps: { name: string },
+    private readonly suffix: string,
+  ) {}
+  greet(): string {
+    return `${this.deps.name}${this.suffix}`;
+  }
+}
 class NeedsWrongType implements Greeter {
   constructor(private readonly deps: { name: number }) {}
   greet(): string {
@@ -92,6 +101,20 @@ describe("wiring", () => {
     expect(() => container.cradle.greeter.greet()).toThrow(/optional/);
   });
 
+  it("rejects at compile time a required constructor parameter after the deps object", () => {
+    // Arrange
+    const container = newContainer();
+    container.register({ name: asValue("ralph"), shout: asValue("") });
+
+    // Act
+    // @ts-expect-error PROXY passes only the cradle, so a required second parameter would be undefined
+    w.service(NeedsRequiredSecond);
+    container.register({ greeter: asClass(NeedsRequiredSecond) as never });
+
+    // Assert
+    expect(container.cradle.greeter.greet()).toBe("ralphundefined");
+  });
+
   it("rejects at compile time a deps key whose type the cradle does not match", () => {
     // Arrange
     const container = newContainer();
@@ -112,8 +135,8 @@ describe("wiring", () => {
 
     // Act
     // @ts-expect-error a factory reading a key the cradle lacks
-    const nope = w.factory(({ nope }) => nope);
-    container.register({ name: asValue("ralph"), greeter: asValue({ greet: () => "" }), shout: nope });
+    const readsNope = w.factory(({ nope }) => nope);
+    container.register({ name: asValue("ralph"), greeter: asValue({ greet: () => "" }), shout: readsNope });
 
     // Assert
     expect(() => container.cradle.shout).toThrow(AwilixResolutionError);
