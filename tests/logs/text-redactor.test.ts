@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { join } from "node:path";
+import { resolve } from "node:path";
 import { HookRulesRedactor } from "../../src/logs/text-redactor";
 import { HOOKS_DIR, HookSandbox, loadPayloads } from "../hooks/hook-harness";
 
-const SCRIPT = join(HOOKS_DIR, "lib", "redact.pl");
+const ROOT_DIR = resolve(HOOKS_DIR, "../..");
 const PATH = process.env.PATH ?? "/usr/bin:/bin";
 const GITHUB_TOKEN = "ghp_0123456789abcdefghijABCDEFGHIJ";
 const ENV_SECRET = "oauth-value-0123456789";
@@ -24,7 +24,7 @@ const CASES: readonly [string, string][] = [
 ];
 
 describe("HookRulesRedactor", () => {
-  const redactor = new HookRulesRedactor({ scriptPath: SCRIPT, env: { PATH, CLAUDE_CODE_OAUTH_TOKEN: ENV_SECRET } });
+  const redactor = new HookRulesRedactor({ rootDir: ROOT_DIR }, { PATH, CLAUDE_CODE_OAUTH_TOKEN: ENV_SECRET });
 
   describe("equivalence with the audit hooks", () => {
     let sandbox: HookSandbox;
@@ -73,10 +73,7 @@ describe("HookRulesRedactor", () => {
 
     it("scrubs the credential values of the environment it is given", async () => {
       // Arrange
-      const scoped = new HookRulesRedactor({
-        scriptPath: SCRIPT,
-        env: { PATH, DASHBOARD_SECRET: "dashboard-secret-42" },
-      });
+      const scoped = new HookRulesRedactor({ rootDir: ROOT_DIR }, { PATH, DASHBOARD_SECRET: "dashboard-secret-42" });
 
       // Act & Assert
       expect(await scoped.redact("posting with dashboard-secret-42")).toBe("posting with [REDACTED]");
@@ -113,7 +110,7 @@ describe("HookRulesRedactor", () => {
 
     it("returns no texts for an empty batch without running the script", async () => {
       // Arrange
-      const missing = new HookRulesRedactor({ scriptPath: "/nonexistent/redact.pl", env: { PATH } });
+      const missing = new HookRulesRedactor({ rootDir: "/nonexistent" }, { PATH });
 
       // Act & Assert
       await expect(missing.redactEach([])).resolves.toEqual([]);
@@ -123,31 +120,31 @@ describe("HookRulesRedactor", () => {
   describe("failures", () => {
     it("throws, without quoting the text, when the script is missing", async () => {
       // Arrange
-      const missing = new HookRulesRedactor({ scriptPath: "/nonexistent/redact.pl", env: { PATH } });
+      const missing = new HookRulesRedactor({ rootDir: "/nonexistent" }, { PATH });
 
       // Act
       const failure = missing.redact(`secret ${GITHUB_TOKEN}`);
 
       // Assert
-      await expect(failure).rejects.toThrow("Redacting with /nonexistent/redact.pl failed");
+      await expect(failure).rejects.toThrow("Redacting with /nonexistent/shared/hooks/lib/redact.pl failed");
       await expect(failure).rejects.not.toThrow(GITHUB_TOKEN);
     });
 
     it("throws, without quoting the texts, when a batch cannot be redacted", async () => {
       // Arrange
-      const missing = new HookRulesRedactor({ scriptPath: "/nonexistent/redact.pl", env: { PATH } });
+      const missing = new HookRulesRedactor({ rootDir: "/nonexistent" }, { PATH });
 
       // Act
       const failure = missing.redactEach([`secret ${GITHUB_TOKEN}`]);
 
       // Assert
-      await expect(failure).rejects.toThrow("Redacting with /nonexistent/redact.pl failed");
+      await expect(failure).rejects.toThrow("Redacting with /nonexistent/shared/hooks/lib/redact.pl failed");
       await expect(failure).rejects.not.toThrow(GITHUB_TOKEN);
     });
 
     it("throws when perl cannot be found", async () => {
       // Arrange
-      const noPerl = new HookRulesRedactor({ scriptPath: SCRIPT, env: { PATH: "/nonexistent" } });
+      const noPerl = new HookRulesRedactor({ rootDir: ROOT_DIR }, { PATH: "/nonexistent" });
 
       // Act & Assert
       await expect(noPerl.redact("text")).rejects.toThrow(/Redacting with .* failed/);

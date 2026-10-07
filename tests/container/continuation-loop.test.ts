@@ -5,14 +5,18 @@ import { ContinuationRunner } from "../../src/container/continuation-runner";
 import { FailureReason, TaskStatus, type ContainerExecResult } from "../../src/container/types";
 import type { BuiltPrompt, PromptBuilder } from "../../src/prompt/prompt-builder";
 import { makeExecResult, makeProfile, makeStage, makeWorkItem } from "../helpers/factories";
-import { createMockCliRuntime, createMockExecutor, createSilentLogger } from "../helpers/mocks";
+import {
+  createMockCliRuntime,
+  createMockExecutor,
+  createMockStageExecutors,
+  createSilentLogger,
+} from "../helpers/mocks";
 import { CliRuntimeRegistry } from "../../src/cli/cli-runtime";
 import { CliType } from "../../src/config/types";
-import type { ICliExecutor, ICliExecutorFactory } from "../../src/container/cli-executor-factory";
+import type { ICliExecutor } from "../../src/container/cli-executor";
 import type { IComposeClient } from "../../src/container/compose-client";
 import type { IContainerLogCollector } from "../../src/container/log-collector";
 import type { IContainerWorkspaceCleaner } from "../../src/container/workspace-cleaner";
-import type { ILogSourceRegistry } from "../../src/container/log-source-registry";
 import type { ResultPromise } from "execa";
 
 const KEY = "DF-100";
@@ -80,26 +84,20 @@ function buildManager(maxContinuations: number, executor: ICliExecutor) {
     cleanDirectory: vi.fn().mockResolvedValue(undefined),
     cleanPaths: vi.fn().mockResolvedValue(undefined),
   };
-  const logRegistry: ILogSourceRegistry = {
-    registerAll: vi.fn(),
-  };
   const continuationRunner = new ContinuationRunner({ logger });
   const sessionRunner = new AgentSessionRunner({ continuationRunner, promptBuilder, logger });
-
-  const executorFactory: ICliExecutorFactory = {
-    create: vi.fn().mockResolvedValue(executor),
-    createLocal: vi.fn().mockResolvedValue(executor),
-  };
 
   return new ContainerManager({
     profile,
     workspacePath: "/tmp/test-workspaces/DF-100-1234567890000",
     compose,
     cliRuntimes: new CliRuntimeRegistry({ runtimes: [createMockCliRuntime(CliType.Copilot)] }),
-    executorFactory,
-    logs,
-    cleaner,
-    logRegistry,
+    stageExecutors: createMockStageExecutors({
+      create: vi.fn().mockResolvedValue(executor),
+      createHost: vi.fn().mockResolvedValue(executor),
+    }),
+    containerLogs: logs,
+    workspaceCleaner: cleaner,
     sessionRunner,
     logger,
     enableContinuation: true,

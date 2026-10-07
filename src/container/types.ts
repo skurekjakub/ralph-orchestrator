@@ -1,7 +1,7 @@
 import type { CliError, CliRunUsage } from "../cli/output-decoder";
 import type { IAgentProfile, IStageConfig, StageMode } from "../config/types";
 import { IContainerManager } from "./manager";
-import type { ICliExecutor } from "./cli-executor-factory";
+import type { ICliExecutor } from "./cli-executor";
 
 /** Result of one CLI process: exit code, captured output, timeout flag and what its output decoded to. */
 export interface ContainerExecResult {

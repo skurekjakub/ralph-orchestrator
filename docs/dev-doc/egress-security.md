@@ -115,7 +115,7 @@ All external side effects go through MCP tools in the sidecar. Where a tool has 
 
 ### Task Context
 
-Each server's environment comes from the profile's `mcpServers[].env`, whose runtime macros (`$task.id`, `$task.branch`, `$trigger.<key>`, `$variantEnv.<PREFIX>`) `JitMcpConfigWriter` resolves per task into `gateway.json` ([runtime macros](../user-guide/runtime-macros.md)). The overlay adds `REPO_ROOT=/workspace`. The agent cannot change any of it: `gateway.json` is mounted only into the sidecar.
+Each server's environment comes from the profile's `mcpServers[].env`, whose runtime macros (`$task.id`, `$task.branch`, `$trigger.<key>`, `$variantEnv.<PREFIX>`) `writeJitMcpConfig` resolves per task into `gateway.json` ([runtime macros](../user-guide/runtime-macros.md)). The overlay adds `REPO_ROOT=/workspace`. The agent cannot change any of it: `gateway.json` is mounted only into the sidecar.
 
 ```json
 {

@@ -65,7 +65,7 @@ function makeMockCompose(
 }
 
 function createCollector(compose: IComposeClient): ContainerLogCollector {
-  return new ContainerLogCollector({ compose, logDir: tempDir, logger });
+  return new ContainerLogCollector({ compose, outputConfig: { logDir: tempDir }, logger });
 }
 
 beforeEach(() => {

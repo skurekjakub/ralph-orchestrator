@@ -30,15 +30,12 @@ export class HookRulesRedactor implements ITextRedactor {
   private readonly env: Readonly<Record<string, string | undefined>>;
 
   /**
-   * @param scriptPath The redactor script; defaults to `shared/hooks/lib/redact.pl` under the orchestrator checkout.
+   * @param rootDir The orchestrator checkout, whose `shared/hooks/lib/redact.pl` is the redactor script.
    * @param env The environment whose credential variables are scrubbed by value: the orchestrator's own, which
    *   holds every secret from `.env`.
    */
-  constructor({
-    scriptPath = join(sharedHooksDir(process.cwd()), "lib", "redact.pl"),
-    env = process.env,
-  }: { scriptPath?: string; env?: Readonly<Record<string, string | undefined>> } = {}) {
-    this.scriptPath = scriptPath;
+  constructor({ rootDir }: { rootDir: string }, env: Readonly<Record<string, string | undefined>> = process.env) {
+    this.scriptPath = join(sharedHooksDir(rootDir), "lib", "redact.pl");
     this.env = env;
   }
 

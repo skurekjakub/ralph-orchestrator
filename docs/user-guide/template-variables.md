@@ -2,7 +2,7 @@
 
 All variables listed below are available in `.agent.md` Liquid templates, the shared partials they render and runtime skills (`SKILL.md` and its other `.md` files) via `{{ variableName }}` interpolation and `{% if variableName %}` conditionals. `self` is the exception: only agent templates and their partials see it.
 
-Templates are rendered JIT before each task and stage by `AgentTemplateRenderer` and `SkillTemplateRenderer`, in the file format of the stage's CLI. A container stage's output goes to `profiles/<id>/.build/<cli>/agents/` and `profiles/<id>/.build/skills/`, mounted read-only into the agent container. A `mode: "local"` stage's output goes into its own workspace on the host, where its CLI discovers it.
+Templates are rendered JIT before each task and stage by `AgentTemplateRenderer` and `renderStageSkills`, in the file format of the stage's CLI. A container stage's output goes to `profiles/<id>/.build/<cli>/agents/` and `profiles/<id>/.build/skills/`, mounted read-only into the agent container. A `mode: "local"` stage's output goes into its own workspace on the host, where its CLI discovers it.
 
 ## Liquid Syntax
 

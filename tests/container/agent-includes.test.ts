@@ -30,22 +30,17 @@ import { AgentCatalog } from "../../src/cli/agent-catalog";
 import { CLAUDE_TOOL_NAMES } from "../../src/cli/claude/claude-tools";
 import { COPILOT_TOOL_NAMES } from "../../src/cli/copilot/copilot-tools";
 import { createCliRuntimeRegistry } from "../../src/cli/supported-runtimes";
-import { AgentCatalogProvider } from "../../src/container/setup/agent-catalogs";
 import { ClaudeAuthMode, CliType, StageMode, type IStageConfig } from "../../src/config/types";
 
 const RUNTIMES = createCliRuntimeRegistry(ClaudeAuthMode.OAuthToken);
 
 let tmpDir: string;
-let originalCwd: string;
 
 beforeEach(async () => {
-  originalCwd = process.cwd();
   tmpDir = await mkdtemp(join(tmpdir(), "agent-includes-test-"));
-  process.chdir(tmpDir);
 });
 
 afterEach(async () => {
-  process.chdir(originalCwd);
   await rm(tmpDir, { recursive: true, force: true });
 });
 
@@ -424,15 +419,15 @@ describe("AgentTemplateRenderer", () => {
     return stageRenderTarget(stage, makeContainerWorkspace({ agentsOutDir: join(tmpDir, "rendered-agents") }), options);
   }
 
-  /** A renderer over the profiles and shared/ under the temp cwd. */
+  /** A renderer over the profiles and shared/ under the temp dir. */
   function renderer(): AgentTemplateRenderer {
     return new AgentTemplateRenderer({
-      agentCatalogs: new AgentCatalogProvider({ rootDir: tmpDir }),
       cliRuntimes: RUNTIMES,
+      rootDir: tmpDir,
     });
   }
 
-  /** Lays out profiles/<id>/agents and shared/ under the temp cwd. */
+  /** Lays out profiles/<id>/agents and shared/ under the temp dir. */
   async function setupProfile(profileId: string, templates: Record<string, string>): Promise<void> {
     const agentDir = join(tmpDir, "profiles", profileId, "agents");
     await mkdir(join(tmpDir, "shared", "agent-includes"), { recursive: true });

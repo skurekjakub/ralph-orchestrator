@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { AgentCatalog } from "../../../src/cli/agent-catalog";
 import { CopilotRuntime } from "../../../src/cli/copilot/copilot-runtime";
-import { CopilotAgentWriter } from "../../../src/cli/copilot/copilot-agent-writer";
+import { copilotAgentWriter } from "../../../src/cli/copilot/copilot-agent-writer";
 import { PlainTextDecoder } from "../../../src/cli/plain-text-decoder";
 import { CliType, StageMode } from "../../../src/config/types";
 import { CaptureMode } from "../../../src/container/log-collector";
@@ -28,7 +28,7 @@ describe("CopilotRuntime", () => {
 
   it("writes agents in the Copilot format and names Copilot's tools", () => {
     // Act & Assert
-    expect(runtime.agentWriter).toBeInstanceOf(CopilotAgentWriter);
+    expect(runtime.agentWriter).toBe(copilotAgentWriter);
     expect(runtime.mountsEachRenderedItem).toBe(true);
     expect(runtime.toolNames).toEqual({
       subagent: "task",

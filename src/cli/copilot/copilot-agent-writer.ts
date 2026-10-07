@@ -14,7 +14,7 @@ export function copilotAgentFileName(fileId: string): string {
  * `agents`, the model is translated to a Copilot id, every agent is `user-invocable: false`, and
  * the Claude Code-only keys (`tools`, `skills`, `effort`, `maxTurns`) are dropped.
  */
-export class CopilotAgentWriter implements IAgentFileWriter {
+export const copilotAgentWriter = {
   write(agent: AgentDefinition): AgentFile | null {
     if (!agent.runtimes.includes(CliType.Copilot)) return null;
 
@@ -30,7 +30,7 @@ export class CopilotAgentWriter implements IAgentFileWriter {
       fileName: copilotAgentFileName(agent.fileId),
       content: `---\n${lines.join("\n")}\n---\n${agent.body}`,
     };
-  }
+  },
 
   /**
    * The agent's `copilot.model`, else the Copilot equivalent of its canonical model. Undefined leaves the
@@ -40,5 +40,5 @@ export class CopilotAgentWriter implements IAgentFileWriter {
     if (agent.copilot.model !== undefined) return agent.copilot.model;
     if (agent.model === undefined || agent.model === INHERIT_MODEL) return undefined;
     return COPILOT_MODEL_POLICY.fromCanonical(agent.model);
-  }
-}
+  },
+} satisfies IAgentFileWriter;

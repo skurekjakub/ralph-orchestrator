@@ -127,6 +127,7 @@ function createOrchestrator(
     heartbeat: null,
     ralphchivesConfig: { enabled: false, nodebbApiUrl: "", neo4jUri: "", neo4jUser: "" },
     outputConfig: { logDir: "/tmp/test-logs" },
+    rootDir: "/srv/ralph",
   });
 
   return { orchestrator, taskRunner, profile };

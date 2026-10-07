@@ -62,11 +62,11 @@ describe("LocalCopilotExecutor", () => {
   function createExecutor(): LocalCopilotExecutor {
     logger = createMockLogger();
     return new LocalCopilotExecutor({
-      profile: makeProfile({ id: "docs", agentName: "ralph.scientist", timeoutMs: 5000 }),
+      stageProfile: makeProfile({ id: "docs", agentName: "ralph.scientist", timeoutMs: 5000 }),
       workspace,
       runtime: new CopilotRuntime(),
       binary: BINARY,
-      logger,
+      containerLogger: logger,
     });
   }
 

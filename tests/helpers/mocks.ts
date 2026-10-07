@@ -23,10 +23,6 @@ import type { ITextRedactor } from "../../src/logs/text-redactor";
 import type { IWorkItemPoller } from "../../src/datasource/poller";
 import type { ITaskRunner } from "../../src/services/task-runner";
 import type { IAgentTemplateRenderer } from "../../src/container/setup/agent-includes";
-import type { IAgentCatalogProvider } from "../../src/container/setup/agent-catalogs";
-import type { AgentCatalog } from "../../src/cli/agent-catalog";
-import type { ISkillTemplateRenderer } from "../../src/container/setup/skill-includes";
-import type { IJitMcpConfigWriter } from "../../src/container/setup/jit-mcp-params";
 import type { IComposeOverlayWriter } from "../../src/container/setup/compose-overlay-writer";
 import type { IProfileSetupService } from "../../src/services/profile-setup-service";
 import type { IAgentPipelineExecutor } from "../../src/services/agent-pipeline-executor";
@@ -38,7 +34,9 @@ import type { IVcsSourceClient } from "../../src/services/vcs-source-client";
 import type { ITaskWorkspaceManager } from "../../src/services/task-workspace-manager";
 import type { AppStartupDeps } from "../../src/app-startup";
 import type { RalphResult } from "../../src/container/types";
-import type { ICliExecutor } from "../../src/container/cli-executor-factory";
+import type { ICliExecutor } from "../../src/container/cli-executor";
+import type { IStageExecutorFactory } from "../../src/container/stage-executor-factory";
+import type { IAgentSessionRunner } from "../../src/container/agent-session-runner";
 import { CliType, StageMode, type IStageConfig } from "../../src/config/types";
 import { COPILOT_CONTAINER_LAYOUT } from "../../src/cli/copilot/copilot-layout";
 import { CliDebugLogKind, type ICliRuntime } from "../../src/cli/cli-runtime";
@@ -208,6 +206,27 @@ export function createMockExecutor(): ICliExecutor & Mocked<ICliExecutor> {
     run: vi.fn().mockResolvedValue(makeExecResult()),
     continueSession: vi.fn().mockResolvedValue(makeExecResult()),
     killActive: vi.fn(),
+  };
+}
+
+/** Create a mock stage executor factory whose executors are fresh mock executors. */
+export function createMockStageExecutors(
+  overrides: Partial<Mocked<IStageExecutorFactory>> = {},
+): Mocked<IStageExecutorFactory> {
+  return {
+    create: vi.fn().mockImplementation(async () => createMockExecutor()),
+    createHost: vi.fn().mockImplementation(async () => createMockExecutor()),
+    ...overrides,
+  };
+}
+
+/** Create a mock AgentSessionRunner whose runs complete. */
+export function createMockSessionRunner(
+  overrides: Partial<Mocked<IAgentSessionRunner>> = {},
+): Mocked<IAgentSessionRunner> {
+  return {
+    run: vi.fn().mockResolvedValue(makeResult("DF-100")),
+    ...overrides,
   };
 }
 
@@ -456,37 +475,12 @@ export function createMockPipelineExecutor(
   } as Mocked<IAgentPipelineExecutor>;
 }
 
-/** Create a mock agent catalog provider that loads `catalog` for every profile. */
-export function createMockAgentCatalogProvider(catalog: AgentCatalog): Mocked<IAgentCatalogProvider> {
-  return { load: vi.fn().mockResolvedValue(catalog) };
-}
-
 /** Create a mock AgentTemplateRenderer with all methods stubbed. */
 export function createMockTemplateRenderer(
   overrides: Partial<Mocked<IAgentTemplateRenderer>> = {},
 ): Mocked<IAgentTemplateRenderer> {
   return {
     render: vi.fn().mockResolvedValue(undefined),
-    ...overrides,
-  };
-}
-
-/** Create a mock SkillTemplateRenderer with all methods stubbed. */
-export function createMockSkillRenderer(
-  overrides: Partial<Mocked<ISkillTemplateRenderer>> = {},
-): Mocked<ISkillTemplateRenderer> {
-  return {
-    render: vi.fn().mockResolvedValue(undefined),
-    ...overrides,
-  };
-}
-
-/** Create a mock JitMcpConfigWriter with all methods stubbed. */
-export function createMockJitMcpConfigWriter(
-  overrides: Partial<Mocked<IJitMcpConfigWriter>> = {},
-): Mocked<IJitMcpConfigWriter> {
-  return {
-    write: vi.fn(),
     ...overrides,
   };
 }

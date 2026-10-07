@@ -107,7 +107,7 @@ describe("LocalClaudeCodeExecutor", () => {
       ...options.stage,
     });
     return new LocalClaudeCodeExecutor({
-      profile: makeProfile({ id: "docs", model: "opus", timeoutMs: 5000, stages: [stage] }),
+      stageProfile: makeProfile({ id: "docs", model: "opus", timeoutMs: 5000, stages: [stage] }),
       stage,
       agentName: "scientist",
       subagentDepth: options.subagentDepth ?? 1,
@@ -116,7 +116,7 @@ describe("LocalClaudeCodeExecutor", () => {
       runtime: new ClaudeCodeRuntime({ claudeAuth: options.claudeAuth ?? ClaudeAuthMode.OAuthToken }),
       binary: BINARY,
       hooksDir,
-      logger,
+      containerLogger: logger,
     });
   }
 

@@ -21,7 +21,7 @@ import "dotenv/config";
 import { mkdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { AppStartup } from "../src/app-startup";
-import { createCradle } from "../src/awilix-cradle";
+import { createRootContainer } from "../src/awilix-cradle";
 import { consoleLogger } from "../src/logger";
 import type { TaskContext } from "../src/services/task-context";
 import { taskWorkspacePath } from "../src/services/task-workspace-manager";
@@ -50,7 +50,7 @@ async function main() {
   const stage = profile.stages[0];
   logger.info(`Matched variant ${profile.variantKey}: stage ${stage.role} runs ${stage.agent} on ${stage.cli}`);
 
-  const cradle = createCradle(config);
+  const cradle = createRootContainer(config, { rootDir: process.cwd() }).cradle;
   const taskId = `local-run-${Date.now()}`;
   const outputDir = join(resolve(config.output.logDir), taskId);
   mkdirSync(outputDir, { recursive: true });
@@ -80,7 +80,7 @@ async function main() {
     ralphchivesEnabled: config.ralphchives.enabled,
     prUrl: null,
     outputDir,
-    workspacePath: taskWorkspacePath(process.cwd(), taskId),
+    workspacePath: taskWorkspacePath(cradle.rootDir, taskId),
     signal: new AbortController().signal,
   };
 

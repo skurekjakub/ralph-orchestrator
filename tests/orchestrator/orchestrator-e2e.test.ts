@@ -71,6 +71,23 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     expect(ops[0].status).toBe(OperationStatus.Completed);
   });
 
+  it("runs each task in a workspace under the orchestrator checkout's cache/workspaces", async () => {
+    // Arrange
+    const issue = makeWorkItem(KEY, "Update API docs", "New");
+    const deps = buildMockDeps(tempDir, {
+      issues: [issue],
+      comments: { [KEY]: [makeWorkItemComment(CID, "@docs please handle this")] },
+    });
+    const orchestrator = new Orchestrator(deps);
+
+    // Act
+    await runUntil(orchestrator, () => orchestrator.observer.getState().completedToday.length > 0);
+
+    // Assert
+    const [ctx] = vi.mocked(deps.taskRunner.run).mock.calls[0];
+    expect(ctx.workspacePath).toBe(join(tempDir, "cache", "workspaces", ctx.taskId));
+  });
+
   it("posts error comment when agent returns error status without throwing", async () => {
     const issue = makeWorkItem("DF-150", "Agent CLI fails");
     const deps = buildMockDeps(tempDir, {

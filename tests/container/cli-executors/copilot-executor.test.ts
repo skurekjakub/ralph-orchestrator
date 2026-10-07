@@ -13,9 +13,9 @@ describe("CopilotExecutor", () => {
     const profile = makeProfile({ agentName: "ralph.ralph", ...overrides });
     const executor = new CopilotExecutor({
       compose,
-      profile,
+      stageProfile: profile,
       runtime: new CopilotRuntime(),
-      logger: createMockLogger(),
+      containerLogger: createMockLogger(),
     });
     return { executor, compose, profile };
   }

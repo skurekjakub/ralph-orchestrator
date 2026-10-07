@@ -117,37 +117,28 @@ export interface SkillRenderTarget {
   readonly prune: boolean;
 }
 
-/** Public contract for JIT skill template rendering. */
-export interface ISkillTemplateRenderer {
-  /**
-   * Render `context.skills` into `target.outDir`, removing any other skill folder there when `target.prune`.
-   *
-   * @throws Error when rendering fails (see {@link renderSkills}).
-   */
-  render(context: TemplateContext, target: SkillRenderTarget, logger?: Logger): Promise<void>;
-}
-
 /**
- * JIT skill template renderer.
+ * Render `context.skills` into `target.outDir`, removing any other skill folder there when `target.prune`.
+ * Skills come from `shared/skills/` (partials from `shared/agent-includes/`) under `rootDir`. Called before each
+ * task and stage so skills can use runtime data like `{{ taskId }}`.
  *
- * Renders the skills of the current stage from `shared/skills/` (partials from
- * `shared/agent-includes/`) under the orchestrator root. Called before each task and stage so
- * skills can use runtime data like `{{ taskId }}`.
+ * @param rootDir The orchestrator checkout root.
+ * @throws Error when rendering fails (see {@link renderSkills}).
  */
-export class SkillTemplateRenderer implements ISkillTemplateRenderer {
-  constructor() {}
+export async function renderStageSkills(
+  context: TemplateContext,
+  { outDir, prune }: SkillRenderTarget,
+  rootDir: string,
+  logger?: Logger,
+): Promise<void> {
+  const skillsDir = resolve(rootDir, "shared/skills");
+  const includesDir = resolve(rootDir, "shared/agent-includes");
 
-  async render(context: TemplateContext, { outDir, prune }: SkillRenderTarget, logger?: Logger): Promise<void> {
-    const root = process.cwd();
-    const skillsDir = resolve(root, "shared/skills");
-    const includesDir = resolve(root, "shared/agent-includes");
-
-    if (!existsSync(skillsDir)) {
-      logger?.warn("Skills directory not found, skipping skill rendering");
-      return;
-    }
-
-    logger?.info(`Rendering ${context.skills.length} skill template(s)`);
-    await renderSkills({ skillsDir, skillNames: context.skills, includesDir, context, outDir, prune, logger });
+  if (!existsSync(skillsDir)) {
+    logger?.warn("Skills directory not found, skipping skill rendering");
+    return;
   }
+
+  logger?.info(`Rendering ${context.skills.length} skill template(s)`);
+  await renderSkills({ skillsDir, skillNames: context.skills, includesDir, context, outDir, prune, logger });
 }

@@ -7,7 +7,7 @@ import { copilotHostEnv } from "../../cli/copilot/copilot-host-env";
 import { DEFAULT_COPILOT_MODEL } from "../../cli/model-catalog";
 import type { IAgentProfile } from "../../config/types";
 import type { Logger } from "../../logger";
-import type { ICliExecutor } from "../cli-executor-factory";
+import type { ICliExecutor } from "../cli-executor";
 import type { ContainerExecResult, HostStageWorkspace } from "../types";
 import { prepareHostStage } from "./host-stage";
 import { executeCliCommand, killActiveProcess } from "./shared-exec";
@@ -15,14 +15,14 @@ import { executeCliCommand, killActiveProcess } from "./shared-exec";
 /** Dependencies of one host stage's Copilot CLI executor. */
 export interface LocalCopilotExecutorDeps {
   /** The variant with the stage's overrides applied (`deriveStageProfile`): agent, model, timeout. */
-  readonly profile: IAgentProfile;
+  readonly stageProfile: IAgentProfile;
   /** Where the stage runs; its agents and skills are already rendered into the workspace's `.github/`. */
   readonly workspace: HostStageWorkspace;
   /** The Copilot runtime: credentials and output decoder. */
   readonly runtime: ICliRuntime;
   /** The pinned Copilot CLI the orchestrator installed (`node_modules/.bin/copilot`). */
   readonly binary: string;
-  readonly logger: Logger;
+  readonly containerLogger: Logger;
 }
 
 /**
@@ -44,12 +44,12 @@ export class LocalCopilotExecutor implements ICliExecutor {
   private readonly binary: string;
   private readonly logger: Logger;
 
-  constructor({ profile, workspace, runtime, binary, logger }: LocalCopilotExecutorDeps) {
-    this.profile = profile;
+  constructor({ stageProfile, workspace, runtime, binary, containerLogger }: LocalCopilotExecutorDeps) {
+    this.profile = stageProfile;
     this.workspace = workspace;
     this.runtime = runtime;
     this.binary = binary;
-    this.logger = logger;
+    this.logger = containerLogger;
   }
 
   /** Kill the active copilot process if one is running. */

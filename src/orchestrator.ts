@@ -17,7 +17,6 @@ import type { ITaskRunner } from "./services/task-runner";
 import type { ITriggerScanner } from "./services/trigger-scanner";
 import type { IVcsSourceClient } from "./services/vcs-source-client";
 import type { IHeartbeatSender } from "./services/heartbeat";
-import type { Logger } from "./logger";
 
 /** Everything the pre-activation phases resolved for an operation that is cleared to run. */
 interface PreparedOperation {
@@ -61,6 +60,7 @@ export class Orchestrator {
   private readonly ledger: IOperationLedger;
   private readonly ralphchivesConfig: IRalphchivesConfig;
   private readonly outputConfig: IOutputConfig;
+  private readonly rootDir: string;
   private readonly heartbeat: IHeartbeatSender | null;
   private taskCallbacks: TaskCallbacks = {};
 
@@ -92,6 +92,7 @@ export class Orchestrator {
     heartbeat,
     ralphchivesConfig,
     outputConfig,
+    rootDir,
   }: {
     dataSources: Readonly<Record<string, IDataSourceConfig>>;
     profiles: readonly IAgentProfile[];
@@ -107,7 +108,7 @@ export class Orchestrator {
     heartbeat: IHeartbeatSender | null;
     ralphchivesConfig: IRalphchivesConfig;
     outputConfig: IOutputConfig;
-    logger?: Logger;
+    rootDir: string;
   }) {
     this.dataSources = dataSources;
     this.profiles = profiles;
@@ -121,6 +122,7 @@ export class Orchestrator {
     this.triggerScanner = triggerScanner;
     this.ralphchivesConfig = ralphchivesConfig;
     this.outputConfig = outputConfig;
+    this.rootDir = rootDir;
     this.ledger = ledger;
     this.heartbeat = heartbeat;
 
@@ -409,6 +411,7 @@ export class Orchestrator {
         profile,
         taskId,
         this.ralphchivesConfig,
+        this.rootDir,
         operation.triggerParams,
         preflightCtx?.prUrl,
         preflightCtx?.prBranches ?? null,

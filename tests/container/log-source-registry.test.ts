@@ -1,5 +1,5 @@
 /**
- * LogSourceRegistry behavior tests.
+ * registerLogSources behavior tests.
  *
  * The registry is a pure configuration layer — it declares which log sources
  * and folder exports to register on a collector. Tests use a lightweight fake
@@ -13,7 +13,7 @@
  * - folder exports
  */
 import { describe, it, expect, vi } from "vitest";
-import { LogSourceRegistry } from "../../src/container/log-source-registry";
+import { registerLogSources } from "../../src/container/log-source-registry";
 import {
   CaptureMode,
   type LogSourceDef,
@@ -73,15 +73,14 @@ function folder(collector: FakeCollector, id: string): FolderExportDef | undefin
   return collector.exports.find((e) => e.id === id);
 }
 
-describe("LogSourceRegistry", () => {
-  const registry = new LogSourceRegistry();
+describe("registerLogSources", () => {
   const profile = makeProfile({ auditLogPath: "/workspace/.ralph/logs/audit.jsonl" });
 
   describe("standard source registration", () => {
     it("registers all expected log sources and exports", () => {
       const collector = createFakeCollector();
 
-      registry.registerAll(collector, profile, TASK_ID, WORK_ITEM_ID, {}, [COPILOT]);
+      registerLogSources(collector, profile, TASK_ID, WORK_ITEM_ID, {}, [COPILOT]);
 
       const sourceIds = collector.sources.map((s) => s.id);
       expect(sourceIds).toContain("audit");
@@ -101,7 +100,7 @@ describe("LogSourceRegistry", () => {
     it("sets the task ID on the collector", () => {
       const collector = createFakeCollector();
 
-      registry.registerAll(collector, profile, TASK_ID, WORK_ITEM_ID, {}, [COPILOT]);
+      registerLogSources(collector, profile, TASK_ID, WORK_ITEM_ID, {}, [COPILOT]);
 
       expect(collector.taskId).toBe(TASK_ID);
     });
@@ -109,7 +108,7 @@ describe("LogSourceRegistry", () => {
     it("starts streaming after all sources are registered", () => {
       const collector = createFakeCollector();
 
-      registry.registerAll(collector, profile, TASK_ID, WORK_ITEM_ID, {}, [COPILOT]);
+      registerLogSources(collector, profile, TASK_ID, WORK_ITEM_ID, {}, [COPILOT]);
 
       expect(collector.attached).toBe(true);
       // Sources were registered before attach — the fake accumulates them
@@ -121,7 +120,7 @@ describe("LogSourceRegistry", () => {
     it("registers pre-tool in collect mode when no callback is provided", () => {
       const collector = createFakeCollector();
 
-      registry.registerAll(collector, profile, TASK_ID, WORK_ITEM_ID, {}, [COPILOT]);
+      registerLogSources(collector, profile, TASK_ID, WORK_ITEM_ID, {}, [COPILOT]);
 
       expect(source(collector, "pre-tool")?.mode).toBe(CaptureMode.Collect);
       expect(source(collector, "pre-tool")?.onLine).toBeUndefined();
@@ -131,7 +130,7 @@ describe("LogSourceRegistry", () => {
       const collector = createFakeCollector();
       const onPreToolUse = vi.fn();
 
-      registry.registerAll(collector, profile, TASK_ID, WORK_ITEM_ID, { onPreToolUse }, [COPILOT]);
+      registerLogSources(collector, profile, TASK_ID, WORK_ITEM_ID, { onPreToolUse }, [COPILOT]);
 
       expect(source(collector, "pre-tool")?.mode).toBe(CaptureMode.Stream);
       expect(source(collector, "pre-tool")?.onLine).toBe(onPreToolUse);
@@ -140,7 +139,7 @@ describe("LogSourceRegistry", () => {
     it("registers tool-output in collect mode when no callback is provided", () => {
       const collector = createFakeCollector();
 
-      registry.registerAll(collector, profile, TASK_ID, WORK_ITEM_ID, {}, [COPILOT]);
+      registerLogSources(collector, profile, TASK_ID, WORK_ITEM_ID, {}, [COPILOT]);
 
       expect(source(collector, "tool-output")?.mode).toBe(CaptureMode.Collect);
       expect(source(collector, "tool-output")?.onLine).toBeUndefined();
@@ -150,7 +149,7 @@ describe("LogSourceRegistry", () => {
       const collector = createFakeCollector();
       const onToolOutput = vi.fn();
 
-      registry.registerAll(collector, profile, TASK_ID, WORK_ITEM_ID, { onToolOutput }, [COPILOT]);
+      registerLogSources(collector, profile, TASK_ID, WORK_ITEM_ID, { onToolOutput }, [COPILOT]);
 
       expect(source(collector, "tool-output")?.mode).toBe(CaptureMode.Stream);
       expect(source(collector, "tool-output")?.onLine).toBe(onToolOutput);
@@ -159,7 +158,7 @@ describe("LogSourceRegistry", () => {
     it("registers cli-debug in collect mode when no callback is provided", () => {
       const collector = createFakeCollector();
 
-      registry.registerAll(collector, profile, TASK_ID, WORK_ITEM_ID, {}, [COPILOT]);
+      registerLogSources(collector, profile, TASK_ID, WORK_ITEM_ID, {}, [COPILOT]);
 
       expect(source(collector, "cli-debug")?.mode).toBe(CaptureMode.Collect);
       expect(source(collector, "cli-debug")?.onLine).toBeUndefined();
@@ -169,7 +168,7 @@ describe("LogSourceRegistry", () => {
       const collector = createFakeCollector();
       const onCliDebug = vi.fn();
 
-      registry.registerAll(collector, profile, TASK_ID, WORK_ITEM_ID, { onCliDebug }, [COPILOT]);
+      registerLogSources(collector, profile, TASK_ID, WORK_ITEM_ID, { onCliDebug }, [COPILOT]);
 
       expect(source(collector, "cli-debug")?.mode).toBe(CaptureMode.Stream);
       expect(source(collector, "cli-debug")?.onLine).toBe(onCliDebug);
@@ -178,7 +177,7 @@ describe("LogSourceRegistry", () => {
     it("always streams the sidecar via compose logs regardless of callbacks", () => {
       const collector = createFakeCollector();
 
-      registry.registerAll(collector, profile, TASK_ID, WORK_ITEM_ID, {}, [COPILOT]);
+      registerLogSources(collector, profile, TASK_ID, WORK_ITEM_ID, {}, [COPILOT]);
 
       expect(source(collector, "sidecar")?.mode).toBe(CaptureMode.Stream);
       expect(source(collector, "sidecar")?.useComposeLogs).toBe(true);
@@ -191,7 +190,7 @@ describe("LogSourceRegistry", () => {
       const collector = createFakeCollector();
 
       // Act
-      registry.registerAll(collector, profile, TASK_ID, WORK_ITEM_ID, {}, []);
+      registerLogSources(collector, profile, TASK_ID, WORK_ITEM_ID, {}, []);
 
       // Assert
       expect(collector.sources.map((s) => s.id)).toEqual([
@@ -211,7 +210,7 @@ describe("LogSourceRegistry", () => {
       const onCliDebug = vi.fn();
 
       // Act
-      registry.registerAll(collector, profile, TASK_ID, WORK_ITEM_ID, { onCliDebug }, [CLAUDE]);
+      registerLogSources(collector, profile, TASK_ID, WORK_ITEM_ID, { onCliDebug }, [CLAUDE]);
 
       // Assert
       expect(source(collector, "claude-cli-debug")).toMatchObject({
@@ -230,7 +229,7 @@ describe("LogSourceRegistry", () => {
       const collector = createFakeCollector();
 
       // Act
-      registry.registerAll(collector, profile, TASK_ID, WORK_ITEM_ID, {}, [CLAUDE, COPILOT]);
+      registerLogSources(collector, profile, TASK_ID, WORK_ITEM_ID, {}, [CLAUDE, COPILOT]);
 
       // Assert
       const ids = [...collector.sources, ...collector.exports].map((s) => s.id);
@@ -243,7 +242,7 @@ describe("LogSourceRegistry", () => {
     it("uses the profile audit log path for the audit source", () => {
       const collector = createFakeCollector();
 
-      registry.registerAll(collector, profile, TASK_ID, WORK_ITEM_ID, {}, [COPILOT]);
+      registerLogSources(collector, profile, TASK_ID, WORK_ITEM_ID, {}, [COPILOT]);
 
       expect(source(collector, "audit")?.containerPath).toBe(profile.auditLogPath);
     });
@@ -253,7 +252,7 @@ describe("LogSourceRegistry", () => {
       const collector = createFakeCollector();
 
       // Act
-      registry.registerAll(collector, profile, TASK_ID, WORK_ITEM_ID, {}, [COPILOT]);
+      registerLogSources(collector, profile, TASK_ID, WORK_ITEM_ID, {}, [COPILOT]);
 
       // Assert
       expect(source(collector, "transcript")?.containerPath).toBe(COPILOT_CONTAINER_LAYOUT.transcriptPath);
@@ -264,7 +263,7 @@ describe("LogSourceRegistry", () => {
       const collector = createFakeCollector();
 
       // Act
-      registry.registerAll(collector, profile, TASK_ID, WORK_ITEM_ID, {}, [COPILOT]);
+      registerLogSources(collector, profile, TASK_ID, WORK_ITEM_ID, {}, [COPILOT]);
 
       // Assert
       const cliDebug = source(collector, "cli-debug")!;
@@ -275,7 +274,7 @@ describe("LogSourceRegistry", () => {
     it("uses workItemId (not taskId) for the state source path", () => {
       const collector = createFakeCollector();
 
-      registry.registerAll(collector, profile, TASK_ID, WORK_ITEM_ID, {}, [COPILOT]);
+      registerLogSources(collector, profile, TASK_ID, WORK_ITEM_ID, {}, [COPILOT]);
 
       expect(source(collector, "state")?.containerPath).toBe(`/workspace/.ralph/tasks/${WORK_ITEM_ID}/state.md`);
     });
@@ -285,7 +284,7 @@ describe("LogSourceRegistry", () => {
       const collector = createFakeCollector();
 
       // Act
-      registry.registerAll(collector, profile, TASK_ID, WORK_ITEM_ID, {}, [COPILOT]);
+      registerLogSources(collector, profile, TASK_ID, WORK_ITEM_ID, {}, [COPILOT]);
 
       // Assert
       expect(source(collector, "state")?.keepAcrossStages).toBe(true);
@@ -294,7 +293,7 @@ describe("LogSourceRegistry", () => {
     it("uses workItemId (not taskId) for the artifacts export path", () => {
       const collector = createFakeCollector();
 
-      registry.registerAll(collector, profile, TASK_ID, WORK_ITEM_ID, {}, [COPILOT]);
+      registerLogSources(collector, profile, TASK_ID, WORK_ITEM_ID, {}, [COPILOT]);
 
       expect(folder(collector, "artifacts")?.containerPath).toBe(`/workspace/.ralph/tasks/${WORK_ITEM_ID}/artifacts`);
     });

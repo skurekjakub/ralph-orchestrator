@@ -31,12 +31,12 @@ describe("ActivityLog", () => {
   });
 
   it("creates log directory on construction", () => {
-    new ActivityLog({ outputConfig: outputConfigWithLogDir(logDir) });
+    new ActivityLog({ outputConfig: outputConfigWithLogDir(logDir), rootDir: process.cwd() });
     expect(existsSync(logDir)).toBe(true);
   });
 
   it("pushes entries to ring buffer", () => {
-    const log = new ActivityLog({ outputConfig: outputConfigWithLogDir(logDir) });
+    const log = new ActivityLog({ outputConfig: outputConfigWithLogDir(logDir), rootDir: process.cwd() });
     log.push(LogLevel.Info, "hello");
     log.push(LogLevel.Warn, "world");
     expect(log.entries).toHaveLength(2);
@@ -45,7 +45,7 @@ describe("ActivityLog", () => {
   });
 
   it("enforces ring buffer max size", () => {
-    const log = new ActivityLog({ outputConfig: outputConfigWithLogDir(logDir) }, 3);
+    const log = new ActivityLog({ outputConfig: outputConfigWithLogDir(logDir), rootDir: process.cwd() }, 3);
     log.push(LogLevel.Info, "a");
     log.push(LogLevel.Info, "b");
     log.push(LogLevel.Info, "c");
@@ -56,14 +56,14 @@ describe("ActivityLog", () => {
   });
 
   it("persists orchestrator entries to activity log file", () => {
-    const log = new ActivityLog({ outputConfig: outputConfigWithLogDir(logDir) });
+    const log = new ActivityLog({ outputConfig: outputConfigWithLogDir(logDir), rootDir: process.cwd() });
     log.push(LogLevel.Info, "test-message");
     const content = readFileSync(log.activityFilePath, "utf-8").trim();
     expect(content).toMatch(/\[INFO\] test-message$/);
   });
 
   it("persists container entries to separate container log file", () => {
-    const log = new ActivityLog({ outputConfig: outputConfigWithLogDir(logDir) });
+    const log = new ActivityLog({ outputConfig: outputConfigWithLogDir(logDir), rootDir: process.cwd() });
     log.push(LogLevel.Info, "container-msg", LogSource.Container);
 
     const date = new Date().toISOString().slice(0, 10);
@@ -77,7 +77,7 @@ describe("ActivityLog", () => {
     // Arrange
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-03-07T23:59:58.123Z"));
-    const log = new ActivityLog({ outputConfig: outputConfigWithLogDir(logDir) });
+    const log = new ActivityLog({ outputConfig: outputConfigWithLogDir(logDir), rootDir: process.cwd() });
     const taskFile = log.startTaskLog("DF-1");
 
     // Act
@@ -92,7 +92,7 @@ describe("ActivityLog", () => {
   });
 
   it("calls onChange callback on every push", () => {
-    const log = new ActivityLog({ outputConfig: outputConfigWithLogDir(logDir) });
+    const log = new ActivityLog({ outputConfig: outputConfigWithLogDir(logDir), rootDir: process.cwd() });
     let callCount = 0;
     log.onLogChange(() => {
       callCount++;
@@ -103,7 +103,7 @@ describe("ActivityLog", () => {
   });
 
   it("creates logger facade that routes to orchestrator source", () => {
-    const log = new ActivityLog({ outputConfig: outputConfigWithLogDir(logDir) });
+    const log = new ActivityLog({ outputConfig: outputConfigWithLogDir(logDir), rootDir: process.cwd() });
     const logger = log.createLogger();
     logger.info("info-msg");
     logger.warn("warn-msg");
@@ -114,14 +114,14 @@ describe("ActivityLog", () => {
   });
 
   it("creates container logger facade that routes to container source", () => {
-    const log = new ActivityLog({ outputConfig: outputConfigWithLogDir(logDir) });
+    const log = new ActivityLog({ outputConfig: outputConfigWithLogDir(logDir), rootDir: process.cwd() });
     const logger = log.createContainerLogger();
     logger.info("container-info");
     expect(log.entries[0].source).toBe(LogSource.Container);
   });
 
   it("returns a snapshot from entries (not a live reference)", () => {
-    const log = new ActivityLog({ outputConfig: outputConfigWithLogDir(logDir) });
+    const log = new ActivityLog({ outputConfig: outputConfigWithLogDir(logDir), rootDir: process.cwd() });
     log.push(LogLevel.Info, "before");
     const snapshot = log.entries;
     log.push(LogLevel.Info, "after");
@@ -131,7 +131,7 @@ describe("ActivityLog", () => {
 
   it("includes timestamp on every entry", () => {
     const before = Date.now();
-    const log = new ActivityLog({ outputConfig: outputConfigWithLogDir(logDir) });
+    const log = new ActivityLog({ outputConfig: outputConfigWithLogDir(logDir), rootDir: process.cwd() });
     log.push(LogLevel.Info, "timestamped");
     const after = Date.now();
     expect(log.entries[0].timestamp).toBeGreaterThanOrEqual(before);
@@ -139,7 +139,7 @@ describe("ActivityLog", () => {
   });
 
   it("streams only container entries to per-task log file", () => {
-    const log = new ActivityLog({ outputConfig: outputConfigWithLogDir(logDir) });
+    const log = new ActivityLog({ outputConfig: outputConfigWithLogDir(logDir), rootDir: process.cwd() });
     const taskFile = log.startTaskLog("DF-1234");
     log.push(LogLevel.Info, "orchestrator msg");
     log.push(LogLevel.Warn, "container msg", LogSource.Container);

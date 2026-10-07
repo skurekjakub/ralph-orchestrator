@@ -50,3 +50,6 @@ todo.md
 
 # Vitest JSON report written by the RTK test wrapper
 .vitest/
+
+# superpowers subagent-driven-development workspaces
+/.superpowers/

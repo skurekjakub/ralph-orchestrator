@@ -1,0 +1,428 @@
+<title>Awilix Single Wiring</title>
+
+<style>
+  :root {
+    color-scheme: light dark;
+    --paper: #f4f5f6;
+    --panel: #ffffff;
+    --ink: #16191d;
+    --muted: #5d6772;
+    --hair: #d5dadd;
+    --accent: #0e6f68;
+    --accent-soft: #d9e8e6;
+    --defect: #9c3a2c;
+    --wire: #8a5a10;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+    --serif: Charter, "Bitstream Charter", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #15181b;
+      --panel: #1c2024;
+      --ink: #e6e9ea;
+      --muted: #97a1ab;
+      --hair: #2e343a;
+      --accent: #57b3aa;
+      --accent-soft: #1d3230;
+      --defect: #d98a7c;
+      --wire: #d3a45c;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper: #15181b;
+    --panel: #1c2024;
+    --ink: #e6e9ea;
+    --muted: #97a1ab;
+    --hair: #2e343a;
+    --accent: #57b3aa;
+    --accent-soft: #1d3230;
+    --defect: #d98a7c;
+    --wire: #d3a45c;
+  }
+
+  :root[data-theme="light"] {
+    --paper: #f4f5f6;
+    --panel: #ffffff;
+    --ink: #16191d;
+    --muted: #5d6772;
+    --hair: #d5dadd;
+    --accent: #0e6f68;
+    --accent-soft: #d9e8e6;
+    --defect: #9c3a2c;
+    --wire: #8a5a10;
+  }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--serif);
+    font-size: 17px;
+    line-height: 1.62;
+    margin: 0;
+    padding: 4rem 1.5rem 6rem;
+  }
+
+  .wrap {
+    max-width: 40rem;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2.75rem;
+  }
+
+  .masthead {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 1.6rem;
+  }
+
+  .kicker {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0;
+  }
+
+  h1 {
+    font-family: var(--mono);
+    font-size: clamp(1.5rem, 4.6vw, 2.05rem);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    text-wrap: balance;
+    margin: 0;
+  }
+
+  .standfirst {
+    margin: 0;
+    color: var(--muted);
+    font-size: 1.02rem;
+  }
+
+  section {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  h2 {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0;
+    padding-bottom: 0.55rem;
+    border-bottom: 1px solid var(--hair);
+  }
+
+  h3 {
+    font-family: var(--mono);
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin: 0.6rem 0 0;
+  }
+
+  p {
+    margin: 0;
+  }
+
+  code {
+    font-family: var(--mono);
+    font-size: 0.87em;
+    background: var(--accent-soft);
+    color: inherit;
+    padding: 0.1em 0.34em;
+    border-radius: 3px;
+    overflow-wrap: anywhere;
+  }
+
+  .file {
+    font-family: var(--mono);
+    font-size: 0.87em;
+    color: var(--muted);
+    background: none;
+    padding: 0;
+    overflow-wrap: anywhere;
+  }
+
+  pre {
+    font-family: var(--mono);
+    font-size: 0.79rem;
+    line-height: 1.65;
+    background: var(--panel);
+    border: 1px solid var(--hair);
+    border-left: 3px solid var(--hair);
+    padding: 1rem 1.1rem;
+    margin: 0;
+    overflow-x: auto;
+  }
+
+  pre.wire {
+    border-left-color: var(--wire);
+  }
+
+  pre b {
+    color: var(--wire);
+    font-weight: 600;
+  }
+
+  pre i {
+    color: var(--muted);
+    font-style: normal;
+  }
+
+  figure {
+    margin: 0;
+    background: var(--panel);
+    border: 1px solid var(--hair);
+    padding: 1.15rem 1.25rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  figcaption {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .table-wrap {
+    overflow-x: auto;
+  }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 0.86rem;
+  }
+
+  th,
+  td {
+    text-align: left;
+    vertical-align: top;
+    padding: 0.45rem 0.6rem;
+    border-bottom: 1px solid var(--hair);
+  }
+
+  th {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 600;
+  }
+
+  td.num {
+    font-family: var(--mono);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .note {
+    font-size: 0.9rem;
+    color: var(--muted);
+  }
+
+  ul {
+    margin: 0;
+    padding-left: 1.15rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  li::marker {
+    color: var(--accent);
+  }
+
+  .verdict {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    border-top: 1px solid var(--hair);
+    padding-top: 1.1rem;
+  }
+
+  .verdict strong {
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  details.check {
+    border-top: 1px solid var(--hair);
+    padding: 0.8rem 0;
+  }
+
+  details.check summary {
+    cursor: pointer;
+    font-weight: 600;
+  }
+
+  details.check summary:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+  }
+
+  details.check > :not(summary) {
+    margin-top: 0.6rem;
+    color: var(--muted);
+  }
+</style>
+
+<div class="wrap">
+  <header class="masthead">
+    <p class="kicker">refactor · dependency wiring · 2026-10-07</p>
+
+    <h1>Awilix Single Wiring</h1>
+
+    <p class="standfirst">Every service the orchestrator runs is now built by one awilix container, in scopes per task, per stage and per data source, through registrations the compiler checks. Nothing a task, stage or connector needs is assembled by hand any more, and a missing or mistyped registration fails <code>tsc</code> or a test that resolves every token. Behaviour is unchanged apart from two named fixes; the suite went from 1974 to 2015 tests.</p>
+  </header>
+
+  <section>
+    <h2>Summary</h2>
+    <ul>
+      <li><strong>One entry point.</strong> <code>createRootContainer(config, { rootDir })</code> builds the root container; <code>src/index.tsx</code> and the two scripts that run tasks take <code>.cradle</code> from it, and the orchestrator and dashboard server resolve from it.</li>
+      <li><strong>Scopes for the per-task and per-stage objects.</strong> A task scope holds the task's compose client, log collector, workspace cleaner and container manager; a stage scope holds one stage's executor; a data-source scope holds a connector and its poller.</li>
+      <li><strong>A cradle the compiler checks.</strong> <code>src/di/registration.ts</code> adds <code>wiring&lt;C&gt;().service</code>, <code>factory</code>, <code>Registrations&lt;C&gt;</code> and <code>asValues</code>. Each registration site is a typed object; a missing token, an extra token or a constructor whose deps the cradle cannot provide fails <code>tsc</code>.</li>
+      <li><strong>New:</strong> <span class="file">src/di/registration.ts</span>, <span class="file">src/container/container-manager-factory.ts</span>, <span class="file">src/container/stage-executor-factory.ts</span>, <span class="file">src/container/cli-executor.ts</span> (the executor interface alone).</li>
+      <li><strong>Deleted:</strong> <code>CliExecutorFactory</code>, <code>buildContainerFactory</code>, <code>buildComposeClient</code>, <code>createCradle</code>, and the stateless classes <code>ComposeFileResolver</code>, <code>LogSourceRegistry</code>, <code>AgentCatalogProvider</code>, <code>JitMcpConfigWriter</code>, <code>SkillTemplateRenderer</code>, both agent-writer classes and both VCS provider client classes, with their interfaces and mock factories.</li>
+      <li><strong>Became functions or plain objects:</strong> <code>resolveComposeFiles</code>, <code>registerLogSources</code>, <code>loadAgentCatalog</code>, <code>writeJitMcpConfig</code>, <code>renderStageSkills</code>, <code>claudeAgentWriter</code>, <code>copilotAgentWriter</code>, <code>adoVcsSourceProviderClient</code>, <code>githubVcsSourceProviderClient</code>.</li>
+      <li><strong>Two deliberate behaviour changes:</strong> JIRA polling and retry warnings reach the activity log, and <code>scripts/lookup-users.ts</code> authenticates with its data source's JIRA credentials.</li>
+      <li><strong>Docs:</strong> <span class="file">docs/dev-doc/dependency-injection.md</span> rewritten; <span class="file">AGENTS.md</span> § Adding a DI service, <span class="file">ARCHITECTURE.md</span>, the stack profile, the testing rule and two dev skills follow the code.</li>
+    </ul>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Gate</th><th>Baseline <span class="file">04dce62</span></th><th>Branch head</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>npx vitest run</code></td><td class="num">136 files · 1974</td><td class="num">138 files · 2015</td></tr>
+          <tr><td><code>npm run lint</code></td><td class="num">tsc + eslint pass</td><td class="num">exit 0</td></tr>
+          <tr><td><code>npm run build</code></td><td class="num">355.2 kb</td><td class="num">354.9 kb</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">Baseline from <span class="file">.ai/refactoring/001-awilix-single-wiring/baseline.md</span>; head figures from the final <code>npm test</code> run on the merged tree, 2026-10-07.</p>
+  </section>
+
+  <section>
+    <h2>In plain terms</h2>
+    <p>The orchestrator is made of a few dozen collaborating parts: one that talks to JIRA, one that tracks which comments it has acted on, one that starts the Docker stack for a task, one per AI command line that runs an agent, and so on. Something has to create each part and hand it the other parts it needs. Before this change, most parts were created by a dependency container, but the parts that live for a single task or a single stage were assembled by hand in a handful of factory functions, and the container's own list was only loosely checked.</p>
+    <p>Now the container creates everything, and it does so in nested scopes. The outer scope lives as long as the process. Each task opens a scope of its own for the parts that belong to that one task, such as its Docker stack, and each stage of the task opens a smaller scope inside it for the agent runner of that stage. When the task ends, its scope is dropped and nothing of it lingers. JIRA sources work the same way: each configured source gets a scope that holds its client, connector and poller.</p>
+    <p>The list of what the container can create is a typed description, and the compiler compares every entry against what each part asks for. Forgetting to register something, misspelling it or handing a part the wrong kind of thing stops the build instead of failing at three in the morning on the first task that needs it. A test then asks the real container for every single part, in every scope, to catch the few mistakes a compiler cannot see.</p>
+    <p>Parts that never held any state of their own, and only ever read files from a fixed place, stopped being classes and became plain functions, so there is less to create and nothing to wire for them.</p>
+  </section>
+
+  <section>
+    <h2>Walkthrough</h2>
+
+    <h3>1. Checked registration helpers</h3>
+    <p><span class="file">src/di/registration.ts:26</span> defines <code>Registrations&lt;C&gt;</code>, which maps every token of a cradle type to a resolver of that token's type: an object typed with it fails <code>tsc</code> on a missing or extra key. <code>wiring&lt;C&gt;()</code> at <span class="file">:35</span> returns <code>service</code>, which accepts a class only when cradle <code>C</code> provides every key of its deps object with a compatible type, optional keys included, and <code>factory</code>. <code>asValues</code> at <span class="file">:52</span> turns a typed values object into value registrations. <span class="file">tests/di/registration.test.ts</span> holds the <code>@ts-expect-error</code> cases.</p>
+    <pre class="wire"><span>const w = wiring&lt;OrchestratorCradle&gt;();
+const root: <b>Registrations&lt;Omit&lt;OrchestratorCradle, "connectors" | "pollers"&gt;&gt;</b> = {
+  ...
+  taskRunner: <b>w.service(TaskRunner)</b>.singleton(),   <i>// delete this line → TS2741 names taskRunner</i>
+};</span></pre>
+
+    <h3>2. The root container</h3>
+    <p><code>createRootContainer</code> (<span class="file">src/awilix-cradle.ts:138</span>) registers the root object, then <code>registerScopedServices</code> (<span class="file">:114</span>), which puts the task and stage registrations at the root as <code>.scoped()</code>, then builds the data-source maps and registers <code>connectors</code> and <code>pollers</code> as values with a <code>satisfies Registrations&lt;Pick&lt;…&gt;&gt;</code> check (<span class="file">:207</span>). The root object includes <code>containerFactory</code>, <code>orchestrator</code> and <code>dashboardServer</code>, so <code>src/index.tsx</code> only destructures them.</p>
+
+    <h3>3. Data-source scopes, built outside resolution</h3>
+    <p><code>buildDataSourceMaps(container, config)</code> (<span class="file">src/datasource/registry.ts:65</span>) opens one scope per <code>dataSources</code> entry and hands it to the type's registered factory. The JIRA factory (<span class="file">src/datasource/connectors/jira/factory.ts:69</span>) registers its connection, client, connector and poller in that scope. The maps are built after the root registers, never inside a root singleton's resolver: awilix shares one resolution stack with child scopes, so a scoped resolve under a singleton fails its lifetime check (spec Correction 2, reproduced on awilix 13.0.5). <code>resolveJiraConnection</code> (<span class="file">:57</span>) is the one place that parses a JIRA connection and reads its <code>JIRA_PAT_&lt;KEY&gt;</code> and <code>JIRA_EMAIL_&lt;KEY&gt;</code>; the factory and both JIRA scripts use it.</p>
+
+    <h3>4. Task scopes</h3>
+    <p><code>openTaskScope(container, values)</code> (<span class="file">src/container/container-manager-factory.ts:17</span>) opens a scope with the task's <code>profile</code> and <code>workspacePath</code>, resolves its <code>compose</code> client once and registers it back as a value, then registers <code>stageExecutors</code>. A scoped registration caches in the scope that resolves it, so without that pin each stage scope would build its own compose client and re-run the <code>squid.conf</code> check. <code>createContainerManagerFactory</code> (<span class="file">:38</span>) keeps the <code>ContainerManagerFactory</code> interface: <code>create</code> resolves the task's <code>containerManager</code>, <code>forceDown</code> resolves only <code>compose</code>, and <code>createLocalSession</code> opens a host stage scope from the root for a post-task hook.</p>
+    <pre class="wire"><span>const scope = container.createScope&lt;TaskCradle&gt;().register(asValues(values));
+<b>scope.register({ compose: asValue(scope.resolve("compose")) } satisfies …);</b>   <i>// one client per task</i>
+return scope.register({ stageExecutors: asValue(createStageExecutorFactory(scope)) } satisfies …);</span></pre>
+
+    <h3>5. Stage scopes, one cradle per executor kind</h3>
+    <p><code>createStageExecutorFactory(taskScope)</code> (<span class="file">src/container/stage-executor-factory.ts:82</span>) switches on the stage's CLI. A Claude Code stage loads the agent catalog and opens a <code>ClaudeStageCradle</code> scope with the stage root's name and subagent depth; a Copilot stage opens a <code>CopilotStageCradle</code> scope and loads no catalog. <code>createHostStageExecutor</code> (<span class="file">:118</span>) does the same for host stages, computing the pinned binary, the hooks directory and the reachable subagent names. Host cradles build on the root cradle, so a variant's own <code>mode: "local"</code> stage opens one from the task scope and a post-task hook opens one from the root.</p>
+    <p>The executors take <code>stageProfile</code> and <code>containerLogger</code>, cradle tokens beside the task's <code>profile</code> and the orchestrator's <code>logger</code>. Swapping one for the other still type-checks, so four tests in <span class="file">tests/container/stage-executor-factory.test.ts</span> ("runs a … stage with the stage's agent, model and timeout and logs to the container logger") run a stage whose task profile and stage profile differ, and assert the argv carries the stage's agent, model and timeout and that the log line reached the container logger.</p>
+
+    <h3>6. Stateless classes as functions</h3>
+    <p>Classes whose only input was the checkout root became module functions taking <code>rootDir</code>: <code>resolveComposeFiles</code> (<span class="file">src/container/setup/compose-files.ts:19</span>), <code>registerLogSources</code> (<span class="file">src/container/log-source-registry.ts:35</span>), <code>loadAgentCatalog</code> (<span class="file">src/container/setup/agent-catalogs.ts:12</span>), <code>writeJitMcpConfig</code> (<span class="file">src/container/setup/jit-mcp-params.ts:102</span>) and <code>renderStageSkills</code> (<span class="file">src/container/setup/skill-includes.ts:128</span>). The agent writers and VCS provider clients became plain objects that satisfy their interfaces. <code>HookRulesRedactor</code> stays a service: it reads only <code>rootDir</code> but spawns <code>perl</code> behind <code>ITextRedactor</code>.</p>
+
+    <h3>7. Everything rooted at <code>rootDir</code></h3>
+    <p>The repo cache, compose files, <code>squid.conf</code>, the shared hooks path, the activity log and the task workspace all resolve against the cradle's <code>rootDir</code>. <code>buildTaskContext</code> (<span class="file">src/services/task-context.ts:53</span>) takes it from the orchestrator, so a container built with a root other than the current directory clones and mounts in one place. Production passes <code>process.cwd()</code>, as before.</p>
+
+    <h3>8. The two behaviour changes</h3>
+    <ul>
+      <li><strong>JIRA logging.</strong> The JIRA client and poller take the activity-log <code>logger</code>, so polling progress and retry warnings reach <span class="file">output/logs/activity-*.log</span>. Before, no caller passed them a logger and retries were silent.</li>
+      <li><strong><code>lookup-users</code> credentials.</strong> The script reads the selected data source's connection and credentials through <code>resolveJiraConnection</code>, so it authenticates the way the orchestrator does.</li>
+    </ul>
+
+    <h3>9. Proof it is complete</h3>
+    <ul>
+      <li>The test "resolves every root registration from the root container to its class or value" and its task-scope sibling in <span class="file">tests/orchestrator-factory.test.ts</span> resolve every registered token under strict mode against a fixture checkout, and compare against tables keyed by the cradle types, so a new token fails lint until it has an expected class. Deleting one stage registration line passes <code>tsc</code> and fails this test.</li>
+      <li>The spec's three completeness greps return only named exceptions: <code>scripts/lookup-users.ts</code> builds one <code>JiraClient</code> with the console logger scripts use, and two superseded planning notes under <span class="file">plans/</span> and <span class="file">todos/</span> keep their old class names.</li>
+      <li>Deleting <code>taskRunner</code> from the root object fails <code>tsc</code> with TS2741 naming the token.</li>
+    </ul>
+
+    <h3>Left alone on purpose</h3>
+    <ul>
+      <li>A missing profile <code>squid.conf</code> still throws from <code>containerFactory.create</code> outside <code>TaskRunner</code>'s try, as it did before; filed in <span class="file">todo.md</span>.</li>
+      <li><code>ContainerManager</code>'s test-only <code>containerLogger?</code> fallback, the dashboard WebSocket server binding every interface, the JIRA poller's <code>console.error</code> and the dead <code>JiraFieldExtractor</code> and <code>JiraIssueParser</code>: all pre-existing, all filed.</li>
+      <li>Derived interfaces (<code>type IFoo = PublicApi&lt;Foo&gt;</code>) were deferred by the owner before the work began.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Check yourself</h2>
+
+    <details class="check">
+      <summary>Why does <code>openTaskScope</code> resolve <code>compose</code> and register it back as a value?</summary>
+      <p>Because a <code>.scoped()</code> registration caches in whichever scope resolves it. Each stage scope is a child of the task scope, so without the pin every stage would build a second <code>ComposeClient</code> and re-check <code>squid.conf</code>. As a value, the one client is what every child resolves. <span class="file">src/container/container-manager-factory.ts:24</span>; the test "hands its stage scopes the task's compose client".</p>
+    </details>
+
+    <details class="check">
+      <summary>Why are the data-source maps built after the root registers, instead of inside a root singleton's factory?</summary>
+      <p>awilix 13 shares one resolution stack between a container and its child scopes. Resolving a scoped JIRA registration while a root singleton is being resolved fails the strict lifetime check. Building the maps in plain code after registration avoids that. Spec Correction 2; <span class="file">src/awilix-cradle.ts</span>, after <code>registerScopedServices</code>.</p>
+    </details>
+
+    <details class="check">
+      <summary>A test-only constructor option, like <code>ActivityLog</code>'s ring-buffer size, is a second positional parameter. Why not an optional key on the deps object?</summary>
+      <p>Under <code>InjectionMode.PROXY</code> with <code>strict: true</code>, destructuring a key the cradle doesn't hold throws, even when the key is optional. awilix passes only the cradle, so a positional parameter stays <code>undefined</code> in production and tests can set it. Spec Correction 1.</p>
+    </details>
+
+    <details class="check">
+      <summary>What would happen if a Claude Code executor read <code>profile</code> instead of <code>stageProfile</code>, and what catches it?</summary>
+      <p>It would run the variant's first agent, model and timeout instead of the stage's. Both tokens are <code>IAgentProfile</code>, so it type-checks. The four rename-guard tests in <span class="file">tests/container/stage-executor-factory.test.ts</span> give the task and the stage different profiles and assert the stage's agent, model and timeout in the argv.</p>
+    </details>
+
+    <details class="check">
+      <summary>Why are there four stage cradle types instead of one?</summary>
+      <p>The per-stage values differ: a Claude Code stage needs its root agent's name and subagent depth from the catalog, a Copilot stage loads no catalog, and host stages need a binary and a workspace and have no task scope when they run as post-task hooks. One cradle would force Copilot stages to load the catalog or leave values unregistered. Spec §2 and Correction 5; <span class="file">src/awilix-cradle-types.ts</span>.</p>
+    </details>
+
+    <details class="check">
+      <summary>Where can a post-task hook's host stage scope open from, and why?</summary>
+      <p>From the root. Hooks run after teardown, when the task scope is gone, and host stage cradles read no task token, so the root holds all they need. A variant's own local stage opens the same kind of scope from its task scope. <code>createLocalSession</code> and <code>createHostStageExecutor</code>; spec Correction 11.</p>
+    </details>
+
+    <details class="check">
+      <summary>Which mistakes does <code>tsc</code> catch, and which does only the all-token test catch?</summary>
+      <p><code>tsc</code> catches a missing or extra token, a resolver of the wrong type, and a constructor deps key the cradle lacks or types differently. It cannot see a wrong lifetime, a registration line deleted from a scoped group, or a deps key swapped for another token of the same type; the all-token test and the rename guards catch those. <span class="file">docs/dev-doc/dependency-injection.md</span>, "What tsc checks".</p>
+    </details>
+
+    <details class="check">
+      <summary>Why did <code>continuationRunner</code> and <code>sessionRunner</code> become root singletons without changing behaviour?</summary>
+      <p>Their fields are read-only dependencies and all their state lives in <code>run()</code>'s locals, so one instance serves every task. Before, a fresh pair with identical dependencies was built per task. Spec §4; confirmed by the interim and final reviews.</p>
+    </details>
+
+    <p class="verdict"><strong>npm test → exit 0.</strong> Journal: <span class="file">.ai/refactoring/001-awilix-single-wiring/</span> (spec, plan, inventory, baseline, README).</p>
+  </section>
+</div>

@@ -162,7 +162,7 @@ The extra content is written to the log file on the host. The attacker reads it 
 
 ### H8 — Squid Access Log as Covert Channel
 
-**Root cause:** `LogSourceRegistry` (`src/container/log-source-registry.ts`) collects `egress-proxy:/var/log/squid/access.log` as a task artifact.
+**Root cause:** `registerLogSources` (`src/container/log-source-registry.ts`) collects `egress-proxy:/var/log/squid/access.log` as a task artifact.
 
 The agent encodes credentials in URL parameters or User-Agent strings that Squid records:
 

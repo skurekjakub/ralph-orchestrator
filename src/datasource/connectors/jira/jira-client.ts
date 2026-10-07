@@ -44,24 +44,18 @@ export class JiraClient implements IJiraClient {
 
   private email: string;
   private apiToken: string;
-  private logger?: Logger;
+  private readonly logger: Logger;
   private retryOptions?: RetryOptions;
 
   constructor(
-    {
-      connection,
-      logger,
-    }: {
-      connection: IJiraConnectionConfig;
-      logger?: Logger;
-    },
+    { jiraConnection, logger }: { jiraConnection: IJiraConnectionConfig; logger: Logger },
     retryOptions?: RetryOptions,
   ) {
-    this.email = connection.email;
-    this.apiToken = connection.apiToken;
+    this.email = jiraConnection.email;
+    this.apiToken = jiraConnection.apiToken;
     this.logger = logger;
     this.retryOptions = retryOptions;
-    this.apiBase = jiraApiBase(connection);
+    this.apiBase = jiraApiBase(jiraConnection);
     this.authHeader = "Basic " + Buffer.from(`${this.email}:${this.apiToken}`).toString("base64");
   }
 

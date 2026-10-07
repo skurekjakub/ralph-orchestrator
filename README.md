@@ -162,11 +162,11 @@ Press `Ctrl+C` to gracefully stop (kills active container, cleans up resources).
 | ----------------------------------------------------------------------- | ------------------------------------------ |
 | Poll JIRA, queue issues, dedup                                          | Orchestrator                               |
 | Route to matching profile                                               | Orchestrator                               |
-| CLI per stage (Claude Code or Copilot CLI), no fallback                 | Config loader → CliExecutorFactory         |
+| CLI per stage (Claude Code or Copilot CLI), no fallback                 | Config loader → stage executor factory     |
 | Stage pipeline execution (sequential, abort-on-fail)                    | TaskRunner                                 |
 | JIRA transition to "In Progress" + start comment                        | TaskRunner                                 |
 | Container lifecycle (start, exec, stop)                                 | TaskRunner (ContainerManager)              |
-| Create executor per stage (container vs local mode)                     | ContainerManager (CliExecutorFactory)      |
+| Create executor per stage (container vs local mode)                     | ContainerManager (stage executor factory)  |
 | Manage `.git/info/exclude` for bind-mount artifacts                     | TaskRunner (TaskWorkspaceManager)          |
 | Create the task's workspace on the task branch, delete it after success | TaskRunner (TaskWorkspaceManager)          |
 | Render agent templates (JIT) + resolve MCP macros                       | TaskRunner (ProfileSetupService)           |

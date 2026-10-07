@@ -69,7 +69,7 @@ function stageRootSkillsInstruction(skills: readonly string[]): string {
  * therefore stay in its frontmatter, and a stage root's become {@link stageRootSkillsInstruction} at the
  * top of its body.
  */
-export class ClaudeAgentWriter implements IAgentFileWriter {
+export const claudeAgentWriter = {
   write(agent: AgentDefinition, context: AgentWriteContext): AgentFile | null {
     if (!agent.runtimes.includes(CliType.Claude)) return null;
 
@@ -88,10 +88,10 @@ export class ClaudeAgentWriter implements IAgentFileWriter {
       fileName: claudeAgentFileName(agent.name),
       content: `---\n${lines.join("\n")}\n---\n${body}`,
     };
-  }
+  },
 
   /** The agent's canonical model; undefined when it names none or inherits its parent's. */
   modelOf(agent: AgentFrontmatter): string | undefined {
     return agent.model === INHERIT_MODEL ? undefined : agent.model;
-  }
-}
+  },
+} satisfies IAgentFileWriter;

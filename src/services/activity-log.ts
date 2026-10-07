@@ -49,19 +49,22 @@ export class ActivityLog implements IActivityLog {
   private maxLines: number;
 
   /**
-   * @param opts.outputConfig Output config (reads `logDir`).
-   * @param opts.maxLines Ring buffer size (default 500).
+   * @param deps.outputConfig Output config (reads `logDir`).
+   * @param deps.rootDir The orchestrator checkout a relative `logDir` resolves against.
+   * @param maxLines Ring buffer size.
    */
   constructor(
     {
       outputConfig,
+      rootDir,
     }: {
       outputConfig: IOutputConfig;
+      rootDir: string;
     },
     maxLines = 500,
   ) {
     this.maxLines = maxLines;
-    this.logDir = resolve(process.cwd(), outputConfig.logDir);
+    this.logDir = resolve(rootDir, outputConfig.logDir);
     mkdirSync(this.logDir, { recursive: true });
     const date = new Date().toISOString().slice(0, 10);
     this.filePath = join(this.logDir, `activity-${date}.log`);

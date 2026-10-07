@@ -8,6 +8,7 @@ Use this to locate where a failure happened when the logs alone don't explain it
 Orchestrator.executeOperation()            # src/orchestrator.ts — resolve profile, refresh issue, preflight
   → Orchestrator.runTask()                 # builds taskId = <issueKey>-<startTs>, starts per-task log, ledger → active
     → TaskRunner.run(ctx)                  # src/services/task-runner.ts
+      containerFactory.create()                                       # src/container/container-manager-factory.ts — ContainerManager + compose client in a task scope
       1. prepareProfile   → ProfileSetupService.prepareForTask()     # src/services/profile-setup-service.ts
       2. transitionIssue  → IssueManager.transitionWorkItem() + postStartComment()
       3. prepareContainer → TaskWorkspaceManager.prepare()           # src/services/task-workspace-manager.ts
@@ -34,7 +35,9 @@ Orchestrator.executeOperation()            # src/orchestrator.ts — resolve pro
       7. TaskWorkspaceManager.cleanup()                               # deletes the workspace on success, keeps it otherwise
 ```
 
-`CliExecutorFactory` (`src/container/cli-executor-factory.ts`) dispatches on each stage's `cli`: `ClaudeCodeExecutor` or `CopilotExecutor` in the container, `LocalClaudeCodeExecutor` or `LocalCopilotExecutor` on the host. Credentials are checked by startup validation, not by the factory.
+The stage executor factory (`src/container/stage-executor-factory.ts`) dispatches on each stage's `cli`: `ClaudeCodeExecutor` or `CopilotExecutor` in the container, `LocalClaudeCodeExecutor` or `LocalCopilotExecutor` on the host, each resolved in a stage scope of its own. Credentials are checked by startup validation, not by the factory.
+
+`containerFactory.create()` throws `Profile squid.conf not found at …` when startup profile setup never wrote the profile's `.build/squid.conf`. The throw comes before the first phase, so no logs are collected: `Orchestrator.runTask()` logs `Error processing <key>: …`, records the message as the ledger's `reason` and posts it as the error comment, and the safety-net teardown then warns `Fallback teardown failed` with the same message.
 
 ## Where things are logged or decided
 
@@ -52,7 +55,7 @@ Orchestrator.executeOperation()            # src/orchestrator.ts — resolve pro
 
 Startup (`src/app-startup.ts`) runs once: it builds custom MCP servers and the gateway (`buildCustomMcpServers()` in `src/container/setup/mcp-builder.ts`), then `resolveAllProfileSetup()` (`src/container/setup/profile-setup.ts`) writes `profiles/<id>/.build/`: `mcp-config.json`, `gateway.json`, `docker-compose.overlay.yml`, `pre-init.sh`, `squid.conf`, and each container-stage CLI's files (`copilot-settings.json`, `claude/`).
 
-Per task, `ProfileSetupService.prepareForTask()` runs `AgentTemplateRenderer.render()` (Liquid → `profiles/<id>/.build/<cli>/agents/`), `SkillTemplateRenderer.render()`, `ComposeOverlayWriter.write()` and `JitMcpConfigWriter.write()` (macro resolution into `gateway.json`). A Liquid error or an unknown MCP macro throws here, before any container starts.
+Per task, `ProfileSetupService.prepareForTask()` runs `AgentTemplateRenderer.render()` (Liquid → `profiles/<id>/.build/<cli>/agents/`), `renderStageSkills()`, `ComposeOverlayWriter.write()` and `writeJitMcpConfig()` (macro resolution into `gateway.json`). A Liquid error or an unknown MCP macro throws here, before any container starts.
 
 `TaskWorkspaceManager.prepare()` runs host-side git before any container starts: it clones or fetches the profile's bare clone in `cache/repos/<profileId>` from `repoUrl`, clones `cache/workspaces/<taskId>` from it and checks out the task branch. `ContainerManager.start()` then runs `docker compose up -d --build` with that workspace mounted at `/workspace` (output tagged `[build]`), and `setup()` runs the profile's setup script as `vscode` (tagged `[setup]`). A failed task keeps its workspace; the activity log names its path.
 

@@ -21,7 +21,7 @@ import "dotenv/config";
 import { rm } from "node:fs/promises";
 import { resolve } from "node:path";
 import { AppStartup } from "../src/app-startup";
-import { createCradle } from "../src/awilix-cradle";
+import { createRootContainer } from "../src/awilix-cradle";
 import { consoleLogger } from "../src/logger";
 import { readHookManifest } from "../src/services/hook-manifest";
 import { hookOutputDir } from "../src/services/stage-workspace";
@@ -73,7 +73,7 @@ async function main() {
   }
 
   // 4. Build DI cradle
-  const cradle = createCradle(config);
+  const cradle = createRootContainer(config, { rootDir: process.cwd() }).cradle;
 
   // 5. Determine which hooks to run (manifest hooks, optionally filtered)
   let hooks = [...manifest.hooks];
@@ -108,7 +108,7 @@ async function main() {
     ralphchivesEnabled: config.ralphchives.enabled,
     prUrl: null,
     outputDir: absOutputDir,
-    workspacePath: taskWorkspacePath(process.cwd(), manifest.taskId),
+    workspacePath: taskWorkspacePath(cradle.rootDir, manifest.taskId),
     signal: new AbortController().signal,
     onToolOutput: undefined,
     onPreToolUse: undefined,

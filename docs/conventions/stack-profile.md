@@ -75,12 +75,35 @@
   - Relative import with an extension (`./foo.js`, `./foo.ts`) → `./foo`
     (esbuild resolves it; `.json` imports keep their extension).
   - A consumer importing or `new`-ing a concrete service class → depend on its
-    `I`-interface; register the class in `createCradle()`
-    (`src/awilix-cradle.ts`) and add the token to `OrchestratorCradle`
-    (`src/awilix-cradle-types.ts`). Per-task objects belong in
-    `buildContainerFactory`.
+    `I`-interface; add the token to the cradle type of the container the
+    class lives in (`src/awilix-cradle-types.ts`: `OrchestratorCradle`,
+    `TaskCradle`, a stage cradle, or a connector's own in its `factory.ts`)
+    and register it with `wiring<…>().service(X)` in that cradle's
+    `Registrations` object: `.singleton()` at the root
+    (`createRootContainer()`, `src/awilix-cradle.ts`), `.scoped()` in a
+    scope.
+  - A bare `asClass` / `asFunction`, or a registration object not typed
+    `Registrations<…>` → `wiring<C>().service` / `.factory` and an object
+    declared `Registrations<Omit<…>>`, or a literal that
+    `satisfies Registrations<Pick<…>>` (`src/di/registration.ts`), so `tsc`
+    checks deps, tokens and resolver types.
   - Constructor taking `IAppConfig` or positional deps → one destructured deps
     object of cradle tokens and config slices.
+  - An optional deps-object key that is no cradle token (a test-only
+    override) → an optional second positional parameter; the PROXY cradle
+    throws on a key it lacks.
+  - A registration that reads a scope's values but is `.singleton()` or
+    keeps awilix's transient default → `.scoped()`; per-scope inputs are
+    values (`asValues`).
+  - A scope opened inside a registration's factory → a plain function
+    (`openTaskScope`, `buildDataSourceMaps`): strict mode refuses a scoped
+    resolve while a root singleton resolves.
+  - A class whose only cradle token is `rootDir`, or none, and that spawns
+    no external process → a module function or module object
+    (`resolveComposeFiles`, `claudeAgentWriter`), its other inputs
+    parameters; callers' tests `vi.mock` its module or use fixture files.
+    `HookRulesRedactor` stays a service: it spawns `perl` behind
+    `ITextRedactor`.
   - String-literal union for a fixed set → TS `enum`, with `z.enum` validating
     the raw JSON.
   - A config key added only to `types.ts` → `src/config/schemas.ts` (zod) +

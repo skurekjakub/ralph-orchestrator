@@ -12,10 +12,10 @@ import { ContainerManager } from "../../src/container/manager";
 import { CliRuntimeRegistry, type ICliRuntime } from "../../src/cli/cli-runtime";
 import { CliType, StageMode, type IAgentProfile } from "../../src/config/types";
 import type { IComposeClient } from "../../src/container/compose-client";
-import type { ICliExecutorFactory } from "../../src/container/cli-executor-factory";
+import type { IStageExecutorFactory } from "../../src/container/stage-executor-factory";
 import type { IContainerLogCollector } from "../../src/container/log-collector";
 import type { IContainerWorkspaceCleaner } from "../../src/container/workspace-cleaner";
-import type { ILogSourceRegistry } from "../../src/container/log-source-registry";
+import { registerLogSources } from "../../src/container/log-source-registry";
 import type { IAgentSessionRunner } from "../../src/container/agent-session-runner";
 import { TaskStatus } from "../../src/container/types";
 import {
@@ -26,7 +26,14 @@ import {
   makeStage,
   makeWorkItem,
 } from "../helpers/factories";
-import { createMockCliRuntime, createMockExecutor, createMockLogger, type Mocked } from "../helpers/mocks";
+import {
+  createMockCliRuntime,
+  createMockExecutor,
+  createMockLogger,
+  createMockSessionRunner,
+  createMockStageExecutors,
+  type Mocked,
+} from "../helpers/mocks";
 import type { Logger } from "../../src/logger";
 import type { ResultPromise } from "execa";
 
@@ -36,6 +43,8 @@ vi.mock("execa", async (importOriginal) => {
   const orig = await importOriginal<typeof import("execa")>();
   return { ...orig, execa: vi.fn().mockResolvedValue({ exitCode: 0 }) };
 });
+
+vi.mock("../../src/container/log-source-registry", () => ({ registerLogSources: vi.fn() }));
 
 // ── Mock factories ───────────────────────────────────────────────────────────
 
@@ -74,17 +83,6 @@ function createMockCleaner(): Mocked<IContainerWorkspaceCleaner> {
   };
 }
 
-function createMockExecutorFactory(): Mocked<ICliExecutorFactory> {
-  return {
-    create: vi.fn().mockImplementation(async () => createMockExecutor()),
-    createLocal: vi.fn().mockImplementation(async () => createMockExecutor()),
-  };
-}
-
-function createMockSessionRunner(): Mocked<IAgentSessionRunner> {
-  return { run: vi.fn().mockResolvedValue(makeResult("DF-100")) };
-}
-
 // ── Harness ──────────────────────────────────────────────────────────────────
 
 const claudeRuntime = createMockCliRuntime(CliType.Claude);
@@ -96,9 +94,8 @@ let workspaceDir: string;
 interface Harness {
   manager: ContainerManager;
   compose: Mocked<IComposeClient>;
-  executorFactory: Mocked<ICliExecutorFactory>;
+  stageExecutors: Mocked<IStageExecutorFactory>;
   logs: Mocked<IContainerLogCollector>;
-  logRegistry: Mocked<ILogSourceRegistry>;
   sessionRunner: Mocked<IAgentSessionRunner>;
   logger: Logger;
 }
@@ -111,9 +108,8 @@ function createHarness(
   } = {},
 ): Harness {
   const compose = overrides.compose ?? createMockComposeClient();
-  const executorFactory = overrides.executorFactory ?? createMockExecutorFactory();
+  const stageExecutors = overrides.stageExecutors ?? createMockStageExecutors();
   const logs = overrides.logs ?? createMockLogCollector();
-  const logRegistry = overrides.logRegistry ?? { registerAll: vi.fn() };
   const sessionRunner = overrides.sessionRunner ?? createMockSessionRunner();
   const logger = overrides.logger ?? createMockLogger();
 
@@ -122,16 +118,15 @@ function createHarness(
     workspacePath: workspaceDir,
     compose,
     cliRuntimes: new CliRuntimeRegistry({ runtimes: overrides.runtimes ?? [claudeRuntime, copilotRuntime] }),
-    executorFactory,
-    logs,
-    cleaner: createMockCleaner(),
-    logRegistry,
+    stageExecutors,
+    containerLogs: logs,
+    workspaceCleaner: createMockCleaner(),
     sessionRunner,
     logger,
     enableContinuation: overrides.enableContinuation,
   });
 
-  return { manager, compose, executorFactory, logs, logRegistry, sessionRunner, logger };
+  return { manager, compose, stageExecutors, logs, sessionRunner, logger };
 }
 
 describe("ContainerManager", () => {
@@ -345,13 +340,13 @@ describe("ContainerManager", () => {
   describe("registerLogSources", () => {
     it("registers the common sources and those of the container CLIs' runtimes", () => {
       // Arrange
-      const { manager, logRegistry, logs } = createHarness(mixedProfile);
+      const { manager, logs } = createHarness(mixedProfile);
 
       // Act
       manager.registerLogSources(KEY, "DF-100", workspaceDir);
 
       // Assert
-      expect(logRegistry.registerAll).toHaveBeenCalledWith(
+      expect(registerLogSources).toHaveBeenCalledWith(
         logs,
         mixedProfile,
         KEY,
@@ -363,7 +358,7 @@ describe("ContainerManager", () => {
 
     it("passes the tool-output and pre-tool callbacks and always streams the CLI debug log", () => {
       // Arrange
-      const { manager, logRegistry } = createHarness(mixedProfile);
+      const { manager } = createHarness(mixedProfile);
       const onToolOutput = vi.fn();
       const onPreToolUse = vi.fn();
       manager.onToolOutput = onToolOutput;
@@ -373,7 +368,7 @@ describe("ContainerManager", () => {
       manager.registerLogSources(KEY, "DF-100", workspaceDir);
 
       // Assert
-      const callbacks = logRegistry.registerAll.mock.calls[0][4];
+      const callbacks = vi.mocked(registerLogSources).mock.calls[0][4];
       expect(callbacks).toMatchObject({ onToolOutput, onPreToolUse });
       expect(callbacks.onCliDebug).toBeTypeOf("function");
     });
@@ -382,26 +377,24 @@ describe("ContainerManager", () => {
   describe("createExecutorForStage", () => {
     it("creates a container stage's executor for the stage profile and logs the stage's CLI", async () => {
       // Arrange
-      const { manager, executorFactory, compose, logger } = createHarness(mixedProfile);
+      const { manager, stageExecutors, logger } = createHarness(mixedProfile);
       const stage = mixedProfile.stages[0];
 
       // Act
       const executor = await manager.createExecutorForStage(stage, makeContainerWorkspace());
 
       // Assert
-      expect(executor).toBe(await executorFactory.create.mock.results[0].value);
-      expect(executorFactory.create).toHaveBeenCalledWith(
-        compose,
+      expect(executor).toBe(await stageExecutors.create.mock.results[0].value);
+      expect(stageExecutors.create).toHaveBeenCalledWith(
         expect.objectContaining({ agentName: "ralph.ralph", cli: CliType.Claude }),
         stage,
-        expect.anything(),
       );
       expect(logger.info).toHaveBeenCalledWith("Stage write: claude CLI (container), agent ralph.ralph");
     });
 
     it("creates a local stage's executor on the host, in the stage's own workspace", async () => {
       // Arrange
-      const { manager, executorFactory } = createHarness(mixedProfile);
+      const { manager, stageExecutors } = createHarness(mixedProfile);
       const stage = makeStage({ role: "hook", agent: "ralph.scientist", mode: StageMode.Local });
       const workspace = makeHostWorkspace();
 
@@ -409,20 +402,19 @@ describe("ContainerManager", () => {
       await manager.createExecutorForStage(stage, workspace);
 
       // Assert
-      expect(executorFactory.createLocal).toHaveBeenCalledWith(
+      expect(stageExecutors.createHost).toHaveBeenCalledWith(
         expect.objectContaining({ agentName: "ralph.scientist" }),
         stage,
         workspace,
-        expect.anything(),
       );
-      expect(executorFactory.create).not.toHaveBeenCalled();
+      expect(stageExecutors.create).not.toHaveBeenCalled();
     });
 
-    it("propagates an executor factory failure", async () => {
+    it("propagates a stage executor factory failure", async () => {
       // Arrange
-      const executorFactory = createMockExecutorFactory();
-      executorFactory.create.mockRejectedValue(new Error("No agent template ralph.ralph"));
-      const { manager } = createHarness(mixedProfile, { executorFactory });
+      const stageExecutors = createMockStageExecutors();
+      stageExecutors.create.mockRejectedValue(new Error("No agent template ralph.ralph"));
+      const { manager } = createHarness(mixedProfile, { stageExecutors });
 
       // Act & Assert
       await expect(manager.createExecutorForStage(mixedProfile.stages[0], makeContainerWorkspace())).rejects.toThrow(

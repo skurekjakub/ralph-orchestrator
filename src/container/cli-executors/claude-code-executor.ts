@@ -13,7 +13,7 @@ import type { ICliRuntime } from "../../cli/cli-runtime";
 import type { IAgentProfile, IStageConfig } from "../../config/types";
 import type { Logger } from "../../logger";
 import { AGENT_RESULT_JSON_SCHEMA } from "../agent-result";
-import type { ICliExecutor } from "../cli-executor-factory";
+import type { ICliExecutor } from "../cli-executor";
 import type { IComposeClient } from "../compose-client";
 import { MCP_CONFIG_CONTAINER_PATH } from "../setup/compose-overlay";
 import type { ContainerExecResult } from "../types";
@@ -23,7 +23,7 @@ import { executeCliCommand, killActiveProcess } from "./shared-exec";
 export interface ClaudeCodeExecutorDeps {
   readonly compose: IComposeClient;
   /** The variant with the stage's overrides applied (`deriveStageProfile`): repo path, model, timeout. */
-  readonly profile: IAgentProfile;
+  readonly stageProfile: IAgentProfile;
   /** The stage: effort and whether it requires a result. */
   readonly stage: IStageConfig;
   /** Frontmatter `name` of the stage's root agent, which `--agent` resolves. */
@@ -32,7 +32,7 @@ export interface ClaudeCodeExecutorDeps {
   readonly subagentDepth: number;
   /** The Claude Code runtime: container layout and output decoder. */
   readonly runtime: ICliRuntime;
-  readonly logger: Logger;
+  readonly containerLogger: Logger;
 }
 
 /**
@@ -59,14 +59,22 @@ export class ClaudeCodeExecutor implements ICliExecutor {
   private readonly logger: Logger;
   private readonly sessions = new ClaudeSessionIds();
 
-  constructor({ compose, profile, stage, agentName, subagentDepth, runtime, logger }: ClaudeCodeExecutorDeps) {
+  constructor({
+    compose,
+    stageProfile,
+    stage,
+    agentName,
+    subagentDepth,
+    runtime,
+    containerLogger,
+  }: ClaudeCodeExecutorDeps) {
     this.compose = compose;
-    this.profile = profile;
+    this.profile = stageProfile;
     this.stage = stage;
     this.agentName = agentName;
     this.subagentDepth = subagentDepth;
     this.runtime = runtime;
-    this.logger = logger;
+    this.logger = containerLogger;
   }
 
   /** Kill the active claude process if one is running. */

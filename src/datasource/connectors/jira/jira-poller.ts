@@ -9,7 +9,7 @@
 import type { IWorkItemSource } from "../../connector";
 import type { IWorkItemPoller } from "../../poller";
 import type { WorkItem } from "../../types";
-import { consoleLogger, type Logger } from "../../../logger";
+import type { Logger } from "../../../logger";
 import { toErrorMessage } from "../../../util/error";
 
 /**
@@ -31,12 +31,22 @@ export class JiraWorkItemPoller implements IWorkItemPoller {
   private running = false;
   private itemsCallback: (() => void) | null = null;
 
-  constructor(connector: IWorkItemSource, queries: readonly string[], pollIntervalMs: number, logger?: Logger) {
+  constructor({
+    connector,
+    queries,
+    pollIntervalMs,
+    logger,
+  }: {
+    connector: IWorkItemSource;
+    queries: readonly string[];
+    pollIntervalMs: number;
+    logger: Logger;
+  }) {
     this.sourceKey = connector.sourceKey;
     this.connector = connector;
     this.queries = queries;
     this.pollIntervalMs = pollIntervalMs;
-    this.logger = logger ?? consoleLogger;
+    this.logger = logger;
   }
 
   start(): void {

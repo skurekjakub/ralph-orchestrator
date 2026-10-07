@@ -4,7 +4,7 @@ import { githubMcpArgs } from "../../cli/copilot/copilot-args";
 import { DEFAULT_COPILOT_MODEL } from "../../cli/model-catalog";
 import type { IAgentProfile } from "../../config/types";
 import type { Logger } from "../../logger";
-import type { ICliExecutor } from "../cli-executor-factory";
+import type { ICliExecutor } from "../cli-executor";
 import type { IComposeClient } from "../compose-client";
 import { MCP_CONFIG_CONTAINER_PATH } from "../setup/compose-overlay";
 import type { ContainerExecResult } from "../types";
@@ -14,10 +14,10 @@ import { executeCliCommand, killActiveProcess } from "./shared-exec";
 export interface CopilotExecutorDeps {
   readonly compose: IComposeClient;
   /** The variant with the stage's overrides applied (`deriveStageProfile`): agent, model, timeout, repo path. */
-  readonly profile: IAgentProfile;
+  readonly stageProfile: IAgentProfile;
   /** The Copilot runtime: container layout and output decoder. */
   readonly runtime: ICliRuntime;
-  readonly logger: Logger;
+  readonly containerLogger: Logger;
 }
 
 /**
@@ -37,11 +37,11 @@ export class CopilotExecutor implements ICliExecutor {
   private readonly runtime: ICliRuntime;
   private readonly logger: Logger;
 
-  constructor({ compose, profile, runtime, logger }: CopilotExecutorDeps) {
+  constructor({ compose, stageProfile, runtime, containerLogger }: CopilotExecutorDeps) {
     this.compose = compose;
-    this.profile = profile;
+    this.profile = stageProfile;
     this.runtime = runtime;
-    this.logger = logger;
+    this.logger = containerLogger;
   }
 
   /** Kill the active copilot process if one is running. */
