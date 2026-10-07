@@ -11,13 +11,6 @@ export function formatDate(ts?: number): string {
   });
 }
 
-export function formatDuration(ms?: number): string {
-  if (!ms) return "";
-  const min = Math.floor(ms / 60000);
-  const sec = Math.floor((ms % 60000) / 1000);
-  return `${min}m ${sec}s`;
-}
-
 export const statusBadge: Record<string, string> = {
   completed: "bg-success/15 text-success",
   error: "bg-error/15 text-error",

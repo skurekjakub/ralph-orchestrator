@@ -1,14 +1,9 @@
 import { useState } from "react";
 import type { RunSummary } from "../log-browser/tool-timeline-types";
+import { formatMs } from "../log-browser/tool-timeline-shared";
 
 interface RunSummaryPanelProps {
   summary: RunSummary;
-}
-
-function formatDuration(ms: number): string {
-  if (ms < 1000) return `${ms}ms`;
-  if (ms < 60_000) return `${(ms / 1000).toFixed(1)}s`;
-  return `${(ms / 60_000).toFixed(1)}m`;
 }
 
 type SortKey = "name" | "count" | "totalDurationMs" | "totalTokens" | "compactionCount" | "maxDepth";
@@ -34,7 +29,7 @@ export function RunSummaryPanel({ summary }: RunSummaryPanelProps) {
   const totalTokens = summary.totalPromptTokens + summary.totalCompletionTokens;
 
   const stats = [
-    { label: "Duration", value: formatDuration(summary.totalDurationMs) },
+    { label: "Duration", value: formatMs(summary.totalDurationMs) },
     { label: "Invocations", value: summary.totalInvocations.toLocaleString() },
     { label: "Max Depth", value: summary.maxDepth },
     { label: "Total Tokens", value: totalTokens.toLocaleString() },
@@ -90,7 +85,7 @@ export function RunSummaryPanel({ summary }: RunSummaryPanelProps) {
               <tr key={row.name} className="border-b border-border/50 hover:bg-bg-hover">
                 <td className="py-1 px-2 font-medium">{row.name}</td>
                 <td className="py-1 px-2 tabular-nums">{row.count}</td>
-                <td className="py-1 px-2 tabular-nums">{formatDuration(row.totalDurationMs)}</td>
+                <td className="py-1 px-2 tabular-nums">{formatMs(row.totalDurationMs)}</td>
                 <td className="py-1 px-2 tabular-nums">{row.totalTokens.toLocaleString()}</td>
                 <td className="py-1 px-2 tabular-nums">{row.compactionCount}</td>
                 <td className="py-1 px-2 tabular-nums">{row.maxDepth}</td>

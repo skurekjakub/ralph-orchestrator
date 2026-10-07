@@ -1,4 +1,5 @@
 import type { SubagentSpan, SubagentTreeNode, ParsedTree } from "./tool-timeline-types";
+import { agentDisplayName } from "./tool-timeline-shared";
 
 /**
  * Parse cli-debug.log into a tree of subagent invocations.
@@ -104,7 +105,7 @@ export function parseCliDebugTree(content: string): ParsedTree {
         const definitionMatch = ahead.match(agentDefModel);
         if (definitionMatch) {
           node.fullName = definitionMatch[1];
-          node.name = definitionMatch[1].replace(/^[^.]+\./, "");
+          node.name = agentDisplayName(definitionMatch[1]);
           node.definitionModel = definitionMatch[2];
         }
 
@@ -112,7 +113,7 @@ export function parseCliDebugTree(content: string): ParsedTree {
         if (finalMatch) {
           if (!node.fullName) {
             node.fullName = finalMatch[1];
-            node.name = finalMatch[1].replace(/^[^.]+\./, "");
+            node.name = agentDisplayName(finalMatch[1]);
           }
           node.resolvedModel = finalMatch[2];
         }

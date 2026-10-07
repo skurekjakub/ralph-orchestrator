@@ -1,5 +1,6 @@
 import type { TaskLogGroup } from "../../types";
-import { formatDate, formatDuration, statusBadge, fileLabels } from "./utils";
+import { formatMs } from "./tool-timeline-shared";
+import { formatDate, statusBadge, fileLabels } from "./utils";
 import { Button, ButtonVariant, ButtonSize } from "../Button";
 
 export function ExecutionRow({
@@ -19,8 +20,8 @@ export function ExecutionRow({
       <div className="flex items-center gap-2 mb-1">
         <span className="text-dim text-[10px]">{formatDate(group.timestamp)}</span>
         <span className={`text-[9px] px-1 py-px rounded-full font-medium ${badge}`}>{status}</span>
-        {group.summary?.durationMs && (
-          <span className="text-dim text-[10px]">{formatDuration(group.summary.durationMs)}</span>
+        {group.summary?.durationMs != null && (
+          <span className="text-dim text-[10px]">{formatMs(group.summary.durationMs)}</span>
         )}
         {group.summary?.prUrl && (
           <a

@@ -2,17 +2,11 @@ import type { SubagentTreeNode } from "../log-browser/tool-timeline-types";
 import { ZoomableUtilizationChart } from "./ZoomableUtilizationChart";
 import { NodeTokenCostChart } from "./NodeTokenCostChart";
 import { CompactionEventList } from "./CompactionEventList";
+import { formatMs } from "../log-browser/tool-timeline-shared";
 
 interface NodeDetailPanelProps {
   node: SubagentTreeNode;
   ancestorChain: string[];
-}
-
-function formatDuration(ms: number | undefined): string {
-  if (ms == null) return "—";
-  if (ms < 1000) return `${ms}ms`;
-  if (ms < 60_000) return `${(ms / 1000).toFixed(1)}s`;
-  return `${(ms / 60_000).toFixed(1)}m`;
 }
 
 export function NodeDetailPanel({ node, ancestorChain }: NodeDetailPanelProps) {
@@ -31,7 +25,8 @@ export function NodeDetailPanel({ node, ancestorChain }: NodeDetailPanelProps) {
             Model: <span className="text-fg-primary">{node.resolvedModel}</span>
           </span>
           <span>
-            Duration: <span className="text-fg-primary">{formatDuration(node.durationMs)}</span>
+            Duration:{" "}
+            <span className="text-fg-primary">{node.durationMs == null ? "—" : formatMs(node.durationMs)}</span>
           </span>
           <span>
             Tool calls: <span className="text-fg-primary">{node.toolCallCount}</span>

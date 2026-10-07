@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { formatDate, formatDuration, statusBadge, type IssueGroup } from "./utils";
+import { formatMs } from "./tool-timeline-shared";
+import { formatDate, statusBadge, type IssueGroup } from "./utils";
 import { ExecutionRow } from "./ExecutionRow";
 import { Button, ButtonVariant } from "../Button";
 
@@ -30,8 +31,8 @@ export function IssueGroupSection({
         <span className="text-dim text-[10px]">
           {group.executions.length} run{group.executions.length !== 1 ? "s" : ""}
         </span>
-        {latest?.summary?.durationMs && (
-          <span className="text-dim text-[10px]">{formatDuration(latest.summary.durationMs)}</span>
+        {latest?.summary?.durationMs != null && (
+          <span className="text-dim text-[10px]">{formatMs(latest.summary.durationMs)}</span>
         )}
         <span className="text-dim text-[10px] ml-auto">{formatDate(group.latestTimestamp)}</span>
         {latest?.summary?.prUrl && (
