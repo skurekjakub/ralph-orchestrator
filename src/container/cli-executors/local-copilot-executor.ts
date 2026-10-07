@@ -8,6 +8,8 @@ import type { Logger } from "../../logger";
 import type { ICliExecutor } from "../cli-executor-factory";
 import { StreamCapture } from "../stream-capture";
 import { agentsBuildDir, profileBuildPaths } from "../setup/build-paths";
+import { AGENT_SOURCE_SUFFIX } from "../../cli/agent-definition";
+import { copilotAgentFileName } from "../../cli/copilot/copilot-agent-writer";
 
 /**
  * Executes the Copilot CLI directly on the host machine (no Docker).
@@ -123,17 +125,22 @@ export class LocalCopilotExecutor implements ICliExecutor {
   }
 
   /**
-   * Symlink rendered agent templates into `<cwd>/.github/agents/` so the
-   * Copilot CLI can discover them. Only creates symlinks for files that
-   * don't already exist at the destination.
+   * Symlink the profile's rendered Copilot agents into `<cwd>/.github/agents/` so the Copilot CLI can
+   * discover them. Only creates symlinks for files that don't already exist at the destination.
+   *
+   * @throws Error when `<cwd>/profiles/<id>/.build/copilot/agents/` or the stage root's agent file in it is
+   *   missing.
    */
   private deployAgents(): void {
-    const buildDir = agentsBuildDir(profileBuildPaths(process.cwd(), this.profile.id), CliType.Copilot);
-    if (!existsSync(buildDir)) return;
+    const buildDir = agentsBuildDir(profileBuildPaths(this.cwd, this.profile.id), CliType.Copilot);
+    const rootAgentPath = join(buildDir, copilotAgentFileName(this.profile.agentName));
+    if (!existsSync(rootAgentPath)) {
+      throw new Error(
+        `Rendered Copilot agent ${rootAgentPath} not found; the stage's agents must be rendered before it runs`,
+      );
+    }
 
-    const agentFiles = readdirSync(buildDir).filter((f) => f.endsWith(".agent.md"));
-    if (agentFiles.length === 0) return;
-
+    const agentFiles = readdirSync(buildDir).filter((f) => f.endsWith(AGENT_SOURCE_SUFFIX));
     const agentsDir = join(this.cwd, ".github", "agents");
     mkdirSync(agentsDir, { recursive: true });
 
