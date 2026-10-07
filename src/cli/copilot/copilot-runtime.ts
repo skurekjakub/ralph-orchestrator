@@ -11,7 +11,8 @@ import { COPILOT_CREDENTIALS } from "../credential-catalog";
 import { COPILOT_MODEL_POLICY } from "../model-catalog";
 import type { ICliOutputDecoder } from "../output-decoder";
 import { PlainTextDecoder } from "../plain-text-decoder";
-import { copilotAgentFileName } from "./copilot-agent-writer";
+import { CopilotAgentWriter, copilotAgentFileName } from "./copilot-agent-writer";
+import { COPILOT_TOOL_NAMES } from "./copilot-tools";
 import {
   COPILOT_SETTINGS_PATH,
   COPILOT_CONTAINER_LAYOUT,
@@ -26,6 +27,8 @@ export class CopilotRuntime implements ICliRuntime {
   readonly layout = COPILOT_CONTAINER_LAYOUT;
   readonly models = COPILOT_MODEL_POLICY;
   readonly credentials = COPILOT_CREDENTIALS;
+  readonly agentWriter = new CopilotAgentWriter();
+  readonly toolNames = COPILOT_TOOL_NAMES;
   readonly egressDomains = [".githubcopilot.com", "api.github.com", "github.com"];
   /**
    * The agents and skills directories count whole: the mount points Docker leaves behind in them outlive

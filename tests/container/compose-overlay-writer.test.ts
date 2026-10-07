@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { AgentCatalog } from "../../src/cli/agent-catalog";
@@ -8,7 +8,7 @@ import { ComposeOverlayWriter, writeComposeArtifacts } from "../../src/container
 import type { IAgentCatalogProvider } from "../../src/container/setup/agent-catalogs";
 import { makeAgentSource, makeProfile, makeStage } from "../helpers/factories";
 import { createTempDir } from "../helpers/mcp-fs";
-import { createSilentLogger, type Mocked } from "../helpers/mocks";
+import { createMockAgentCatalogProvider, createSilentLogger, type Mocked } from "../helpers/mocks";
 
 const PID = "docs";
 
@@ -309,7 +309,7 @@ describe("ComposeOverlayWriter", () => {
     mkdirSync(join(root, "shared", "security"), { recursive: true });
     writeFileSync(join(root, "shared", "security", "squid.conf"), "# {{PROFILE_DOMAINS}}\nhttp_access deny all\n");
     process.chdir(root);
-    agentCatalogs = { load: vi.fn().mockResolvedValue(AGENTS) };
+    agentCatalogs = createMockAgentCatalogProvider(AGENTS);
   });
 
   afterEach(() => {

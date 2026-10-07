@@ -16,6 +16,8 @@ import {
 } from "./claude-layout";
 import { managedSettingsPath, userSettingsPath, writeClaudeSettings } from "./claude-settings";
 import { ClaudeStreamJsonDecoder } from "./stream-json-decoder";
+import { ClaudeAgentWriter } from "./claude-agent-writer";
+import { CLAUDE_TOOL_NAMES } from "./claude-tools";
 
 /**
  * Environment of every Claude Code container session.
@@ -43,6 +45,8 @@ export class ClaudeCodeRuntime implements ICliRuntime {
   readonly layout = CLAUDE_CONTAINER_LAYOUT;
   readonly models = CLAUDE_MODEL_POLICY;
   readonly credentials: ICliCredentialPolicy;
+  readonly agentWriter = new ClaudeAgentWriter();
+  readonly toolNames = CLAUDE_TOOL_NAMES;
   readonly egressDomains = [".anthropic.com"];
   readonly workspaceMountTargets = [
     workspaceMountTarget(CLAUDE_USER_SETTINGS_PATH, false),

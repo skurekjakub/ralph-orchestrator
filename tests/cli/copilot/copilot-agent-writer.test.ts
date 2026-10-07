@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { CopilotAgentWriter } from "../../../src/cli/copilot/copilot-agent-writer";
 import { renderAgents } from "../../../src/container/setup/agent-includes";
+import { AgentCatalog } from "../../../src/cli/agent-catalog";
 import { ClaudeBuiltinTool } from "../../../src/cli/claude/claude-tools";
 import { CliType, ReasoningEffort } from "../../../src/config/types";
 import { makeAgentDefinition, makeTemplateContext } from "../../helpers/factories";
@@ -76,10 +77,11 @@ describe("CopilotAgentWriter", () => {
 
       // Act
       await renderAgents({
-        agentsDir: join(dir, "agents"),
+        catalog: await AgentCatalog.load(join(dir, "agents")),
         includesDir: join(dir, "includes"),
         context: makeTemplateContext({ cli: CliType.Copilot, taskId: "DOC-1" }),
         target: { cli: CliType.Copilot, rootAgentFileId: "ralph.ralph", outDir },
+        writer,
         mcpTools: { ado: ["ado_push_progress"] },
       });
 

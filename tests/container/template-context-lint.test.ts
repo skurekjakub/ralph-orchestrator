@@ -3,7 +3,9 @@ import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { existsSync } from "node:fs";
 import { buildTemplateContext, type AgentSelf } from "../../src/container/setup/agent-includes";
-import { CLAUDE_TOOL_NAMES } from "../../src/cli/cli-tools";
+import { CLAUDE_TOOL_NAMES } from "../../src/cli/claude/claude-tools";
+import { createCliRuntimeRegistry } from "../../src/cli/supported-runtimes";
+import { ClaudeAuthMode } from "../../src/config/types";
 import { makeTaskContext } from "../helpers/factories";
 
 /**
@@ -157,7 +159,7 @@ const REPO_ROOT = join(import.meta.dirname, "..", "..");
 
 describe("Template context variable lint", () => {
   it("KNOWN_KEYS matches the actual keys produced by buildTemplateContext", () => {
-    const ctx = buildTemplateContext(makeTaskContext());
+    const ctx = buildTemplateContext(makeTaskContext(), createCliRuntimeRegistry(ClaudeAuthMode.OAuthToken));
     const runtimeKeys = new Set(Object.keys(ctx));
     const missing = [...runtimeKeys].filter((k) => !KNOWN_KEYS.has(k));
     const extra = [...KNOWN_KEYS].filter((k) => !runtimeKeys.has(k));

@@ -6,11 +6,11 @@ import { join, resolve } from "node:path";
 import { renderAgents, type TemplateContext } from "../../src/container/setup/agent-includes";
 import { renderSkills } from "../../src/container/setup/skill-includes";
 import { readProfileFile, resolveProfileVariants } from "../../src/config/profile-variants";
-import { cliToolNamesFor } from "../../src/cli/cli-tools";
+import { createCliRuntimeRegistry } from "../../src/cli/supported-runtimes";
 import { claudeAgentFileName } from "../../src/cli/claude/claude-agent-writer";
 import { copilotAgentFileName } from "../../src/cli/copilot/copilot-agent-writer";
 import { AgentCatalog } from "../../src/cli/agent-catalog";
-import { CliType } from "../../src/config/types";
+import { ClaudeAuthMode, CliType } from "../../src/config/types";
 import { makeTemplateContext } from "../helpers/factories";
 
 /**
@@ -23,6 +23,7 @@ import { makeTemplateContext } from "../helpers/factories";
 const ROOT = resolve(import.meta.dirname, "../..");
 const INCLUDES_DIR = join(ROOT, "shared/agent-includes");
 const SKILLS_DIR = join(ROOT, "shared/skills");
+const RUNTIMES = createCliRuntimeRegistry(ClaudeAuthMode.OAuthToken);
 
 let outRoot: string;
 
@@ -82,15 +83,17 @@ async function renderStage(
 ): Promise<Map<string, string>> {
   const agentsDir = join(ROOT, "profiles", profileId, "agents");
   const outDir = await mkdtemp(join(outRoot, `${profileId}-${cli}-`));
-  const scope = { ...context, cli, cliTools: cliToolNamesFor(cli) };
+  const runtime = RUNTIMES.get(cli);
+  const scope = { ...context, cli, cliTools: runtime.toolNames };
+  const catalog = await AgentCatalog.load(agentsDir);
   await renderAgents({
-    agentsDir,
+    catalog,
     includesDir: INCLUDES_DIR,
     context: scope,
     target: { cli, rootAgentFileId: rootFileId, outDir },
+    writer: runtime.agentWriter,
     mcpTools: {},
   });
-  const catalog = await AgentCatalog.load(agentsDir);
   const rendered = new Map<string, string>();
   for (const fileId of catalog.reachableFrom(rootFileId)) {
     const file = renderedFileName(cli, fileId, catalog.get(fileId).frontmatter.name);
@@ -339,7 +342,7 @@ describe("skill template rendering (real files)", () => {
     it(`renders all declared skills for ${cli} without Liquid errors`, async () => {
       // Arrange
       const allSkills = collectAllSkillNames();
-      const context = { ...standardContext("ralph-docs"), cli, cliTools: cliToolNamesFor(cli) };
+      const context = { ...standardContext("ralph-docs"), cli, cliTools: RUNTIMES.get(cli).toolNames };
 
       // Act
       const outDir = await renderSkillsTo(allSkills, context);

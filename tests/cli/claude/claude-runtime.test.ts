@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { AgentCatalog } from "../../../src/cli/agent-catalog";
 import { ClaudeCodeRuntime } from "../../../src/cli/claude/claude-runtime";
+import { ClaudeAgentWriter } from "../../../src/cli/claude/claude-agent-writer";
 import { ClaudeStreamJsonDecoder } from "../../../src/cli/claude/stream-json-decoder";
 import { ClaudeAuthMode, CliType } from "../../../src/config/types";
 import { CaptureMode } from "../../../src/container/log-collector";
@@ -25,6 +26,21 @@ function contribution(auth: ClaudeAuthMode, loadRepoInstructions = false) {
 }
 
 describe("ClaudeCodeRuntime", () => {
+  it("writes agents in the Claude Code format and names Claude Code's tools", () => {
+    // Arrange
+    const runtime = new ClaudeCodeRuntime({ claudeAuth: ClaudeAuthMode.OAuthToken });
+
+    // Act & Assert
+    expect(runtime.agentWriter).toBeInstanceOf(ClaudeAgentWriter);
+    expect(runtime.toolNames).toEqual({
+      subagent: "Agent",
+      skill: "Skill",
+      shell: "Bash",
+      read: "Read",
+      askUser: "AskUserQuestion",
+    });
+  });
+
   describe("composeContribution", () => {
     it("references the OAuth token by name only, and only it, under oauth-token auth", () => {
       // Act

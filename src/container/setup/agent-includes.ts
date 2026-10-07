@@ -8,11 +8,12 @@ import { normalizeContent } from "../../prompt/normalizer";
 import { registerCustomTags } from "./liquid-tags";
 import type { TaskContext } from "../../services/task-context";
 import type { CliType, IStageConfig } from "../../config/types";
-import { AgentCatalog } from "../../cli/agent-catalog";
-import type { AgentRenderTarget } from "../../cli/agent-file-writer";
-import { agentFileWriterFor } from "../../cli/agent-writers";
-import { cliToolNamesFor, type CliToolNames } from "../../cli/cli-tools";
+import type { AgentCatalog } from "../../cli/agent-catalog";
+import type { AgentRenderTarget, IAgentFileWriter } from "../../cli/agent-file-writer";
+import type { ICliRuntimeRegistry } from "../../cli/cli-runtime";
+import type { CliToolNames } from "../../cli/cli-tools";
 import { syncDirectory } from "../../util/sync-dir";
+import type { IAgentCatalogProvider } from "./agent-catalogs";
 import { agentsBuildDir, profileBuildPaths } from "./build-paths";
 import { loadMcpManifest } from "./mcp-manifest";
 
@@ -169,9 +170,16 @@ export type StageOverrides = {
  * Build a {@link TemplateContext} from the already-parsed profile and work item.
  *
  * Without `stageOverrides` the context describes the variant's first stage, with the union of all
- * its stages' skills, as rendered before the container starts.
+ * its stages' skills, as rendered before the container starts. `cliTools` are the tool names of the
+ * stage's CLI runtime.
+ *
+ * @throws Error when no runtime is registered for the stage's CLI.
  */
-export function buildTemplateContext(ctx: TaskContext, stageOverrides?: StageOverrides): TemplateContext {
+export function buildTemplateContext(
+  ctx: TaskContext,
+  cliRuntimes: ICliRuntimeRegistry,
+  stageOverrides?: StageOverrides,
+): TemplateContext {
   const resolvedParams = Array.isArray(ctx.triggerParams) ? buildTriggerParams(ctx.triggerParams) : ctx.triggerParams;
   const stage = stageOverrides?.stage ?? ctx.profile.stages[0];
   const stageIndex = stageOverrides?.stageIndex ?? 0;
@@ -182,7 +190,7 @@ export function buildTemplateContext(ctx: TaskContext, stageOverrides?: StageOve
     repo: ctx.profile.repoPath,
     targetRepoPath: ctx.profile.repoPath,
     cli: stage.cli,
-    cliTools: cliToolNamesFor(stage.cli),
+    cliTools: cliRuntimes.get(stage.cli).toolNames,
     model: stage.model ?? ctx.profile.model ?? "",
     agentName: stage.agent,
     displayName: stage.agent.replace(/^ralph\./, ""),
@@ -280,12 +288,14 @@ export function resolveMcpToolNames(mcpServersDir: string, serverNames: readonly
 
 /** Inputs of {@link renderAgents}. */
 export interface RenderAgentsInput {
-  /** The profile's `agents/` directory of canonical templates. */
-  readonly agentsDir: string;
+  /** The profile's parsed agent templates. */
+  readonly catalog: AgentCatalog;
   /** Root of the shared partials (`shared/agent-includes`). */
   readonly includesDir: string;
   readonly context: TemplateContext;
   readonly target: AgentRenderTarget;
+  /** The agent file writer of `target.cli`. */
+  readonly writer: IAgentFileWriter;
   /** Allowlisted tools of each MCP server the variant runs (see {@link resolveMcpToolNames}). */
   readonly mcpTools: Readonly<Record<string, readonly string[]>>;
   readonly logger?: Logger;
@@ -295,20 +305,17 @@ export interface RenderAgentsInput {
  * Renders the agents a stage can reach into `target.outDir` in the target CLI's agent file format.
  *
  * Each agent's Liquid body is rendered with `context` plus its own {@link AgentSelf} as `self`, then
- * serialised by the CLI's agent file writer. The output is staged and synced, so `outDir` keeps its
+ * serialised by `writer`. The output is staged and synced, so `outDir` keeps its
  * inode and unreachable agents from an earlier render are removed.
  *
  * @returns The file names written, root agent first.
- * @throws AgentDefinitionError or Error when a template is invalid, the agent set is not a valid
- *   graph, the root agent does not exist, a Liquid template fails, or a reachable agent does not
- *   run on `target.cli`.
+ * @throws Error when the root agent does not exist, a Liquid template fails, or a reachable agent
+ *   does not run on `target.cli`.
  */
 export async function renderAgents(input: RenderAgentsInput): Promise<string[]> {
-  const { agentsDir, includesDir, context, target, mcpTools, logger } = input;
-  const catalog = await AgentCatalog.load(agentsDir);
+  const { catalog, includesDir, context, target, writer, mcpTools, logger } = input;
   const reachable = catalog.reachableFrom(target.rootAgentFileId);
   const stageSubagents = reachable.slice(1).map((fileId) => catalog.get(fileId).frontmatter.name);
-  const writer = agentFileWriterFor(target.cli);
   const engine = createTemplateEngine([includesDir]);
 
   const staging = await mkdtemp(join(tmpdir(), "ralph-agents-"));
@@ -344,7 +351,8 @@ export interface IAgentTemplateRenderer {
   /**
    * Render the agents of `target`'s stage for `target.cli` into `target.outDir`.
    *
-   * @throws Error when rendering fails (see {@link renderAgents}).
+   * @throws Error when `shared/agent-includes/` is missing, the profile's agent templates cannot be
+   *   loaded (see {@link IAgentCatalogProvider.load}) or rendering fails (see {@link renderAgents}).
    */
   render(profileId: string, context: TemplateContext, target: AgentRenderTarget, logger?: Logger): Promise<void>;
 }
@@ -352,30 +360,37 @@ export interface IAgentTemplateRenderer {
 /**
  * JIT agent template renderer.
  *
- * Reads the profile's canonical templates from `profiles/<id>/agents/`, partials from
- * `shared/agent-includes/` and MCP tool allowlists from `shared/mcp-servers/`, all under the
- * orchestrator root. Called before each task and stage so templates can use runtime data like
- * `{% if isRevision %}` or `{{ taskId }}`.
+ * Takes the profile's parsed templates from the agent catalog provider, partials from
+ * `shared/agent-includes/` and MCP tool allowlists from `shared/mcp-servers/` under the orchestrator
+ * root, and each CLI's agent file writer from its runtime. Called before each task and stage so
+ * templates can use runtime data like `{% if isRevision %}` or `{{ taskId }}`.
  */
 export class AgentTemplateRenderer implements IAgentTemplateRenderer {
-  constructor() {}
+  private readonly agentCatalogs: IAgentCatalogProvider;
+  private readonly cliRuntimes: ICliRuntimeRegistry;
+
+  constructor({
+    agentCatalogs,
+    cliRuntimes,
+  }: {
+    agentCatalogs: IAgentCatalogProvider;
+    cliRuntimes: ICliRuntimeRegistry;
+  }) {
+    this.agentCatalogs = agentCatalogs;
+    this.cliRuntimes = cliRuntimes;
+  }
 
   async render(profileId: string, context: TemplateContext, target: AgentRenderTarget, logger?: Logger): Promise<void> {
     const root = process.cwd();
     const includesDir = resolve(root, "shared/agent-includes");
-    const agentsDir = join(root, "profiles", profileId, "agents");
-
     if (!existsSync(includesDir)) {
-      logger?.warn("Agent includes directory not found, skipping template rendering");
-      return;
-    }
-    if (!existsSync(agentsDir)) {
-      logger?.warn(`No agents directory for profile ${profileId}, skipping template rendering`);
-      return;
+      throw new Error(`Agent includes directory not found: ${includesDir}`);
     }
 
+    const catalog = await this.agentCatalogs.load(profileId);
     logger?.info(`Rendering agents of ${profileId} reachable from ${target.rootAgentFileId} for ${target.cli}`);
     const mcpTools = resolveMcpToolNames(resolve(root, "shared/mcp-servers"), context.mcpServers);
-    await renderAgents({ agentsDir, includesDir, context, target, mcpTools, logger });
+    const writer = this.cliRuntimes.get(target.cli).agentWriter;
+    await renderAgents({ catalog, includesDir, context, target, writer, mcpTools, logger });
   }
 }

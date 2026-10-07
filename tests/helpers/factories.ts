@@ -24,7 +24,7 @@ import type { TemplateContext } from "../../src/container/setup/agent-includes";
 import type { TaskContext } from "../../src/services/task-context";
 import { AuditMode } from "../../src/prompt/prompt-auditor";
 import { slugifyBranchName } from "../../src/util/branch";
-import { cliToolNamesFor } from "../../src/cli/cli-tools";
+import { createCliRuntimeRegistry } from "../../src/cli/supported-runtimes";
 import { agentFrontmatterSchema, type AgentSource } from "../../src/cli/agent-definition";
 import type { AgentDefinition } from "../../src/cli/agent-file-writer";
 
@@ -292,7 +292,7 @@ export function makeTemplateContext(overrides: Partial<TemplateContext> = {}): T
     repo: "/tmp/test-repo",
     targetRepoPath: "/tmp/test-repo",
     cli,
-    cliTools: cliToolNamesFor(cli),
+    cliTools: createCliRuntimeRegistry(ClaudeAuthMode.OAuthToken).get(cli).toolNames,
     model: "",
     agentName: "ralph",
     displayName: "ralph",

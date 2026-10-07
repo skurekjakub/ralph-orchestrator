@@ -23,8 +23,14 @@ import {
   makeTaskContext,
 } from "../helpers/factories";
 import { AgentDefinitionError } from "../../src/cli/agent-definition";
-import { CLAUDE_TOOL_NAMES, COPILOT_TOOL_NAMES } from "../../src/cli/cli-tools";
-import { CliType, StageMode } from "../../src/config/types";
+import { AgentCatalog } from "../../src/cli/agent-catalog";
+import { CLAUDE_TOOL_NAMES } from "../../src/cli/claude/claude-tools";
+import { COPILOT_TOOL_NAMES } from "../../src/cli/copilot/copilot-tools";
+import { createCliRuntimeRegistry } from "../../src/cli/supported-runtimes";
+import { AgentCatalogProvider } from "../../src/container/setup/agent-catalogs";
+import { ClaudeAuthMode, CliType, StageMode } from "../../src/config/types";
+
+const RUNTIMES = createCliRuntimeRegistry(ClaudeAuthMode.OAuthToken);
 
 let tmpDir: string;
 let originalCwd: string;
@@ -54,10 +60,11 @@ async function setupAgents(
     await writeFile(join(includesDir, `${name}.md`), text);
   const cli = options.cli ?? CliType.Copilot;
   return {
-    agentsDir,
+    catalog: await AgentCatalog.load(agentsDir),
     includesDir,
     context: makeTemplateContext({ cli, taskId: "DOC-7" }),
     target: { cli, rootAgentFileId: options.root ?? "ralph.root", outDir: join(tmpDir, "out") },
+    writer: RUNTIMES.get(cli).agentWriter,
     mcpTools: {},
   };
 }
@@ -188,16 +195,6 @@ describe("renderAgents", () => {
     await expect(renderAgents(input)).rejects.toThrow(/No agent template ralph\.root/);
   });
 
-  it("throws an AgentDefinitionError for a template with legacy Copilot frontmatter", async () => {
-    // Arrange
-    const input = await setupAgents({
-      "ralph.root": "---\nname: 'root'\ndescription: 'Root'\nagents: ['x']\nuser-invocable: false\n---\nBody\n",
-    });
-
-    // Act & Assert
-    await expect(renderAgents(input)).rejects.toBeInstanceOf(AgentDefinitionError);
-  });
-
   it("throws on a missing partial", async () => {
     // Arrange
     const input = await setupAgents({
@@ -274,6 +271,14 @@ describe("stageRenderTarget", () => {
 });
 
 describe("AgentTemplateRenderer", () => {
+  /** A renderer over the profiles and shared/ under the temp cwd. */
+  function renderer(): AgentTemplateRenderer {
+    return new AgentTemplateRenderer({
+      agentCatalogs: new AgentCatalogProvider({ rootDir: tmpDir }),
+      cliRuntimes: RUNTIMES,
+    });
+  }
+
   /** Lays out profiles/<id>/agents and shared/ under the temp cwd. */
   async function setupProfile(profileId: string, templates: Record<string, string>): Promise<void> {
     const agentDir = join(tmpDir, "profiles", profileId, "agents");
@@ -298,7 +303,7 @@ describe("AgentTemplateRenderer", () => {
     });
 
     // Act
-    await new AgentTemplateRenderer().render("my-profile", context, target);
+    await renderer().render("my-profile", context, target);
 
     // Assert
     const output = await readFile(join(target.outDir, "ralph.root.agent.md"), "utf-8");
@@ -316,48 +321,47 @@ describe("AgentTemplateRenderer", () => {
     const target = stageRenderTarget("mcp-profile", makeStage({ agent: "ralph.root", cli: CliType.Claude }));
 
     // Act
-    await new AgentTemplateRenderer().render(
-      "mcp-profile",
-      makeTemplateContext({ cli: CliType.Claude, mcpServers: ["jira"] }),
-      target,
-    );
+    await renderer().render("mcp-profile", makeTemplateContext({ cli: CliType.Claude, mcpServers: ["jira"] }), target);
 
     // Assert
     expect(await readFile(join(target.outDir, "root.md"), "utf-8")).toContain("mcp__jira__jira_add_comment");
   });
 
-  it("warns and skips when the includes directory is missing", async () => {
+  it("throws when the includes directory is missing", async () => {
     // Arrange
-    const logger = createMockLogger();
+    await mkdir(join(tmpDir, "profiles", "my-profile", "agents"), { recursive: true });
 
-    // Act
-    await new AgentTemplateRenderer().render(
-      "nonexistent",
-      makeTemplateContext(),
-      stageRenderTarget("nonexistent", makeStage()),
-      logger,
-    );
-
-    // Assert
-    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("not found"));
+    // Act & Assert
+    await expect(
+      renderer().render("my-profile", makeTemplateContext(), stageRenderTarget("my-profile", makeStage())),
+    ).rejects.toThrow(`Agent includes directory not found: ${join(tmpDir, "shared", "agent-includes")}`);
   });
 
-  it("warns when the agents directory is missing", async () => {
+  it("throws when the profile has no agents directory", async () => {
     // Arrange
     await mkdir(join(tmpDir, "shared", "agent-includes"), { recursive: true });
     await mkdir(join(tmpDir, "profiles", "empty-profile"), { recursive: true });
-    const logger = createMockLogger();
 
-    // Act
-    await new AgentTemplateRenderer().render(
-      "empty-profile",
-      makeTemplateContext(),
-      stageRenderTarget("empty-profile", makeStage()),
-      logger,
-    );
+    // Act & Assert
+    await expect(
+      renderer().render("empty-profile", makeTemplateContext(), stageRenderTarget("empty-profile", makeStage())),
+    ).rejects.toThrow(/Profile empty-profile has no agents directory/);
+  });
 
-    // Assert
-    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("No agents directory"));
+  it("throws an AgentDefinitionError for a template with legacy Copilot frontmatter", async () => {
+    // Arrange
+    await setupProfile("legacy", {
+      "ralph.root": "---\nname: 'root'\ndescription: 'Root'\nagents: ['x']\nuser-invocable: false\n---\nBody\n",
+    });
+
+    // Act & Assert
+    await expect(
+      renderer().render(
+        "legacy",
+        makeTemplateContext(),
+        stageRenderTarget("legacy", makeStage({ agent: "ralph.root" })),
+      ),
+    ).rejects.toBeInstanceOf(AgentDefinitionError);
   });
 
   it("logs which profile, root and CLI it renders", async () => {
@@ -366,7 +370,7 @@ describe("AgentTemplateRenderer", () => {
     const logger = createMockLogger();
 
     // Act
-    await new AgentTemplateRenderer().render(
+    await renderer().render(
       "test-profile",
       makeTemplateContext(),
       stageRenderTarget("test-profile", makeStage({ agent: "ralph.root" })),
@@ -398,7 +402,7 @@ describe("buildTemplateContext", () => {
       components: ["Frontend", "API"],
     });
 
-    const ctx = buildTemplateContext(makeTaskContext({ profile, workItem: issue, isRevision: false }));
+    const ctx = buildTemplateContext(makeTaskContext({ profile, workItem: issue, isRevision: false }), RUNTIMES);
 
     expect(ctx.profileId).toBe("ralph-docs");
     expect(ctx.repo).toBe("/home/user/repos/docs");
@@ -423,7 +427,7 @@ describe("buildTemplateContext", () => {
   });
 
   it("defaults optional fields to empty strings/arrays", () => {
-    const ctx = buildTemplateContext(makeTaskContext({ isRevision: true }));
+    const ctx = buildTemplateContext(makeTaskContext({ isRevision: true }), RUNTIMES);
 
     expect(ctx.model).toBe("");
     expect(ctx.taskType).toBe("");
@@ -438,7 +442,7 @@ describe("buildTemplateContext", () => {
     const issue = makeWorkItem("DOC-200", {
       description: "Hello world",
     });
-    const ctx = buildTemplateContext(makeTaskContext({ workItem: issue }));
+    const ctx = buildTemplateContext(makeTaskContext({ workItem: issue }), RUNTIMES);
     expect(ctx.taskDescription).toBe("Hello world");
   });
 
@@ -446,7 +450,7 @@ describe("buildTemplateContext", () => {
     const issue = makeWorkItem("DOC-201", {
       description: "Plain text desc",
     });
-    const ctx = buildTemplateContext(makeTaskContext({ workItem: issue }));
+    const ctx = buildTemplateContext(makeTaskContext({ workItem: issue }), RUNTIMES);
     expect(ctx.taskDescription).toBe("Plain text desc");
   });
 
@@ -454,42 +458,46 @@ describe("buildTemplateContext", () => {
     const issue = makeWorkItem("DOC-202", {
       updated: "2026-02-15T12:00:00.000+0000",
     });
-    const ctx = buildTemplateContext(makeTaskContext({ workItem: issue }));
+    const ctx = buildTemplateContext(makeTaskContext({ workItem: issue }), RUNTIMES);
     expect(ctx.taskCreated).toBe("2026-01-01T00:00:00.000+0000");
     expect(ctx.taskUpdated).toBe("2026-02-15T12:00:00.000+0000");
   });
 
   it("populates commentTrigger from profile match", () => {
     const profile = makeProfile({ match: { commentTrigger: "@ralph write" } });
-    const ctx = buildTemplateContext(makeTaskContext({ profile, workItem: makeWorkItem("DF-50") }));
+    const ctx = buildTemplateContext(makeTaskContext({ profile, workItem: makeWorkItem("DF-50") }), RUNTIMES);
     expect(ctx.commentTrigger).toBe("@ralph write");
   });
 
   it("derives taskProject from key prefix", () => {
-    const ctx = buildTemplateContext(makeTaskContext({ workItem: makeWorkItem("DOC-3143") }));
+    const ctx = buildTemplateContext(makeTaskContext({ workItem: makeWorkItem("DOC-3143") }), RUNTIMES);
     expect(ctx.taskProject).toBe("DOC");
   });
 
   it("builds triggerParams from bare params when provided", () => {
-    const ctx = buildTemplateContext(makeTaskContext({ triggerParams: { codesamples: "true", verbose: "true" } }));
+    const ctx = buildTemplateContext(
+      makeTaskContext({ triggerParams: { codesamples: "true", verbose: "true" } }),
+      RUNTIMES,
+    );
     expect(ctx.triggerParams).toEqual({ codesamples: "true", verbose: "true" });
   });
 
   it("defaults triggerParams to empty object", () => {
-    const ctx = buildTemplateContext(makeTaskContext());
+    const ctx = buildTemplateContext(makeTaskContext(), RUNTIMES);
     expect(ctx.triggerParams).toEqual({});
   });
 
   it("builds triggerParams from key=value params", () => {
     const ctx = buildTemplateContext(
       makeTaskContext({ triggerParams: { codesamples: "true", branch_name: "feature-xyz" } }),
+      RUNTIMES,
     );
     expect(ctx.triggerParams).toEqual({ codesamples: "true", branch_name: "feature-xyz" });
   });
 
   it("passes through a pre-built Record<string,string> without re-parsing", () => {
     const preBuilt = { flag: "true", ref: "refs/heads/main" };
-    const ctx = buildTemplateContext(makeTaskContext({ triggerParams: preBuilt }));
+    const ctx = buildTemplateContext(makeTaskContext({ triggerParams: preBuilt }), RUNTIMES);
     expect(ctx.triggerParams).toEqual({ flag: "true", ref: "refs/heads/main" });
   });
 
@@ -500,7 +508,7 @@ describe("buildTemplateContext", () => {
         makeStage({ agent: "ralph.reviewer", role: "reviewer" }),
       ],
     });
-    const ctx = buildTemplateContext(makeTaskContext({ profile }));
+    const ctx = buildTemplateContext(makeTaskContext({ profile }), RUNTIMES);
     expect(ctx.stageRole).toBe("writer");
     expect(ctx.stageIndex).toBe(0);
     expect(ctx.stageCount).toBe(2);
@@ -517,7 +525,7 @@ describe("buildTemplateContext", () => {
     });
 
     // Act
-    const ctx = buildTemplateContext(makeTaskContext({ profile }), {
+    const ctx = buildTemplateContext(makeTaskContext({ profile }), RUNTIMES, {
       stage: reviewer,
       stageIndex: 1,
       stageCount: 3,
@@ -539,7 +547,7 @@ describe("buildTemplateContext", () => {
 
   it("computes isLastStage correctly from stageOverrides", () => {
     // Act
-    const ctx = buildTemplateContext(makeTaskContext(), {
+    const ctx = buildTemplateContext(makeTaskContext(), RUNTIMES, {
       stage: makeStage({ role: "editor" }),
       stageIndex: 2,
       stageCount: 3,
@@ -564,7 +572,7 @@ describe("buildTemplateContext", () => {
     const profile = makeProfile({ agentName: "ralph.ralph", model: "sonnet", stages: [makeStage({ skills: ["a"] })] });
 
     // Act
-    const ctx = buildTemplateContext(makeTaskContext({ profile }), {
+    const ctx = buildTemplateContext(makeTaskContext({ profile }), RUNTIMES, {
       stage: hookStage,
       stageIndex: 0,
       stageCount: 1,
@@ -586,7 +594,7 @@ describe("buildTemplateContext", () => {
     const profile = makeProfile({ cli: CliType.Copilot, stages: [makeStage({ cli: CliType.Claude })] });
 
     // Act
-    const ctx = buildTemplateContext(makeTaskContext({ profile }));
+    const ctx = buildTemplateContext(makeTaskContext({ profile }), RUNTIMES);
 
     // Assert
     expect(ctx.cli).toBe(CliType.Claude);
@@ -595,7 +603,7 @@ describe("buildTemplateContext", () => {
 
   it("names Copilot tools for a Copilot stage", () => {
     // Act
-    const ctx = buildTemplateContext(makeTaskContext());
+    const ctx = buildTemplateContext(makeTaskContext(), RUNTIMES);
 
     // Assert
     expect(ctx.cliTools).toEqual(COPILOT_TOOL_NAMES);

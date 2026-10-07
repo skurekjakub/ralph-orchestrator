@@ -1,3 +1,5 @@
+import type { CliToolNames } from "../cli-tools";
+
 /**
  * Claude Code built-in tools an agent may be granted. The set is bound to the pinned Claude Code
  * version; scheduling, worktree and messaging tools have no use in a headless run and are left out.
@@ -33,3 +35,12 @@ export const CLAUDE_SUBAGENT_TOOL = "Agent";
 export function claudeMcpToolName(server: string, tool?: string): string {
   return tool === undefined ? `mcp__${server}` : `mcp__${server}__${tool}`;
 }
+
+/** Claude Code tool names. */
+export const CLAUDE_TOOL_NAMES: CliToolNames = {
+  subagent: CLAUDE_SUBAGENT_TOOL,
+  skill: ClaudeBuiltinTool.Skill,
+  shell: ClaudeBuiltinTool.Bash,
+  read: ClaudeBuiltinTool.Read,
+  askUser: "AskUserQuestion",
+};

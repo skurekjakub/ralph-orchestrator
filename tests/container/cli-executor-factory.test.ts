@@ -9,9 +9,8 @@ import { CliExecutorFactory } from "../../src/container/cli-executor-factory";
 import { ClaudeCodeExecutor } from "../../src/container/cli-executors/claude-code-executor";
 import { CopilotExecutor } from "../../src/container/cli-executors/copilot-executor";
 import { LocalCopilotExecutor } from "../../src/container/cli-executors/local-copilot-executor";
-import type { IAgentCatalogProvider } from "../../src/container/setup/agent-catalogs";
 import { makeAgentSource, makeProfile, makeStage } from "../helpers/factories";
-import { createMockCompose, createMockLogger, fakeCliProcess, type Mocked } from "../helpers/mocks";
+import { createMockAgentCatalogProvider, createMockCompose, createMockLogger, fakeCliProcess } from "../helpers/mocks";
 
 /** `ralph.root` (named `root`) spawns `writer`, which spawns `checker`. */
 const CATALOG = new AgentCatalog([
@@ -21,7 +20,7 @@ const CATALOG = new AgentCatalog([
 ]);
 
 function createFactory() {
-  const agentCatalogs: Mocked<IAgentCatalogProvider> = { load: vi.fn().mockResolvedValue(CATALOG) };
+  const agentCatalogs = createMockAgentCatalogProvider(CATALOG);
   const factory = new CliExecutorFactory({
     cliRuntimes: createCliRuntimeRegistry(ClaudeAuthMode.OAuthToken),
     agentCatalogs,

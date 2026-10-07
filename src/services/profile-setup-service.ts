@@ -1,3 +1,4 @@
+import type { ICliRuntimeRegistry } from "../cli/cli-runtime";
 import type { Logger } from "../logger";
 import type { TaskContext } from "./task-context";
 import {
@@ -34,6 +35,7 @@ export interface IProfileSetupService {
  */
 export class ProfileSetupService implements IProfileSetupService {
   private readonly logger: Logger;
+  private readonly cliRuntimes: ICliRuntimeRegistry;
   private readonly templateRenderer: IAgentTemplateRenderer;
   private readonly skillRenderer: ISkillTemplateRenderer;
   private readonly overlayWriter: IComposeOverlayWriter;
@@ -41,18 +43,21 @@ export class ProfileSetupService implements IProfileSetupService {
 
   constructor({
     logger,
+    cliRuntimes,
     templateRenderer,
     skillRenderer,
     overlayWriter,
     jitMcpConfig,
   }: {
     logger: Logger;
+    cliRuntimes: ICliRuntimeRegistry;
     templateRenderer: IAgentTemplateRenderer;
     skillRenderer: ISkillTemplateRenderer;
     overlayWriter: IComposeOverlayWriter;
     jitMcpConfig: IJitMcpConfigWriter;
   }) {
     this.logger = logger;
+    this.cliRuntimes = cliRuntimes;
     this.templateRenderer = templateRenderer;
     this.skillRenderer = skillRenderer;
     this.overlayWriter = overlayWriter;
@@ -60,7 +65,7 @@ export class ProfileSetupService implements IProfileSetupService {
   }
 
   async prepareForTask(ctx: TaskContext): Promise<void> {
-    const templateContext = buildTemplateContext(ctx);
+    const templateContext = buildTemplateContext(ctx, this.cliRuntimes);
     const profileId = ctx.profile.id;
 
     this.logger.info("Rendering agent templates...");
@@ -89,7 +94,7 @@ export class ProfileSetupService implements IProfileSetupService {
   }
 
   async prepareForStage(ctx: TaskContext, stageOverrides: StageOverrides): Promise<void> {
-    const stageContext = buildTemplateContext(ctx, stageOverrides);
+    const stageContext = buildTemplateContext(ctx, this.cliRuntimes, stageOverrides);
     const profileId = ctx.profile.id;
     await this.templateRenderer.render(
       profileId,

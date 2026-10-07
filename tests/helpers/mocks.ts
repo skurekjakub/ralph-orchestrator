@@ -22,6 +22,8 @@ import type { ILogCollector } from "../../src/logs/collector";
 import type { IWorkItemPoller } from "../../src/datasource/poller";
 import type { ITaskRunner } from "../../src/services/task-runner";
 import type { IAgentTemplateRenderer } from "../../src/container/setup/agent-includes";
+import type { IAgentCatalogProvider } from "../../src/container/setup/agent-catalogs";
+import type { AgentCatalog } from "../../src/cli/agent-catalog";
 import type { ISkillTemplateRenderer } from "../../src/container/setup/skill-includes";
 import type { IJitMcpConfigWriter } from "../../src/container/setup/jit-mcp-params";
 import type { IComposeOverlayWriter } from "../../src/container/setup/compose-overlay-writer";
@@ -219,6 +221,8 @@ export function createMockCliRuntime(
     },
     models: modelPolicyFor(cli),
     credentials: { required: [] },
+    agentWriter: { write: vi.fn().mockReturnValue(null) },
+    toolNames: { subagent: "spawn", skill: "skill", shell: "sh", read: "read", askUser: "ask" },
     egressDomains: [],
     workspaceMountTargets: [],
     composeContribution: vi.fn().mockReturnValue({ volumes: [], env: {} }),
@@ -375,6 +379,11 @@ export function createMockPipelineExecutor(
     run: vi.fn().mockImplementation(async (ctx: any) => makeResult(ctx.workItem?.id ?? "MOCK-1")),
     ...overrides,
   } as Mocked<IAgentPipelineExecutor>;
+}
+
+/** Create a mock agent catalog provider that loads `catalog` for every profile. */
+export function createMockAgentCatalogProvider(catalog: AgentCatalog): Mocked<IAgentCatalogProvider> {
+  return { load: vi.fn().mockResolvedValue(catalog) };
 }
 
 /** Create a mock AgentTemplateRenderer with all methods stubbed. */

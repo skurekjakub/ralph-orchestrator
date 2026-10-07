@@ -2,7 +2,8 @@ import type { CliType, IAgentProfile } from "../config/types";
 import type { FolderExportDef, LogSourceDef } from "../container/log-collector";
 import type { ProfileBuildPaths } from "../container/setup/build-paths";
 import type { Logger } from "../logger";
-import type { AgentGraph } from "./agent-file-writer";
+import type { AgentGraph, IAgentFileWriter } from "./agent-file-writer";
+import type { CliToolNames } from "./cli-tools";
 import type { ICliCredentialPolicy } from "./credential-catalog";
 import type { ICliModelPolicy } from "./model-catalog";
 import type { ICliOutputDecoder } from "./output-decoder";
@@ -76,6 +77,10 @@ export interface ICliRuntime {
   readonly models: ICliModelPolicy;
   /** Environment variables the CLI authenticates with. */
   readonly credentials: ICliCredentialPolicy;
+  /** Serialises the profile's canonical agents into the CLI's agent file format. */
+  readonly agentWriter: IAgentFileWriter;
+  /** What the CLI calls the tools agent templates and skills name in prose (`{{ cliTools.subagent }}`). */
+  readonly toolNames: CliToolNames;
   /** Domains the CLI itself reaches (its model API), added to the task's Squid allowlist. */
   readonly egressDomains: readonly string[];
   /**

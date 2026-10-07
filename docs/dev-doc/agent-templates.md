@@ -31,9 +31,9 @@ shared/agent-includes/               — Shared Liquid partials
 
 1. `ProfileSetupService.prepareForTask()` (called from `TaskRunner`) calls `buildTemplateContext()` with the `TaskContext` (profile, work item, revision flag, trigger params); `prepareForStage()` repeats this before each pipeline stage with stage overrides
 2. `buildTemplateContext()` produces a `TemplateContext` — a typed object with all template variables
-3. `AgentTemplateRenderer.render()` loads the profile's templates into an `AgentCatalog` (canonical frontmatter, `subagents` graph) and creates a LiquidJS engine with `shared/agent-includes/` as the root
+3. `AgentTemplateRenderer.render()` takes the profile's `AgentCatalog` (canonical frontmatter, `subagents` graph) from `AgentCatalogProvider` and creates a LiquidJS engine with `shared/agent-includes/` as the root
 4. Each agent reachable from the stage's root agent has its body rendered with the context plus its own `self` — `{% render %}`, `{% if %}`, `{% section %}` tags are resolved
-5. The stage CLI's agent file writer serialises each agent; the output is synced into `profiles/<id>/.build/<cli>/agents/` and mounted read-only into the container
+5. The agent file writer of the stage CLI's runtime (`ICliRuntime.agentWriter`) serialises each agent; the output is synced into `profiles/<id>/.build/<cli>/agents/` and mounted read-only into the container
 
 The Liquid engine uses `extname: ".md"` — partials are referenced without extensions (e.g. `{% render 'personality/ralph' %}` resolves to `shared/agent-includes/personality/ralph.md`).
 

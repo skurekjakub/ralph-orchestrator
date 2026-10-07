@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { AgentCatalog } from "../../../src/cli/agent-catalog";
 import { CopilotRuntime } from "../../../src/cli/copilot/copilot-runtime";
+import { CopilotAgentWriter } from "../../../src/cli/copilot/copilot-agent-writer";
 import { PlainTextDecoder } from "../../../src/cli/plain-text-decoder";
 import { CliType, StageMode } from "../../../src/config/types";
 import { CaptureMode } from "../../../src/container/log-collector";
@@ -23,6 +24,18 @@ describe("CopilotRuntime", () => {
   it("describes the Copilot CLI", () => {
     // Act & Assert
     expect(new CopilotRuntime().cli).toBe(CliType.Copilot);
+  });
+
+  it("writes agents in the Copilot format and names Copilot's tools", () => {
+    // Act & Assert
+    expect(runtime.agentWriter).toBeInstanceOf(CopilotAgentWriter);
+    expect(runtime.toolNames).toEqual({
+      subagent: "task",
+      skill: "skill",
+      shell: "bash",
+      read: "view",
+      askUser: "ask_questions",
+    });
   });
 
   it("validates models as Copilot model ids", () => {

@@ -22,19 +22,18 @@ describe("AgentCatalogProvider", () => {
     writeFileSync(join(root, "profiles", "docs", "agents", "ralph.ralph.agent.md"), makeAgentTemplate("ralph"));
 
     // Act
-    const catalog = await new AgentCatalogProvider(root).load("docs");
+    const catalog = await new AgentCatalogProvider({ rootDir: root }).load("docs");
 
     // Assert
     expect(catalog.fileIds).toEqual(["ralph.ralph"]);
     expect(catalog.get("ralph.ralph").frontmatter.name).toBe("ralph");
   });
 
-  it("is empty for a profile without an agents directory", async () => {
-    // Act
-    const catalog = await new AgentCatalogProvider(root).load("docs");
-
-    // Assert
-    expect(catalog.fileIds).toEqual([]);
+  it("throws for a profile without an agents directory", async () => {
+    // Act & Assert
+    await expect(new AgentCatalogProvider({ rootDir: root }).load("docs")).rejects.toThrow(
+      `Profile docs has no agents directory: ${join(root, "profiles", "docs", "agents")}`,
+    );
   });
 
   it("rejects agent templates that do not form a valid graph", async () => {
@@ -46,6 +45,8 @@ describe("AgentCatalogProvider", () => {
     );
 
     // Act & Assert
-    await expect(new AgentCatalogProvider(root).load("docs")).rejects.toThrow(/subagent "gone" is not an agent/);
+    await expect(new AgentCatalogProvider({ rootDir: root }).load("docs")).rejects.toThrow(
+      /subagent "gone" is not an agent/,
+    );
   });
 });

@@ -88,7 +88,7 @@ export async function resolveAllProfileSetup({
   logger,
   rootDir = process.cwd(),
 }: ProfileSetupInput): Promise<void> {
-  const agentCatalogs = new AgentCatalogProvider(rootDir);
+  const agentCatalogs = new AgentCatalogProvider({ rootDir });
   const mcpServersDir = resolve(rootDir, "shared/mcp-servers");
   const profilesDir = resolve(rootDir, "profiles");
 

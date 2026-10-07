@@ -167,7 +167,7 @@ export function createCradle(config: IAppConfig): OrchestratorCradle {
     ).singleton(),
     logCollector: asClass(LogCollector).singleton(),
     promptBuilder: asClass(PromptBuilder).singleton(),
-    agentCatalogs: asFunction(() => new AgentCatalogProvider(process.cwd())).singleton(),
+    agentCatalogs: asFunction(() => new AgentCatalogProvider({ rootDir: process.cwd() })).singleton(),
     executorFactory: asClass(CliExecutorFactory).singleton(),
     templateRenderer: asClass(AgentTemplateRenderer).singleton(),
     skillRenderer: asClass(SkillTemplateRenderer).singleton(),

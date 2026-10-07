@@ -20,7 +20,8 @@ import {
 } from "../helpers/mocks";
 import { makeProfile, makeStage, makeTaskContext } from "../helpers/factories";
 import { agentsBuildDir, profileBuildPaths } from "../../src/container/setup/build-paths";
-import { CliType, StageMode } from "../../src/config/types";
+import { ClaudeAuthMode, CliType, StageMode } from "../../src/config/types";
+import { createCliRuntimeRegistry } from "../../src/cli/supported-runtimes";
 
 /** Build paths of the "docs" profile under the working directory, where the service renders. */
 const DOCS_PATHS = profileBuildPaths(process.cwd(), "docs");
@@ -32,6 +33,7 @@ function createService() {
   const jitMcpConfig = createMockJitMcpConfigWriter();
   const service = new ProfileSetupService({
     logger: createSilentLogger(),
+    cliRuntimes: createCliRuntimeRegistry(ClaudeAuthMode.OAuthToken),
     templateRenderer,
     skillRenderer,
     overlayWriter,
