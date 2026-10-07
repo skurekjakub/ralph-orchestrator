@@ -1,9 +1,8 @@
 /**
  * Minimal Discord REST API client — uses native fetch, no WebSocket gateway.
  *
- * Designed to work through an HTTP proxy (Squid) since the agent container
- * has no direct internet access. Only uses REST endpoints for posting messages
- * and polling for replies.
+ * Runs in the MCP sidecar, which reaches discord.com directly. Only uses REST
+ * endpoints for posting messages and polling for replies.
  */
 
 const API_BASE = "https://discord.com/api/v10";

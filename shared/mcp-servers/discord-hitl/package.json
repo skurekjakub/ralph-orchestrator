@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Discord-based human-in-the-loop MCP server — blocking questions, approvals, and notifications via Discord threads",
   "type": "module",
-  "main": "dist/index.js",
+  "main": "dist/bundle.mjs",
   "scripts": {
     "clean": "rm -rf dist",
     "build": "rm -rf dist && esbuild src/index.ts --bundle --platform=node --format=esm --target=node24 --outfile=dist/bundle.mjs",

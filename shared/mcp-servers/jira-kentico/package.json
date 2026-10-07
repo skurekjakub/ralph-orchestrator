@@ -2,7 +2,7 @@
   "name": "@ralph/jira-mcp",
   "version": "1.0.0",
   "description": "JIRA Cloud MCP server — comments and attachments",
-  "main": "dist/index.js",
+  "main": "dist/bundle.js",
   "type": "module",
   "scripts": {
     "clean": "rm -rf dist",

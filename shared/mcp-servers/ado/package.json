@@ -2,7 +2,7 @@
   "name": "@ralph/ado-mcp",
   "version": "1.0.0",
   "description": "Azure DevOps MCP server — pull request creation and review threads",
-  "main": "dist/index.js",
+  "main": "dist/bundle.js",
   "type": "module",
   "scripts": {
     "clean": "rm -rf dist",
