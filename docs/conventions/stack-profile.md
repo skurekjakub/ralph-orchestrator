@@ -64,7 +64,7 @@
   - Failed runs and `output/logs/` forensics: `task-failure-diagnosis`,
     `cli-debug-log-analysis`.
   - Never rename the runtime skills in `shared/skills/analysis/`
-    (`agent-eval`, `run-telemetry-analysis`, `skill-creator`, `mcp-builder`):
+    (`agent-eval`, `run-telemetry-analysis`, `skill-authoring`):
     the host-side `ralph.scientist` hook loads them by name.
 
 ## Review hunt list (rubber-duk-review, rubber-duk-backend)

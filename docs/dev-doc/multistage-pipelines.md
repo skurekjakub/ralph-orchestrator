@@ -329,7 +329,7 @@ A local analyzer reviews the agent's run telemetry, then a gap filler creates or
 "stages": [
   { "agent": "ralph.ralph", "role": "primary", "mode": "container", "skills": ["ralph-documentation-syntax"] },
   { "agent": "ralph.ralph-analyst", "role": "analyzer", "mode": "local", "skills": ["agent-eval", "run-telemetry-analysis"] },
-  { "agent": "ralph.ralph-gap-filler", "role": "gap-filler", "mode": "local", "skills": ["skill-creator"] }
+  { "agent": "ralph.ralph-gap-filler", "role": "gap-filler", "mode": "local", "skills": ["skill-authoring"] }
 ]
 ```
 
@@ -425,7 +425,7 @@ Main pipeline stages → collectResults → container teardown
 
 ### Built-in hooks
 
-Every variant in the bundled profiles (`ralph-docs`: `@Ralph`, `@Malph`, `@RalphDev`; `ralph-vscode`: `@RalphAutocomplete`, `@MalphAutocomplete`) declares a `run-analysis` hook with a single local stage, `ralph.scientist`, which mounts the runtime skills in `shared/skills/analysis/`: `agent-eval`, `run-telemetry-analysis`, `skill-creator` and `mcp-builder`. The scientist dispatches subagents:
+Every variant in the bundled profiles (`ralph-docs`: `@Ralph`, `@Malph`, `@RalphDev`; `ralph-vscode`: `@RalphAutocomplete`, `@MalphAutocomplete`) declares a `run-analysis` hook with a single local stage, `ralph.scientist`, which mounts the runtime skills in `shared/skills/analysis/`: `agent-eval`, `run-telemetry-analysis` and `skill-authoring`. The scientist dispatches subagents:
 
 1. **subagent-mapper** (`ralph-docs` only) — extracts per-subagent spans, tool calls and errors from the run telemetry (`*-claude-run-telemetry.json`), or from the collected Copilot CLI debug log when there is none.
 2. **run-analyzer** — analyzes one subagent's execution per dispatch (`analyzed` or `skipped`); its list of critical egress domains follows `hook.cli`.

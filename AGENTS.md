@@ -208,7 +208,7 @@ Each has its own `package.json` and `npm ci`. Root `npm run lint` and `npm test`
 - Claude Code dev tooling:
   - Project skills in `.claude/skills/`: agent-eval, cli-debug-log-analysis, skill-creator, mcp-builder, task-failure-diagnosis, dashboard-development, nodebb-interaction, mcp-deployment, ralph-agent-authoring, test-patterns.
   - Path-scoped rules in `.claude/rules/`: testing, scripts, mcp-servers, runtime-agents.
-- The `ralph.scientist` post-task hook loads the runtime skills in `shared/skills/analysis/` (**agent-eval, run-telemetry-analysis, skill-creator and mcp-builder**), declared on the hook stages in `profile.json` and named in `shared/agent-includes/post-hooks/*.md`. Renaming or removing them breaks that hook. agent-eval, skill-creator and mcp-builder also exist as dev copies in `.claude/skills/`; keep the two copies in step.
+- The `ralph.scientist` post-task hook loads the runtime skills in `shared/skills/analysis/` (**agent-eval, run-telemetry-analysis and skill-authoring**), declared on the hook stages in `profile.json` and named in `shared/agent-includes/post-hooks/*.md`. Renaming or removing them breaks that hook. They are runtime-owned and fit for a `dontAsk` host stage: the runtime agent-eval reads the hook's task output directory and is no copy of the dev skill in `.claude/skills/`.
 - `shared/skills/`, `shared/agent-includes/` and `profiles/*/agents/` are **runtime** artifacts mounted into agent containers, not dev tooling. The `.claude/rules/` runtime-agents rule covers editing them.
 
 ## containment/

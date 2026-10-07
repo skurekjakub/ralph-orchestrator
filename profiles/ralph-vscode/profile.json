@@ -86,7 +86,7 @@
               "agent": "ralph.scientist",
               "role": "scientist",
               "mode": "local",
-              "skills": ["agent-eval", "run-telemetry-analysis", "skill-creator", "mcp-builder"],
+              "skills": ["agent-eval", "run-telemetry-analysis", "skill-authoring"],
               "model": "opus"
             }
           ]
@@ -123,7 +123,7 @@
               "agent": "ralph.scientist",
               "role": "scientist",
               "mode": "local",
-              "skills": ["agent-eval", "run-telemetry-analysis", "skill-creator", "mcp-builder"],
+              "skills": ["agent-eval", "run-telemetry-analysis", "skill-authoring"],
               "model": "opus"
             }
           ]

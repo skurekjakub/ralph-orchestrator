@@ -206,9 +206,8 @@ Analysis skills serve the `ralph.scientist` agent of the `run-analysis` post-tas
 | Skill                    | Description                                                                                                                              |
 | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | `agent-eval`             | Evaluating a completed agent run: tool selection, ordering, arguments, efficiency, error recovery, output accuracy, workflow compliance. |
-| `mcp-builder`            | Guide for building MCP servers.                                                                                                          |
 | `run-telemetry-analysis` | Analysing a run from its `*-claude-run-telemetry.json` and audit log; for a Copilot run, from its `cli-debug.log`.                       |
-| `skill-creator`          | Creating and improving skills.                                                                                                           |
+| `skill-authoring`        | Writing or improving a runtime skill: layout, description, body, Liquid and wiring.                                                      |
 
 ## Variant Skill Assignments
 

@@ -31,7 +31,7 @@ The file is one JSON object, `schemaVersion` 1. Timestamps are epoch millisecond
 | ------------ | ----------------------------------------------------------------------------------------------------------- |
 | `cli`        | `claude`                                                                                                    |
 | `sessionIds` | Session ids in start order: one per stage, plus one per continuation that started a session                 |
-| `totals`     | `sessions`, `subagents`, `toolCalls`, `failedToolCalls`, `modelCalls`, `apiErrors`, `compactions`, `malformedLines`, `durationMs` |
+| `totals`     | `sessions`, `subagents`, `toolCalls`, `failedToolCalls`, `modelCalls`, `apiErrors`, `compactions`, `hookFeedback`, `malformedLines`, `durationMs` |
 | `spans[]`    | One per agent thread                                                                                        |
 
 Each span:
@@ -49,6 +49,7 @@ Each span:
 | `toolCalls[]`          | `toolUseId`, `tool`, `ts`, `durationMs`, `isError` (a denied call counts as an error), `spawnedSpanId` |
 | `apiErrors[]`          | `ts`, `kind` (for example `authentication_failed`, `rate_limit`)                         |
 | `compactions[]`        | `ts`, `trigger` (`auto` or `manual`)                                                     |
+| `hookFeedback[]`       | `ts`, `hook`: feedback a blocking hook gave the model, by hook event (`Stop` for Ralph's result gate) |
 
 ## Recipes
 
@@ -96,13 +97,13 @@ jq -r '.spans[] | .agent as $agent | .toolCalls[] | select(.isError == true) | [
 
 The audit log holds the error text of each one (recipe 9).
 
-### 7. API errors and compactions
+### 7. API errors, compactions and hook feedback
 
 ```bash
-jq '[.spans[] | select((.apiErrors | length) > 0 or (.compactions | length) > 0) | {agent, apiErrors, compactions}]' <telemetry>
+jq '[.spans[] | select((.apiErrors | length) > 0 or (.compactions | length) > 0 or (.hookFeedback | length) > 0) | {agent, apiErrors, compactions, hookFeedback}]' <telemetry>
 ```
 
-A compaction means the agent's context filled up; correlate its `ts` with the tool sequence to see what work it interrupted.
+A compaction means the agent's context filled up; correlate its `ts` with the tool sequence to see what work it interrupted. Hook feedback on `Stop` means Ralph's result gate sent the agent back because it tried to end without a result block; the audit log's `result_gate_block` and `result_gate_exhausted` records (recipe 9) say how often and whether it gave up.
 
 ### 8. Slowest tool calls
 

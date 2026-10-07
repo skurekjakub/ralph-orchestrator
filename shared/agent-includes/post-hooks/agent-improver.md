@@ -36,8 +36,8 @@ The runtime-owned sources live in the orchestrator checkout at `{{ hook.orchestr
 |---|---|
 | `{{ hook.orchestratorDir }}/profiles/{{ profileId }}/agents/` | Agent templates (Liquid `.agent.md` files) of the profile whose run you analyse |
 | `{{ hook.orchestratorDir }}/shared/agent-includes/` | Shared Liquid partials |
-| `{{ hook.orchestratorDir }}/shared/skills/` | Agent skill definitions — use the **skill-creator** skill if improving or creating new skills. |
-| `{{ hook.orchestratorDir }}/shared/mcp-servers/` | MCP server manifests and custom server code — use the **mcp-builder** skill if making changes to or adding new MCP servers. |
+| `{{ hook.orchestratorDir }}/shared/skills/` | Agent skill definitions — load the **skill-authoring** skill before improving or creating one. |
+| `{{ hook.orchestratorDir }}/shared/mcp-servers/` | MCP server manifests (`mcp-server.json`) and custom server code |
 
 Nothing else in the checkout is readable to you: not the profile's `profile.json`, the orchestrator's own code (`src/`) or its developer tooling (`.claude/`). Describe changes there, such as a variant's stages, skills, models or MCP servers in `profile.json`, under `Proposed (Not Implemented)` instead.
 
@@ -166,6 +166,6 @@ Apply with `cp -r {{ artifactDir }}/agent-improver/<target-subagent-name>/propos
 5. Read the target file to understand current state (or the newest earlier proposal for it)
 6. Write the changed file as a proposal
 7. Record it in the improvements summary with the cited finding
-8. For **Skill Gaps** findings: use the **skill-creator** skill to design new or improved skills, written as proposals under `proposals/shared/skills/`
-9. For **MCP Tool Gaps** findings: use the **mcp-builder** skill, or escalate to Proposed if it requires infrastructure changes
+8. For **Skill Gaps** findings: load the **skill-authoring** skill, then write the new or improved skill as proposals under `proposals/shared/skills/`
+9. For **MCP Tool Gaps** findings: propose the manifest change (for example a tool added to its `tools` allowlist) when the server already offers the tool; describe a new server or new server code under `Proposed (Not Implemented) > New Skills / MCP Servers`
 10. If the analysis report has no actionable findings, write a brief "no changes needed" summary
