@@ -34,9 +34,10 @@ export interface CliCommand {
 /**
  * Run one agent CLI process with stream capture, output decoding and error handling.
  *
- * When the agent's decoded text holds a complete result block with a recognised STATUS but the CLI process
- * doesn't exit within {@link RESULT_GRACE_MS}, the process is terminated with SIGTERM. This prevents the CLI
- * from idling indefinitely after printing a valid result block.
+ * For a CLI that ends its answer with a result block (`ICliOutputDecoder.answerEndsAtResultBlock`): when the
+ * agent's decoded text holds a complete result block with a recognised STATUS but the CLI process doesn't exit
+ * within {@link RESULT_GRACE_MS}, the process is terminated with SIGTERM, so the CLI cannot idle indefinitely
+ * after printing a valid result block.
  *
  * A non-zero exit, a timeout, or a CLI that never started resolves to a result with the exit code (1 when the
  * process never ran) and whatever the CLI printed and reported before it ended. Execa reports a CLI that cannot

@@ -58,6 +58,11 @@ export interface CliRunOutcome {
 
 /** Stateful decoder for the stdout of one CLI process. */
 export interface ICliOutputDecoder {
+  /**
+   * Whether the agent's answer ends with a result block in the decoded text, after which the CLI may idle instead
+   * of exiting. False for a CLI whose output ends with a result event of its own.
+   */
+  readonly answerEndsAtResultBlock: boolean;
   /** Decodes one stdout line. A malformed line is logged verbatim, never thrown. */
   decodeLine(rawLine: string): DecodedLine;
   /** The decoded run after the process exits; when the CLI reports several results, the last one wins. */

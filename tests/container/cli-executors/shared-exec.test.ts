@@ -7,6 +7,7 @@ import {
   type CliCommand,
 } from "../../../src/container/cli-executors/shared-exec";
 import { PlainTextDecoder } from "../../../src/cli/plain-text-decoder";
+import { ClaudeStreamJsonDecoder } from "../../../src/cli/claude/stream-json-decoder";
 import { createMockLogger, fakeCliProcess } from "../../helpers/mocks";
 
 function makeExecaError(overrides: { exitCode?: number; stderr?: string; timedOut?: boolean } = {}): ExecaError {
@@ -151,6 +152,28 @@ describe("executeCliCommand", () => {
       // Assert
       expect(kill).toHaveBeenCalledWith("SIGTERM");
       await expect(pending).resolves.toMatchObject({ exitCode: 143 });
+    });
+
+    it("leaves Claude Code running after a result block in its text, until its own result event ends it", async () => {
+      // Arrange
+      const { process, out, kill, exit } = runningProcess(0);
+      const text = "===RALPH_RESULT_START===\nSTATUS: completed\n===RALPH_RESULT_END===";
+      out.write(
+        JSON.stringify({
+          type: "assistant",
+          parent_tool_use_id: null,
+          message: { content: [{ type: "text", text }] },
+        }) + "\n",
+      );
+      const pending = executeCliCommand(command(process, { decoder: new ClaudeStreamJsonDecoder() }));
+
+      // Act
+      await vi.advanceTimersByTimeAsync(60_000);
+
+      // Assert
+      expect(kill).not.toHaveBeenCalled();
+      exit();
+      await expect(pending).resolves.toMatchObject({ exitCode: 0 });
     });
 
     it("leaves a CLI running whose text only quotes the end marker", async () => {

@@ -110,6 +110,7 @@ function cliErrorOf(result: JsonRecord, apiErrorKind: string | undefined): CliEr
  * skipped, so a newer CLI that adds events still decodes.
  */
 export class ClaudeStreamJsonDecoder implements ICliOutputDecoder {
+  readonly answerEndsAtResultBlock = false;
   private readonly agentTexts: string[] = [];
   /** Subagent type of each running task, for task notifications, which do not carry it. */
   private readonly subagentTypes = new Map<string, string>();

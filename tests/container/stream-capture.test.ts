@@ -253,7 +253,7 @@ describe("StreamCapture", () => {
       expect(logger.info).not.toHaveBeenCalledWith(expect.stringContaining('"type"'));
     });
 
-    it("does not detect a result marker that only appears inside a tool call", async () => {
+    it("does not watch for a result block, since Claude Code's result event ends its output", async () => {
       // Arrange
       const { proc, stdout } = makeFakeProc();
       const capture = new StreamCapture(proc, createMockLogger(), "claude", new ClaudeStreamJsonDecoder());
@@ -268,34 +268,15 @@ describe("StreamCapture", () => {
         event({
           type: "assistant",
           parent_tool_use_id: null,
-          message: { content: [{ type: "tool_use", name: "Write", input: { content: "===RALPH_RESULT_END===" } }] },
+          message: {
+            content: [{ type: "text", text: "===RALPH_RESULT_START===\nSTATUS: completed\n===RALPH_RESULT_END===" }],
+          },
         }),
       );
       await Promise.resolve();
 
       // Assert
       expect(resolved).toBe(false);
-    });
-
-    it("detects the result marker in the agent's own text", async () => {
-      // Arrange
-      const { proc, stdout } = makeFakeProc();
-      const capture = new StreamCapture(proc, createMockLogger(), "claude", new ClaudeStreamJsonDecoder());
-
-      // Act
-      stdout.emit(
-        "data",
-        event({
-          type: "assistant",
-          parent_tool_use_id: null,
-          message: {
-            content: [{ type: "text", text: "===RALPH_RESULT_START===\nSTATUS: completed\n===RALPH_RESULT_END===" }],
-          },
-        }),
-      );
-
-      // Assert
-      await expect(capture.resultBlockDetected).resolves.toBeUndefined();
     });
   });
 

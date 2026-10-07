@@ -13,9 +13,9 @@ const RESULT_END_MARKER = "===RALPH_RESULT_END===";
  * Splits stdout into lines and runs each through a decoder, which turns it into log lines and the agent's
  * own text; stderr lines are logged as warnings. The raw chunks of both streams are kept for later retrieval.
  *
- * Also watches the decoded agent text for a complete result block so callers can react (e.g. terminate an
- * idle CLI) without waiting for the process to exit on its own. A block inside a tool input or a subagent's
- * output does not count.
+ * When the decoder's CLI ends its answer with a result block (`answerEndsAtResultBlock`), also watches the
+ * decoded agent text for a complete one so callers can react (e.g. terminate an idle CLI) without waiting for
+ * the process to exit on its own. A block inside a tool input or a subagent's output does not count.
  */
 export class StreamCapture {
   readonly stdoutChunks: string[] = [];
@@ -24,7 +24,7 @@ export class StreamCapture {
   /**
    * Resolves once the agent's text so far holds a result block with a recognised STATUS
    * ({@link hasResultBlock}); an end marker alone, e.g. quoted in prose, does not resolve it.
-   * Never rejects — stays pending if no such block is seen.
+   * Never rejects — stays pending if no such block is seen, and for a decoder whose CLI ends its own output.
    */
   readonly resultBlockDetected: Promise<void>;
 
@@ -105,7 +105,7 @@ export class StreamCapture {
       if (trimmed) this.logger.info(`[${this.tag}] ${trimmed}`);
     }
     for (const warning of decoded.warnings ?? []) this.logger.warn(`[${this.tag}] ${warning}`);
-    if (decoded.agentText === undefined) return;
+    if (decoded.agentText === undefined || !this.decoder.answerEndsAtResultBlock) return;
     this.agentTexts.push(decoded.agentText);
     if (
       !this._resultBlockResolved &&
