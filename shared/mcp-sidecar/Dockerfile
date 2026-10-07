@@ -12,9 +12,6 @@ ENV PLAYWRIGHT_BROWSERS_PATH=/opt/playwright-browsers
 
 RUN mkdir -p /opt/npm-global /opt/playwright-browsers
 
-# Pre-install supergateway (stdio → Streamable HTTP bridge for npm servers)
-RUN npm install -g supergateway@4.1.0
-
 # Pre-install Playwright MCP server + Chromium browser (avoids npx runtime download).
 # The server's own installer fetches the browser build its bundled Playwright expects;
 # `npx playwright install` would fetch the build of whatever Playwright release is current.

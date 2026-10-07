@@ -3,8 +3,6 @@ import { networkInterfaces } from "node:os";
 import { setTimeout as delay } from "node:timers/promises";
 import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
 import type { Logger } from "./logger";
-import type { ListenAddress } from "./managed-server";
-import { MCP_PATH } from "./tool-filter-proxy";
 import type { ToolAllowlist } from "./tool-policy";
 
 /** Whether the allowlist matches the tools the server really exposes. */
@@ -25,6 +23,8 @@ export enum ExposureStatus {
   LoopbackOnly = "loopback-only",
   /** The port accepts connections on a non-loopback address, so clients can bypass the proxy. */
   Exposed = "exposed",
+  /** The gateway reaches the server over stdio, so there is no upstream port to bypass the proxy through. */
+  NoListener = "no-listener",
 }
 
 /** Result of comparing the allowlist with the server's `tools/list`. */
@@ -48,9 +48,12 @@ export interface ExposureReport {
 /** Construction options for {@link UpstreamMonitor}. */
 export interface UpstreamMonitorOptions {
   serverName: string;
-  upstream: ListenAddress;
   allowlist: ToolAllowlist;
   logger: Logger;
+  /** Lists the tool names the server exposes; one listing attempt, bounded by `timeoutMs`. */
+  listToolNames: (timeoutMs: number) => Promise<string[]>;
+  /** Port the server listens on behind the proxy, probed for exposure; `null` for a stdio server. */
+  exposurePort: number | null;
   maxAttempts?: number;
   retryDelayMs?: number;
   /** Timeout of each MCP request and TCP probe. */
@@ -65,10 +68,10 @@ const DEFAULT_TIMEOUT_MS = 10000;
 const MAX_LIST_PAGES = 100;
 
 /**
- * Checks a filtered server after each (re)start: lists its real tools over loopback to detect
- * allowlist drift, then probes whether its upstream port is reachable on a non-loopback address.
- * The probe runs even when listing fails, because a server bound only to a non-loopback address
- * fails the listing and is exactly the server that must not be fronted.
+ * Checks a filtered server after each (re)start: lists its real tools to detect allowlist drift,
+ * then probes whether its upstream port is reachable on a non-loopback address. The probe runs even
+ * when listing fails, because a server bound only to a non-loopback address fails the loopback
+ * listing and is exactly the server that must not be fronted. A stdio server has no port to probe.
  * Findings are logged and kept for the health endpoint.
  */
 export class UpstreamMonitor {
@@ -97,14 +100,13 @@ export class UpstreamMonitor {
     const generation = ++this.generation;
     this.drift = pendingDrift();
     this.exposure = pendingExposure();
-    const { serverName, upstream, logger } = this.options;
-    const url = new URL(`http://${upstream.host}:${upstream.port}${MCP_PATH}`);
+    const { serverName, logger, listToolNames, exposurePort } = this.options;
 
     let toolNames: string[] | undefined;
     let lastError = "";
     for (let attempt = 1; attempt <= this.maxAttempts && toolNames === undefined; attempt++) {
       try {
-        toolNames = await listUpstreamToolNames(url, this.timeoutMs);
+        toolNames = await listToolNames(this.timeoutMs);
       } catch (err) {
         lastError = err instanceof Error ? err.message : String(err);
         if (attempt < this.maxAttempts) await this.sleep(this.retryDelayMs);
@@ -121,7 +123,11 @@ export class UpstreamMonitor {
       this.recordDrift(toolNames);
     }
 
-    const addresses = await findExposedAddresses(upstream.port, this.timeoutMs);
+    if (exposurePort === null) {
+      this.exposure = { status: ExposureStatus.NoListener, addresses: [], checkedAt: now() };
+      return;
+    }
+    const addresses = await findExposedAddresses(exposurePort, this.timeoutMs);
     if (generation !== this.generation) return;
     this.exposure = {
       status: addresses.length > 0 ? ExposureStatus.Exposed : ExposureStatus.LoopbackOnly,
@@ -130,7 +136,7 @@ export class UpstreamMonitor {
     };
     if (addresses.length > 0) {
       logger.error(
-        `[guard] ${serverName}: upstream port ${upstream.port} accepts connections on ${addresses.join(", ")}; clients can bypass the tool allowlist`,
+        `[guard] ${serverName}: upstream port ${exposurePort} accepts connections on ${addresses.join(", ")}; clients can bypass the tool allowlist`,
       );
     }
   }

@@ -1,5 +1,3 @@
-import { spawn, type ChildProcess } from "node:child_process";
-import { ServerType, type ServerConfig } from "./gateway-config";
 import type { Logger } from "./logger";
 
 /** Lifecycle state of a server process. */
@@ -15,184 +13,136 @@ export enum ServerStatus {
   Stopped = "stopped",
 }
 
-/** Interface and port a server process must listen on. */
-export interface ListenAddress {
-  host: string;
-  port: number;
+/** What a launched server instance reports back to its {@link ManagedServer}. */
+export interface InstanceObserver {
+  /** The instance is ready to serve. */
+  running(): void;
+  /** The instance ended, or never started; `description` says how. Reported at most once. */
+  exited(description: string): void;
+  /** Output the instance wrote to stderr. */
+  stderr(text: string): void;
 }
 
-/** Executable and argv used to start a server process. */
-export interface LaunchCommand {
-  command: string;
-  args: string[];
+/** One launched instance of a server process. */
+export interface ServerInstance {
+  /** Ask the process to end (SIGTERM, or closing its stdin first for a stdio server). */
+  stop(): void;
+  /** SIGKILL a process that ignored {@link stop}. */
+  forceKill(): void;
 }
 
-/**
- * Build the command that starts a server listening on `listen`.
- *
- * Custom servers get `--transport http --host <host> --port <port>`. npm (stdio) servers are wrapped
- * in supergateway, which has no bind-address option and always listens on every interface.
- */
-export function buildLaunchCommand(config: ServerConfig, listen: ListenAddress): LaunchCommand {
-  if (config.type === ServerType.Custom) {
-    return {
-      command: config.command,
-      args: [...config.args, "--transport", "http", "--host", listen.host, "--port", String(listen.port)],
-    };
-  }
-  return {
-    command: "supergateway",
-    args: [
-      "--stdio",
-      [config.command, ...config.args].join(" "),
-      "--outputTransport",
-      "streamableHttp",
-      "--port",
-      String(listen.port),
-    ],
-  };
+/** Starts instances of one server; {@link ManagedServer} decides when. */
+export interface ServerLauncher {
+  /** What gets launched, for the log (`<command> <args>` and where it serves). */
+  readonly description: string;
+  /** Start one instance. Failures are reported through `observer.exited`, never thrown. */
+  launch(observer: InstanceObserver): ServerInstance;
 }
 
 /** Construction options for {@link ManagedServer}. */
 export interface ManagedServerOptions {
-  config: ServerConfig;
-  listen: ListenAddress;
+  name: string;
+  launcher: ServerLauncher;
   logger: Logger;
-  /** Called each time a (re)spawned process is considered running. */
+  /** Called each time a (re)started instance is running. */
   onRunning?: () => void;
   /** Called after every status change. */
   onStatusChange?: (status: ServerStatus) => void;
   maxRestarts?: number;
   restartDelayMs?: number;
-  /** A process that stays alive this long without a startup log line is considered running. */
-  startupGraceMs?: number;
 }
 
 const DEFAULT_MAX_RESTARTS = 3;
 const DEFAULT_RESTART_DELAY_MS = 1000;
-const DEFAULT_STARTUP_GRACE_MS = 2000;
-const STARTUP_MARKERS = ["listening", "started", "ready"];
 
 /**
- * One MCP server child process: spawns it, relays its output to the log, and restarts it
- * (up to `maxRestarts`) when it exits unexpectedly.
+ * One MCP server: launches it, records its stderr as `lastError`, and restarts it (up to
+ * `maxRestarts`, after `restartDelayMs`) when it exits unexpectedly.
  */
 export class ManagedServer {
   status: ServerStatus = ServerStatus.Starting;
   restarts = 0;
   lastError: string | null = null;
 
-  private child: ChildProcess | null = null;
+  private instance: ServerInstance | null = null;
   private readonly maxRestarts: number;
   private readonly restartDelayMs: number;
-  private readonly startupGraceMs: number;
 
   constructor(private readonly options: ManagedServerOptions) {
     this.maxRestarts = options.maxRestarts ?? DEFAULT_MAX_RESTARTS;
     this.restartDelayMs = options.restartDelayMs ?? DEFAULT_RESTART_DELAY_MS;
-    this.startupGraceMs = options.startupGraceMs ?? DEFAULT_STARTUP_GRACE_MS;
   }
 
-  /** Spawn the process. Spawn failures and exits are handled by the restart policy, never thrown. */
+  /** Launch an instance. Launch failures and exits are handled by the restart policy, never thrown. */
   start(): void {
-    const { config, listen, logger } = this.options;
+    const { name, launcher, logger } = this.options;
     this.setStatus(ServerStatus.Starting);
+    logger.info(`[gateway] Starting ${name}: ${launcher.description}`);
 
-    const { command, args } = buildLaunchCommand(config, listen);
-    logger.info(
-      `[gateway] Starting ${config.name} (${config.type}) on ${listen.host}:${listen.port}: ${command} ${args.join(" ")}`,
-    );
-
-    const child = spawn(command, args, {
-      env: { ...process.env, ...config.env },
-      stdio: ["pipe", "pipe", "pipe"],
+    let current = true;
+    const instance = launcher.launch({
+      running: () => {
+        if (!current || this.status !== ServerStatus.Starting) return;
+        this.setStatus(ServerStatus.Running);
+        this.options.onRunning?.();
+      },
+      exited: (description) => {
+        if (!current) return;
+        current = false;
+        this.instance = null;
+        if (this.isFinal()) return;
+        logger.error(`[gateway] ${name} ${description} (lastError=${this.lastError ?? "none"})`);
+        this.handleExit();
+      },
+      stderr: (text) => {
+        if (!current) return;
+        logger.error(`[${name}] ${text}`);
+        this.lastError = text;
+      },
     });
-    this.child = child;
-    logger.info(`[gateway] ${config.name} spawned (pid=${child.pid})`);
-
-    child.stdout?.on("data", (data: Buffer) => {
-      const line = data.toString().trim();
-      if (!line) return;
-      logger.info(`[${config.name}] ${line}`);
-      if (STARTUP_MARKERS.some((marker) => line.includes(marker))) this.markRunning(child);
-    });
-
-    child.stderr?.on("data", (data: Buffer) => {
-      const line = data.toString().trim();
-      if (line) logger.error(`[${config.name}] ${line}`);
-      this.lastError = line;
-    });
-
-    child.on("error", (err) => {
-      if (this.isFinal() || this.child !== child) return;
-      logger.error(`[gateway] Failed to spawn ${config.name}: ${err.message}`);
-      this.lastError = err.message;
-      this.child = null;
-      this.handleExit();
-    });
-
-    // 'close' fires after stdio is flushed, so the final stderr line is logged before the crash report.
-    child.on("close", (code, signal) => {
-      if (this.isFinal() || this.child !== child) return;
-      logger.error(
-        `[gateway] ${config.name} exited (pid=${child.pid}, code=${code}, signal=${signal}, lastError=${this.lastError ?? "none"})`,
-      );
-      this.child = null;
-      this.handleExit();
-    });
-
-    setTimeout(() => {
-      if (this.status === ServerStatus.Starting && this.child === child && !child.killed) this.markRunning(child);
-    }, this.startupGraceMs).unref();
+    if (current) this.instance = instance;
   }
 
-  /** Send SIGTERM and stop restarting. */
+  /** Stop the instance and do not restart it. */
   stop(): void {
     this.setStatus(ServerStatus.Stopped);
     this.terminate();
   }
 
-  /** Stop the process for good because serving it is unsafe, recording `reason` as its last error. */
+  /** Stop the instance for good because serving it is unsafe, recording `reason` as its last error. */
   refuse(reason: string): void {
     this.lastError = reason;
     this.setStatus(ServerStatus.Refused);
     this.terminate();
   }
 
-  /** Send SIGKILL to a process that ignored {@link stop}. */
+  /** SIGKILL an instance that survived {@link stop}. */
   forceKill(): void {
-    if (this.child && this.child.exitCode === null && this.child.signalCode === null) this.child.kill("SIGKILL");
+    this.instance?.forceKill();
   }
 
   private terminate(): void {
-    if (this.child && !this.child.killed) {
-      this.options.logger.info(`[gateway] Stopping ${this.options.config.name}`);
-      this.child.kill("SIGTERM");
-    }
+    if (!this.instance) return;
+    this.options.logger.info(`[gateway] Stopping ${this.options.name}`);
+    this.instance.stop();
   }
 
-  private markRunning(child: ChildProcess): void {
-    if (this.status !== ServerStatus.Starting || this.child !== child) return;
-    this.setStatus(ServerStatus.Running);
-    this.options.onRunning?.();
-  }
-
-  /** Whether the process was stopped on purpose, so exits must not restart it. */
+  /** Whether the server was stopped on purpose, so an exit must not restart it. */
   private isFinal(): boolean {
     return this.status === ServerStatus.Stopped || this.status === ServerStatus.Refused;
   }
 
   private handleExit(): void {
-    const { config, logger } = this.options;
+    const { name, logger } = this.options;
     if (this.restarts >= this.maxRestarts) {
-      logger.error(`[gateway] ${config.name} exceeded max restarts (${this.maxRestarts}), giving up`);
+      logger.error(`[gateway] ${name} exceeded max restarts (${this.maxRestarts}), giving up`);
       this.setStatus(ServerStatus.Failed);
       return;
     }
     this.restarts++;
     this.setStatus(ServerStatus.Crashed);
     logger.info(
-      `[gateway] Restarting ${config.name} in ${this.restartDelayMs}ms (attempt ${this.restarts}/${this.maxRestarts})`,
+      `[gateway] Restarting ${name} in ${this.restartDelayMs}ms (attempt ${this.restarts}/${this.maxRestarts})`,
     );
     setTimeout(() => {
       if (!this.isFinal()) this.start();

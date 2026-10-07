@@ -1,6 +1,7 @@
 import { createServer } from "node:http";
 import { afterEach, describe, expect, it } from "vitest";
 import { ProtocolErrorCode } from "@modelcontextprotocol/client";
+import { HttpUpstream } from "../src/http-upstream";
 import { ToolFilterProxy } from "../src/tool-filter-proxy";
 import { ToolAllowlist } from "../src/tool-policy";
 import { createRecordingLogger, type RecordingLogger } from "./helpers/logger";
@@ -37,11 +38,17 @@ describe("ToolFilterProxy", () => {
 
   async function startProxy(upstreamPort: number, options: { maxBodyBytes?: number } = {}) {
     const logger = createRecordingLogger();
+    const allowlist = new ToolAllowlist(ALLOWED);
     const proxy = new ToolFilterProxy({
       serverName: "test",
       listen: { host: "127.0.0.1", port: 0 },
-      upstream: { host: "127.0.0.1", port: upstreamPort },
-      allowlist: new ToolAllowlist(ALLOWED),
+      upstream: new HttpUpstream({
+        serverName: "test",
+        address: { host: "127.0.0.1", port: upstreamPort },
+        allowlist,
+        logger,
+      }),
+      allowlist,
       logger,
       maxBodyBytes: options.maxBodyBytes,
     });

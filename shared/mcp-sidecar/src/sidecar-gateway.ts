@@ -1,12 +1,23 @@
 import { EventEmitter } from "node:events";
 import type { Server } from "node:http";
-import { HEALTH_PORT, type ResolvedGatewayConfig, type ResolvedServerConfig } from "./gateway-config";
+import { HEALTH_PORT, ServerType, type ResolvedGatewayConfig, type ResolvedServerConfig } from "./gateway-config";
 import { isServerReady, startHealthServer, toolFilterWarnings, type HealthReport, type ServerHealth } from "./health";
+import { HttpServerLauncher, type HttpServerLauncherOptions } from "./http-launcher";
+import type { ListenAddress } from "./http-listen";
+import { HttpUpstream } from "./http-upstream";
 import type { Logger } from "./logger";
-import { ManagedServer, ServerStatus, type ListenAddress, type ManagedServerOptions } from "./managed-server";
-import { ToolFilterProxy } from "./tool-filter-proxy";
+import { ManagedServer, ServerStatus, type ManagedServerOptions, type ServerLauncher } from "./managed-server";
+import { StdioBridge } from "./stdio-bridge";
+import { StdioUpstream, type StdioUpstreamOptions } from "./stdio-upstream";
+import { MCP_PATH, ToolFilterProxy, type ProxyUpstream } from "./tool-filter-proxy";
 import { ToolAllowlist } from "./tool-policy";
-import { DriftStatus, ExposureStatus, UpstreamMonitor, type UpstreamMonitorOptions } from "./upstream-monitor";
+import {
+  DriftStatus,
+  ExposureStatus,
+  listUpstreamToolNames,
+  UpstreamMonitor,
+  type UpstreamMonitorOptions,
+} from "./upstream-monitor";
 
 /** Interface servers bind when the agent connects to them directly. */
 const PUBLIC_HOST = "0.0.0.0";
@@ -19,7 +30,9 @@ export interface SidecarGatewayOptions {
   logger: Logger;
   /** Defaults to `0.0.0.0:9000`. */
   healthListen?: ListenAddress;
-  processOptions?: Pick<ManagedServerOptions, "maxRestarts" | "restartDelayMs" | "startupGraceMs">;
+  processOptions?: Pick<ManagedServerOptions, "maxRestarts" | "restartDelayMs"> &
+    Pick<HttpServerLauncherOptions, "startupGraceMs"> &
+    Pick<StdioUpstreamOptions, "handshakeTimeoutMs">;
   monitorOptions?: Pick<UpstreamMonitorOptions, "maxAttempts" | "retryDelayMs" | "timeoutMs" | "sleep">;
 }
 
@@ -33,7 +46,7 @@ interface ToolFilter {
   proxy: ToolFilterProxy;
   monitor: UpstreamMonitor;
   allowlist: ToolAllowlist;
-  upstreamPort: number;
+  upstreamPort: number | null;
   /** Why the proxy could not start; the server then counts as crashed and is not launched. */
   startError: string | null;
 }
@@ -45,12 +58,16 @@ interface GatewayEntry {
 }
 
 /**
- * The sidecar's MCP gateway: runs every configured server, fronts servers that have an `allowedTools`
- * list with a {@link ToolFilterProxy} on their agent-facing port (the server itself then listens on
- * loopback at its upstream port), and serves the health endpoint.
+ * The sidecar's MCP gateway: runs every configured server and serves the health endpoint.
  *
- * It fails closed: a filtered server counts as ready only once its upstream port is verified
- * loopback-only, and a server found reachable off loopback is stopped and refused for good.
+ * - A custom server without `allowedTools` listens on its agent-facing port itself.
+ * - A custom server with `allowedTools` listens on loopback at its upstream port, behind a
+ *   {@link ToolFilterProxy} on the agent-facing port.
+ * - An npm (stdio) server runs as a child of the gateway, bridged in process ({@link StdioBridge})
+ *   behind a {@link ToolFilterProxy}; it has no network listener of its own.
+ *
+ * It fails closed: a filtered server counts as ready only once its tools were listed and nothing
+ * but the proxy can reach it, and a server found reachable off loopback is stopped and refused.
  */
 export class SidecarGateway extends EventEmitter<{ [GatewayEvent.Changed]: [] }> {
   private readonly entries: GatewayEntry[];
@@ -95,7 +112,7 @@ export class SidecarGateway extends EventEmitter<{ [GatewayEvent.Changed]: [] }>
     );
   }
 
-  /** Stop all server processes (SIGTERM), checks, proxies and the health endpoint. */
+  /** Stop all server processes, checks, proxies (with their sessions) and the health endpoint. */
   async stop(): Promise<void> {
     for (const entry of this.entries) {
       entry.managed.stop();
@@ -142,25 +159,52 @@ export class SidecarGateway extends EventEmitter<{ [GatewayEvent.Changed]: [] }>
   }
 
   private createEntry(config: ResolvedServerConfig): GatewayEntry {
-    const { logger, processOptions, monitorOptions } = this.options;
-    const onStatusChange = (): void => void this.emit(GatewayEvent.Changed);
-    if (config.upstreamPort === null || config.allowedTools === undefined) {
-      return {
+    const { logger, processOptions } = this.options;
+    if (config.allowedTools === undefined) {
+      const launcher = new HttpServerLauncher({
         config,
-        managed: new ManagedServer({
-          ...processOptions,
-          config,
-          listen: { host: PUBLIC_HOST, port: config.port },
-          logger,
-          onStatusChange,
-        }),
-        filter: null,
-      };
+        listen: { host: PUBLIC_HOST, port: config.port },
+        logger,
+        startupGraceMs: processOptions?.startupGraceMs,
+      });
+      return { config, managed: this.managedServer(config, launcher), filter: null };
     }
 
-    const upstream: ListenAddress = { host: LOOPBACK_HOST, port: config.upstreamPort };
     const allowlist = new ToolAllowlist(config.allowedTools);
-    const monitor = new UpstreamMonitor({ ...monitorOptions, serverName: config.name, upstream, allowlist, logger });
+    if (config.type === ServerType.Npm) {
+      const stdio = new StdioUpstream({ config, logger, handshakeTimeoutMs: processOptions?.handshakeTimeoutMs });
+      const bridge = new StdioBridge({ serverName: config.name, upstream: stdio, allowlist, logger });
+      return this.filteredEntry(config, allowlist, stdio, bridge, {
+        listToolNames: (timeoutMs) => stdio.listToolNames(timeoutMs),
+        exposurePort: null,
+      });
+    }
+
+    if (config.upstreamPort === null) throw new Error(`gateway config: server "${config.name}" has no upstream port`);
+    const upstream: ListenAddress = { host: LOOPBACK_HOST, port: config.upstreamPort };
+    const url = new URL(`http://${upstream.host}:${upstream.port}${MCP_PATH}`);
+    const launcher = new HttpServerLauncher({
+      config,
+      listen: upstream,
+      logger,
+      startupGraceMs: processOptions?.startupGraceMs,
+    });
+    const http = new HttpUpstream({ serverName: config.name, address: upstream, allowlist, logger });
+    return this.filteredEntry(config, allowlist, launcher, http, {
+      listToolNames: (timeoutMs) => listUpstreamToolNames(url, timeoutMs),
+      exposurePort: upstream.port,
+    });
+  }
+
+  private filteredEntry(
+    config: ResolvedServerConfig,
+    allowlist: ToolAllowlist,
+    launcher: ServerLauncher,
+    upstream: ProxyUpstream,
+    check: Pick<UpstreamMonitorOptions, "listToolNames" | "exposurePort">,
+  ): GatewayEntry {
+    const { logger, monitorOptions } = this.options;
+    const monitor = new UpstreamMonitor({ ...monitorOptions, ...check, serverName: config.name, allowlist, logger });
     const proxy = new ToolFilterProxy({
       serverName: config.name,
       listen: { host: PUBLIC_HOST, port: config.port },
@@ -171,17 +215,23 @@ export class SidecarGateway extends EventEmitter<{ [GatewayEvent.Changed]: [] }>
     const filter: ToolFilter = { proxy, monitor, allowlist, upstreamPort: config.upstreamPort, startError: null };
     const entry: GatewayEntry = {
       config,
-      managed: new ManagedServer({
-        ...processOptions,
-        config,
-        listen: upstream,
-        logger,
-        onStatusChange,
-        onRunning: () => void this.verify(entry, filter),
-      }),
+      managed: this.managedServer(config, launcher, () => void this.verify(entry, filter)),
       filter,
     };
     return entry;
+  }
+
+  private managedServer(config: ResolvedServerConfig, launcher: ServerLauncher, onRunning?: () => void): ManagedServer {
+    const { logger, processOptions } = this.options;
+    return new ManagedServer({
+      name: config.name,
+      launcher,
+      logger,
+      maxRestarts: processOptions?.maxRestarts,
+      restartDelayMs: processOptions?.restartDelayMs,
+      onRunning,
+      onStatusChange: () => void this.emit(GatewayEvent.Changed),
+    });
   }
 
   /** Check a freshly (re)started filtered server and refuse it when its upstream is reachable off loopback. */
@@ -192,7 +242,7 @@ export class SidecarGateway extends EventEmitter<{ [GatewayEvent.Changed]: [] }>
     const { drift, exposure } = filter.monitor;
     if (exposure.status === ExposureStatus.Exposed) {
       const unreachable =
-        drift.status === DriftStatus.Error ? `, and it does not answer MCP on 127.0.0.1: ${drift.error}` : "";
+        drift.status === DriftStatus.Error ? `, and it does not answer MCP on ${LOOPBACK_HOST}: ${drift.error}` : "";
       const reason =
         `refusing to serve ${entry.config.name}: its upstream port ${filter.upstreamPort} accepts connections on ` +
         `${exposure.addresses.join(", ")}${unreachable}, so agents could bypass the tool allowlist; ` +

@@ -20,6 +20,8 @@ export interface JsonRpcErrorPayload {
 export type InboundVerdict =
   | {
       kind: "forward";
+      /** The inspected message or batch. */
+      parsed: unknown;
       /** Body to send upstream: the parsed JSON re-serialised, so upstream parses exactly what was inspected. */
       body: string;
       /** Keys ({@link requestIdKey}) of the `tools/list` requests in the body, whose responses must be filtered. */
@@ -106,6 +108,7 @@ export function inspectInbound(rawBody: string, allowlist: ToolAllowlist): Inbou
     const single = !isBatch && isRequest(messages[0]) ? messages[0] : undefined;
     return {
       kind: "forward",
+      parsed,
       body: JSON.stringify(parsed),
       listToolsIds: messages
         .filter((m): m is JSONRPCRequest => isRequest(m) && m.method === TOOLS_LIST)
@@ -174,7 +177,8 @@ function reject(
   return { kind: "reject", httpStatus, payload, deniedTools };
 }
 
-function denialFor(request: JSONRPCRequest): JsonRpcErrorPayload {
+/** The error answering a `tools/call` request for a tool outside the allowlist (or without a tool name). */
+export function denialFor(request: JSONRPCRequest): JsonRpcErrorPayload {
   const name = toolNameOf(request);
   return name === undefined
     ? errorPayload(request.id, ProtocolErrorCode.InvalidParams, "Invalid params: tools/call requires a tool name")

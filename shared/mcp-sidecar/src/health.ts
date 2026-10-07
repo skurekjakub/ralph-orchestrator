@@ -1,12 +1,13 @@
 import { createServer, type Server } from "node:http";
-import type { AddressInfo } from "node:net";
 import type { Logger } from "./logger";
-import { ServerStatus, type ListenAddress } from "./managed-server";
+import { listenOn, type ListenAddress } from "./http-listen";
+import { ServerStatus } from "./managed-server";
 import { DriftStatus, ExposureStatus, type DriftReport, type ExposureReport } from "./upstream-monitor";
 
 /** Tool-filter state of a server that has an allowlist. */
 export interface ToolFilterHealth {
-  upstreamPort: number;
+  /** Loopback port of an HTTP server behind the proxy; `null` for a stdio server bridged by the gateway. */
+  upstreamPort: number | null;
   allowedTools: string[];
   /** `tools/call` messages the proxy refused since start. */
   deniedCalls: number;
@@ -38,7 +39,8 @@ export interface HealthReport {
 
 /**
  * Whether a server may be offered to the agent: it is running and, when it has a tool filter, its
- * tools were listed through loopback and its upstream port was verified unreachable off loopback.
+ * tools were listed and nothing but the proxy can reach it (its upstream port was verified
+ * unreachable off loopback, or it has no port because the gateway bridges it over stdio).
  * Unverified (pending) checks count as not ready, so the gateway fails closed.
  */
 export function isServerReady(server: ServerHealth): boolean {
@@ -46,7 +48,8 @@ export function isServerReady(server: ServerHealth): boolean {
   if (!server.toolFilter) return true;
   const { drift, exposure } = server.toolFilter;
   const listed = drift.status === DriftStatus.Ok || drift.status === DriftStatus.Drift;
-  return listed && exposure.status === ExposureStatus.LoopbackOnly;
+  const unbypassable = exposure.status === ExposureStatus.LoopbackOnly || exposure.status === ExposureStatus.NoListener;
+  return listed && unbypassable;
 }
 
 /** Human-readable warnings for a server's tool-filter state; empty when there is nothing to fix. */
@@ -89,13 +92,7 @@ export async function startHealthServer(
     res.end();
   });
 
-  await new Promise<void>((resolve, reject) => {
-    server.once("error", reject);
-    server.listen(listen.port, listen.host, () => {
-      server.off("error", reject);
-      resolve();
-    });
-  });
-  logger.info(`[gateway] Health endpoint listening on port ${(server.address() as AddressInfo).port}`);
+  const port = await listenOn(server, listen);
+  logger.info(`[gateway] Health endpoint listening on ${listen.host}:${port}`);
   return server;
 }

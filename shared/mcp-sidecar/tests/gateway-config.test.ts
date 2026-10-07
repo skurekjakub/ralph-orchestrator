@@ -16,16 +16,31 @@ function server(overrides: Record<string, unknown> = {}): Record<string, unknown
 
 describe("gateway config", () => {
   describe("parseGatewayConfig", () => {
-    it("derives the upstream port of servers that have an allowlist", () => {
+    it("derives an upstream port for a filtered custom server only", () => {
+      // Act
       const config = parseGatewayConfig({
-        servers: [server({ allowedTools: ["a", "b"] }), server({ name: "web", type: "npm", port: 9104 })],
+        servers: [
+          server({ allowedTools: ["a", "b"] }),
+          server({ name: "web", port: 9104 }),
+          server({ name: "browser", type: "npm", port: 9103, allowedTools: ["c"] }),
+        ],
       });
 
+      // Assert
       expect(config.servers).toEqual([
         expect.objectContaining({ name: "ado", allowedTools: ["a", "b"], upstreamPort: 9101 + UPSTREAM_PORT_OFFSET }),
-        expect.objectContaining({ name: "web", type: ServerType.Npm, upstreamPort: null }),
+        expect.objectContaining({ name: "web", type: ServerType.Custom, upstreamPort: null }),
+        expect.objectContaining({ name: "browser", type: ServerType.Npm, allowedTools: ["c"], upstreamPort: null }),
       ]);
       expect(config.servers[1]).not.toHaveProperty("allowedTools");
+    });
+
+    it("lets an npm server use a high port, because it has no upstream port", () => {
+      // Act
+      const config = parseGatewayConfig({ servers: [server({ type: "npm", port: 60000, allowedTools: ["a"] })] });
+
+      // Assert
+      expect(config.servers[0].upstreamPort).toBeNull();
     });
 
     it("accepts a config without servers", () => {
@@ -48,6 +63,7 @@ describe("gateway config", () => {
         "allowedTools must be a non-empty array",
       ],
       ["a duplicated tool name", { servers: [server({ allowedTools: ["a", "a"] })] }, "must not contain duplicates"],
+      ["an npm server without an allowlist", { servers: [server({ type: "npm" })] }, "allowedTools is required"],
       [
         "a port without room for its upstream",
         { servers: [server({ port: 60000, allowedTools: ["a"] })] },

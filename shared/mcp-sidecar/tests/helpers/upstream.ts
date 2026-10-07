@@ -8,7 +8,7 @@ import { ProtocolError, ProtocolErrorCode, Server, type Tool } from "@modelconte
 export enum UpstreamMode {
   /** Fresh server + transport per request, JSON responses (`enableJsonResponse`). */
   StatelessJson = "stateless-json",
-  /** Fresh server + transport per request, SSE responses: what the custom servers and supergateway do. */
+  /** Fresh server + transport per request, SSE responses: what the custom servers do. */
   StatelessSse = "stateless-sse",
   /** Session ids, one server per session, SSE responses and standalone GET streams. */
   Stateful = "stateful-sse",

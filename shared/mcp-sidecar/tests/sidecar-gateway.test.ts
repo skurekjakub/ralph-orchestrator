@@ -18,6 +18,7 @@ import { connectClient, postRaw } from "./helpers/mcp-client";
 import { listen } from "./helpers/upstream";
 
 const FIXTURE = fileURLToPath(new URL("./fixtures/custom-server.mjs", import.meta.url));
+const STDIO_FIXTURE = fileURLToPath(new URL("./fixtures/stdio-server.mjs", import.meta.url));
 const NO_WAIT = (): Promise<void> => Promise.resolve();
 const NEVER = (): Promise<void> => new Promise(() => undefined);
 const IPV4_ADDRESSES = nonLoopbackAddresses().filter((address) => !address.includes(":"));
@@ -178,6 +179,36 @@ describe("SidecarGateway", () => {
       lastError: expect.stringContaining(`tool-filter proxy failed to listen on port ${port}`),
     });
     expect(logger.messages("info").some((line) => line.startsWith("[gateway] Starting fixture"))).toBe(false);
+  });
+
+  describe("stdio servers", () => {
+    it("bridges an npm server behind the proxy with no listener of its own and keeps its state", async () => {
+      // Arrange
+      const { gateway, port, url } = await startGateway({
+        type: "npm",
+        args: [STDIO_FIXTURE],
+        allowedTools: ["echo", "count"],
+      });
+      await gateway.start();
+      const report = await waitForHealth(gateway, (r) => r.healthy);
+      const { client } = await connectClient(url);
+      cleanups.push(() => client.close());
+
+      // Act
+      const { tools } = await client.listTools();
+      const first = await client.callTool({ name: "count", arguments: {} });
+      const second = await client.callTool({ name: "count", arguments: {} });
+
+      // Assert
+      expect(tools.map((tool) => tool.name)).toEqual(["echo", "count"]);
+      expect([first, second].map((result) => (result.content as { text: string }[])[0].text)).toEqual(["1", "2"]);
+      expect(report.servers.fixture.toolFilter).toMatchObject({
+        upstreamPort: null,
+        drift: { status: DriftStatus.Ok },
+        exposure: { status: ExposureStatus.NoListener },
+      });
+      expect(await isFree(port + UPSTREAM_PORT_OFFSET)).toBe(true);
+    });
   });
 
   describe("failing closed", () => {

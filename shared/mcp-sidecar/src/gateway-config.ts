@@ -1,8 +1,10 @@
 import { readFileSync } from "node:fs";
 
-/** How the gateway launches a server: natively over HTTP, or as a stdio server bridged by supergateway. */
+/** How the gateway runs a server. */
 export enum ServerType {
+  /** Serves Streamable HTTP itself, on the host and port the gateway passes. */
   Custom = "custom",
+  /** Speaks MCP over stdio; the gateway bridges it in process and serves it only through the tool-filter proxy. */
   Npm = "npm",
 }
 
@@ -16,8 +18,9 @@ export interface ServerConfig {
   args: string[];
   env: Record<string, string>;
   /**
-   * Enforced tool allowlist. When present, the server process listens on a loopback-only
-   * upstream port and `port` is served by the tool-filter proxy. When absent, every tool is exposed.
+   * Enforced tool allowlist; required for npm servers. When present, `port` is served by the
+   * tool-filter proxy, and a custom server listens on a loopback-only upstream port behind it.
+   * When absent, a custom server listens on `port` itself and exposes every tool.
    */
   allowedTools?: string[];
 }
@@ -29,7 +32,10 @@ export interface GatewayConfig {
 
 /** A validated server entry with its derived listening layout. */
 export interface ResolvedServerConfig extends ServerConfig {
-  /** Loopback port the server process listens on behind the proxy; `null` when the server is not filtered. */
+  /**
+   * Loopback port a filtered custom server listens on behind the proxy; `null` for an unfiltered
+   * server and for an npm server, which the gateway reaches over stdio.
+   */
   upstreamPort: number | null;
 }
 
@@ -56,13 +62,14 @@ export function loadGatewayConfig(path: string, healthPort: number = HEALTH_PORT
 }
 
 /**
- * Validate a parsed `gateway.json` and derive each filtered server's upstream port
+ * Validate a parsed `gateway.json` and derive each filtered custom server's upstream port
  * (`port + UPSTREAM_PORT_OFFSET`).
  *
  * A missing or empty `servers` list is valid (the gateway then serves only its health endpoint).
  *
  * @throws If an entry is malformed, a name repeats, `allowedTools` is not a non-empty list of
- *   unique non-empty strings, or any two listening ports (health, agent-facing, upstream) collide.
+ *   unique non-empty strings or is missing on an npm server, or any two listening ports (health,
+ *   agent-facing, upstream) collide.
  */
 export function parseGatewayConfig(raw: unknown, healthPort: number = HEALTH_PORT): ResolvedGatewayConfig {
   if (!isRecord(raw)) throw new Error("gateway config must be a JSON object");
@@ -110,6 +117,11 @@ function parseServer(entry: unknown, index: number): ResolvedServerConfig {
   }
 
   if (allowedTools === undefined) {
+    if (type === ServerType.Npm) {
+      throw new Error(
+        `${at}: allowedTools is required, because npm servers are served only through the tool-filter proxy`,
+      );
+    }
     return {
       name,
       type,
@@ -131,8 +143,8 @@ function parseServer(entry: unknown, index: number): ResolvedServerConfig {
   if (new Set(allowedTools).size !== allowedTools.length) {
     throw new Error(`${at}: allowedTools must not contain duplicates`);
   }
-  const upstreamPort = port + UPSTREAM_PORT_OFFSET;
-  if (upstreamPort > MAX_PORT) {
+  const upstreamPort = type === ServerType.Custom ? port + UPSTREAM_PORT_OFFSET : null;
+  if (upstreamPort !== null && upstreamPort > MAX_PORT) {
     throw new Error(
       `${at}: port ${port} leaves no room for its upstream port (${port} + ${UPSTREAM_PORT_OFFSET} > ${MAX_PORT})`,
     );

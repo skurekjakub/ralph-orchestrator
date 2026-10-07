@@ -1,163 +1,178 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { ServerType, type ServerConfig } from "../src/gateway-config";
-import { buildLaunchCommand, ManagedServer, ServerStatus, type ManagedServerOptions } from "../src/managed-server";
+import { describe, expect, it, vi } from "vitest";
+import {
+  ManagedServer,
+  ServerStatus,
+  type InstanceObserver,
+  type ManagedServerOptions,
+  type ServerLauncher,
+} from "../src/managed-server";
+import { createStatusRecorder } from "./helpers/lifecycle";
 import { createRecordingLogger } from "./helpers/logger";
 
-function config(overrides: Partial<ServerConfig> = {}): ServerConfig {
-  return {
-    name: "srv",
-    type: ServerType.Custom,
-    port: 9101,
-    command: "node",
-    args: ["/opt/srv.js"],
-    env: {},
-    ...overrides,
+/** A launcher whose instances the test drives by hand. */
+function fakeLauncher() {
+  const launched: {
+    observer: InstanceObserver;
+    stop: ReturnType<typeof vi.fn>;
+    forceKill: ReturnType<typeof vi.fn>;
+  }[] = [];
+  const launcher: ServerLauncher = {
+    description: "fake-server --flag",
+    launch: (observer) => {
+      const instance = { observer, stop: vi.fn(), forceKill: vi.fn() };
+      launched.push(instance);
+      return instance;
+    },
   };
+  return { launcher, launched, latest: () => launched[launched.length - 1] };
 }
 
-/** A server plus a promise that resolves the first time it reaches `status`. */
-function serverReaching(status: ServerStatus, options: Omit<ManagedServerOptions, "onStatusChange">) {
-  let reached!: () => void;
-  const reachedStatus = new Promise<void>((resolve) => (reached = resolve));
+function managedServer(overrides: Partial<ManagedServerOptions> = {}) {
+  const fake = fakeLauncher();
+  const logger = createRecordingLogger();
+  const statuses = createStatusRecorder();
   const server = new ManagedServer({
-    ...options,
-    onStatusChange: (next) => {
-      if (next === status) reached();
-    },
+    name: "srv",
+    launcher: fake.launcher,
+    logger,
+    restartDelayMs: 1,
+    onStatusChange: statuses.onStatusChange,
+    ...overrides,
   });
-  return { server, reachedStatus };
+  return { server, logger, statuses, ...fake };
 }
 
 describe("ManagedServer", () => {
-  const started: ManagedServer[] = [];
-
-  afterEach(() => {
-    for (const server of started.splice(0)) server.stop();
-  });
-
-  describe("buildLaunchCommand", () => {
-    it("passes the listen host and port to a custom server", () => {
-      // Act
-      const launch = buildLaunchCommand(config(), { host: "127.0.0.1", port: 19101 });
-
-      // Assert
-      expect(launch).toEqual({
-        command: "node",
-        args: ["/opt/srv.js", "--transport", "http", "--host", "127.0.0.1", "--port", "19101"],
-      });
-    });
-
-    it("wraps an npm server in supergateway on the listen port", () => {
-      // Arrange
-      const npm = config({ type: ServerType.Npm, command: "playwright-mcp", args: ["--headless"] });
-
-      // Act
-      const launch = buildLaunchCommand(npm, { host: "127.0.0.1", port: 19103 });
-
-      // Assert
-      expect(launch).toEqual({
-        command: "supergateway",
-        args: ["--stdio", "playwright-mcp --headless", "--outputTransport", "streamableHttp", "--port", "19103"],
-      });
-    });
-  });
-
   describe("start", () => {
-    it("marks the process running on a startup line and notifies onRunning", async () => {
+    it("logs what it launches and becomes running when the instance says so", () => {
       // Arrange
       const onRunning = vi.fn();
-      const { server, reachedStatus } = serverReaching(ServerStatus.Running, {
-        config: config({
-          command: process.execPath,
-          args: ["-e", "console.log('ready'); setInterval(() => {}, 1000)", "--"],
-        }),
-        listen: { host: "127.0.0.1", port: 1 },
-        logger: createRecordingLogger(),
-        onRunning,
-        startupGraceMs: 60000,
-      });
-      started.push(server);
+      const { server, logger, latest, statuses } = managedServer({ onRunning });
 
       // Act
       server.start();
-      await reachedStatus;
+      latest().observer.running();
 
       // Assert
       expect(server.status).toBe(ServerStatus.Running);
+      expect(statuses.history).toEqual([ServerStatus.Starting, ServerStatus.Running]);
       expect(onRunning).toHaveBeenCalledTimes(1);
+      expect(logger.messages("info")).toContain("[gateway] Starting srv: fake-server --flag");
     });
 
-    it("restarts a process that cannot be spawned up to maxRestarts, then fails", async () => {
+    it("records stderr as the last error", () => {
       // Arrange
-      const logger = createRecordingLogger();
-      const { server, reachedStatus } = serverReaching(ServerStatus.Failed, {
-        config: config({ command: "/nonexistent/mcp-server" }),
-        listen: { host: "127.0.0.1", port: 1 },
-        logger,
-        maxRestarts: 2,
-        restartDelayMs: 1,
-      });
-      started.push(server);
+      const { server, logger, latest } = managedServer();
+      server.start();
 
       // Act
-      server.start();
-      await reachedStatus;
+      latest().observer.stderr("bind failed");
 
       // Assert
-      expect(server.restarts).toBe(2);
-      expect(logger.messages("error")).toContain("[gateway] srv exceeded max restarts (2), giving up");
-      expect(logger.messages("info").filter((line) => line.startsWith("[gateway] Restarting srv"))).toHaveLength(2);
+      expect(server.lastError).toBe("bind failed");
+      expect(logger.messages("error")).toContain("[srv] bind failed");
+    });
+  });
+
+  describe("restarts", () => {
+    it("restarts an instance that exits unexpectedly", async () => {
+      // Arrange
+      const { server, launched, logger, statuses } = managedServer();
+      server.start();
+      launched[0].observer.running();
+
+      // Act
+      launched[0].observer.exited("exited (pid=1, code=1, signal=null)");
+      await statuses.reached(ServerStatus.Starting, 2);
+
+      // Assert
+      expect(launched).toHaveLength(2);
+      expect(server.restarts).toBe(1);
+      expect(logger.messages("error")).toContain("[gateway] srv exited (pid=1, code=1, signal=null) (lastError=none)");
     });
 
-    it("does not restart a process stopped on purpose", async () => {
+    it("fails once maxRestarts restarts are used up", async () => {
       // Arrange
-      const logger = createRecordingLogger();
-      const { server, reachedStatus } = serverReaching(ServerStatus.Running, {
-        config: config({
-          command: process.execPath,
-          args: ["-e", "console.log('ready'); setInterval(() => {}, 1000)", "--"],
-        }),
-        listen: { host: "127.0.0.1", port: 1 },
-        logger,
-        restartDelayMs: 1,
-        startupGraceMs: 60000,
-      });
+      const { server, launched, logger, statuses } = managedServer({ maxRestarts: 2 });
       server.start();
-      await reachedStatus;
+
+      // Act
+      launched[0].observer.exited("failed to spawn: ENOENT");
+      await statuses.reached(ServerStatus.Starting, 2);
+      launched[1].observer.exited("failed to spawn: ENOENT");
+      await statuses.reached(ServerStatus.Starting, 3);
+      launched[2].observer.exited("failed to spawn: ENOENT");
+
+      // Assert
+      expect(server.status).toBe(ServerStatus.Failed);
+      expect(server.restarts).toBe(2);
+      expect(logger.messages("error")).toContain("[gateway] srv exceeded max restarts (2), giving up");
+    });
+
+    it("ignores reports from an instance it has replaced", async () => {
+      // Arrange
+      const { server, launched, statuses } = managedServer();
+      server.start();
+      launched[0].observer.exited("exited");
+      await statuses.reached(ServerStatus.Starting, 2);
+
+      // Act
+      launched[0].observer.running();
+      launched[0].observer.exited("exited again");
+
+      // Assert
+      expect(server.status).toBe(ServerStatus.Starting);
+      expect(server.restarts).toBe(1);
+    });
+  });
+
+  describe("stop", () => {
+    it("stops the instance and does not restart it when it exits", () => {
+      // Arrange
+      const { server, launched } = managedServer();
+      server.start();
+      launched[0].observer.running();
 
       // Act
       server.stop();
+      launched[0].observer.exited("exited (signal=SIGTERM)");
 
       // Assert
+      expect(launched[0].stop).toHaveBeenCalledTimes(1);
       expect(server.status).toBe(ServerStatus.Stopped);
       expect(server.restarts).toBe(0);
-      expect(logger.messages("info")).toContain("[gateway] Stopping srv");
+      expect(launched).toHaveLength(1);
+    });
+
+    it("forwards forceKill to the running instance", () => {
+      // Arrange
+      const { server, launched } = managedServer();
+      server.start();
+
+      // Act
+      server.forceKill();
+
+      // Assert
+      expect(launched[0].forceKill).toHaveBeenCalledTimes(1);
     });
   });
 
   describe("refuse", () => {
-    it("stops the process for good and records why", async () => {
+    it("stops the instance for good and records why", () => {
       // Arrange
-      const { server, reachedStatus } = serverReaching(ServerStatus.Running, {
-        config: config({
-          command: process.execPath,
-          args: ["-e", "console.log('ready'); setInterval(() => {}, 1000)", "--"],
-        }),
-        listen: { host: "127.0.0.1", port: 1 },
-        logger: createRecordingLogger(),
-        restartDelayMs: 1,
-        startupGraceMs: 60000,
-      });
+      const { server, launched } = managedServer();
       server.start();
-      await reachedStatus;
+      launched[0].observer.running();
 
       // Act
       server.refuse("upstream reachable off loopback");
+      launched[0].observer.exited("exited (signal=SIGTERM)");
 
       // Assert
       expect(server.status).toBe(ServerStatus.Refused);
       expect(server.lastError).toBe("upstream reachable off loopback");
       expect(server.restarts).toBe(0);
+      expect(launched).toHaveLength(1);
     });
   });
 });

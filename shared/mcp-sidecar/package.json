@@ -1,7 +1,7 @@
 {
   "name": "@ralph/mcp-sidecar",
   "version": "1.0.0",
-  "description": "MCP sidecar gateway — process manager for MCP servers, per-server tool-filter proxy and health endpoint",
+  "description": "MCP sidecar gateway — process manager for MCP servers, in-process stdio bridge, per-server tool-filter proxy and health endpoint",
   "type": "module",
   "main": "dist/gateway.js",
   "scripts": {
@@ -12,14 +12,14 @@
   },
   "dependencies": {
     "@modelcontextprotocol/client": "^2.3.1",
-    "@modelcontextprotocol/core": "^2.3.1"
+    "@modelcontextprotocol/core": "^2.3.1",
+    "@modelcontextprotocol/node": "^2.1.1",
+    "@modelcontextprotocol/server": "^2.3.1"
   },
   "engines": {
     "node": ">=24"
   },
   "devDependencies": {
-    "@modelcontextprotocol/node": "^2.1.1",
-    "@modelcontextprotocol/server": "^2.3.1",
     "@types/node": "^24.19.1",
     "esbuild": "^0.28.2",
     "typescript": "^7.0.2",

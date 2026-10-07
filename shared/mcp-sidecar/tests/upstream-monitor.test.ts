@@ -1,5 +1,5 @@
 import { createServer } from "node:http";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { ToolAllowlist } from "../src/tool-policy";
 import {
   DriftStatus,
@@ -32,10 +32,12 @@ describe("UpstreamMonitor", () => {
 
   function monitorFor(port: number, allowed: string[]) {
     const logger = createRecordingLogger();
+    const url = new URL(`http://127.0.0.1:${port}/mcp`);
     const monitor = new UpstreamMonitor({
       ...FAST,
       serverName: "test",
-      upstream: { host: "127.0.0.1", port },
+      listToolNames: (timeoutMs) => listUpstreamToolNames(url, timeoutMs),
+      exposurePort: port,
       allowlist: new ToolAllowlist(allowed),
       logger,
     });
@@ -139,6 +141,49 @@ describe("UpstreamMonitor", () => {
         ]);
       },
     );
+  });
+
+  describe("stdio servers", () => {
+    it("lists through the given function and reports that there is no listener to probe", async () => {
+      // Arrange
+      const monitor = new UpstreamMonitor({
+        ...FAST,
+        serverName: "test",
+        listToolNames: async () => ["echo"],
+        exposurePort: null,
+        allowlist: new ToolAllowlist(["echo"]),
+        logger: createRecordingLogger(),
+      });
+
+      // Act
+      await monitor.check();
+
+      // Assert
+      expect(monitor.drift).toMatchObject({ status: DriftStatus.Ok, upstreamToolCount: 1 });
+      expect(monitor.exposure).toMatchObject({ status: ExposureStatus.NoListener, addresses: [] });
+    });
+
+    it("retries a failing listing up to maxAttempts", async () => {
+      // Arrange
+      const listToolNames = vi.fn(async () => {
+        throw new Error("not connected");
+      });
+      const monitor = new UpstreamMonitor({
+        ...FAST,
+        serverName: "test",
+        listToolNames,
+        exposurePort: null,
+        allowlist: new ToolAllowlist(["echo"]),
+        logger: createRecordingLogger(),
+      });
+
+      // Act
+      await monitor.check();
+
+      // Assert
+      expect(listToolNames).toHaveBeenCalledTimes(FAST.maxAttempts);
+      expect(monitor.drift).toMatchObject({ status: DriftStatus.Error, error: "not connected" });
+    });
   });
 
   describe("listUpstreamToolNames", () => {
