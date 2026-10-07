@@ -8,50 +8,11 @@
 # Version of the audit record layout written to every record.
 def schema_version: 2;
 
-# Character budget for free text in audit.jsonl; tool-output.log keeps the full text.
-def audit_text_limit: 2000;
-
-def truncate_text:
-  if length > audit_text_limit then .[:audit_text_limit] + "...[truncated]" else . end;
-
 # Keeps the record shape stable when a CLI sends an unexpected type.
 def str_or($default):
   if type == "string" then . elif . == null then $default else tojson end;
 
 def str_or_null: str_or(null);
-
-# Bash variables cannot hold NUL bytes, so raw text handed to the shell drops them.
-def nul_free: split("\u0000") | join("");
-
-# Literal values of credential variables in the hook's environment. Hooks inherit
-# the CLI's environment, so these are exactly the secrets an agent could echo.
-def secret_values:
-  [
-    $ENV
-    | to_entries[]
-    | select(.key | test("TOKEN|SECRET|PASSWORD|PASSWD|API_?KEY|PRIVATE_KEY|CREDENTIAL|(^|_)PAT(_|$)"))
-    | .value
-    | select(type == "string" and length >= 8)
-  ];
-
-# Scrubs credentials from free text: the literal values in $secrets, then
-# well-known token formats, HTTP authorization values, URL passwords and
-# KEY=value / "key": "value" assignments whose key names a secret.
-def redact($secrets):
-  if type != "string" then .
-  else
-    reduce $secrets[] as $secret (.; split($secret) | join("[REDACTED]"))
-    | if test("sk-ant-|gh[pousr]_|github_pat_|://[^/@\\s]+:[^/@\\s]+@|(?i:authorization|token|secret|passw|api_?key|private_?key|pat)") then
-        gsub("sk-ant-[A-Za-z0-9_-]{8,}"; "[REDACTED]")
-        | gsub("\\bgh[pousr]_[A-Za-z0-9]{20,}"; "[REDACTED]")
-        | gsub("\\bgithub_pat_[A-Za-z0-9_]{20,}"; "[REDACTED]")
-        | gsub("(?<k>(?i:authorization)\\\\?\"?\\s*[:=]\\s*\\\\?\"?(?i:bearer|basic|token)\\s+)[^\\s\"'\\\\]+"; "\(.k)[REDACTED]")
-        | gsub("(?<k>://[^/@\\s:]+:)[^/@\\s]+@"; "\(.k)[REDACTED]@")
-        | gsub("(?<k>\\b[A-Z0-9_]*(TOKEN|SECRET|PASSWORD|PASSWD|API_?KEY|PRIVATE_KEY|_PAT)=)[^\\s\"'\\\\$][^\\s\"'\\\\]*"; "\(.k)[REDACTED]")
-        | gsub("(?<k>\\\\?\"[A-Za-z0-9_-]*(?i:token|secret|password|passwd|api_?key|private_?key|pat)\\\\?\"\\s*:\\s*\\\\?\")[^\"\\\\]+"; "\(.k)[REDACTED]")
-      else .
-      end
-  end;
 
 # The text between the first ===RALPH_RESULT_START=== and the first
 # ===RALPH_RESULT_END=== after it, or null when there is no such pair.
@@ -123,7 +84,11 @@ def tool_fields($tool; $toolUseId; $kind; $input; $subagentKey; $args):
 def tool_output_block($timestamp; $tool; $resultType; $args; $text):
   "── \($timestamp / 1000 | floor | strftime("%H:%M:%S")) \($tool) (\($resultType)) ──\nargs: \($args)\n\($text)\n\n";
 
-# Shell assignments consumed by lib/common.sh (`eval`): the one-line record, the
-# ralph.log line and the tool-output.log block.
-def shell_envelope:
-  @sh "RALPH_RECORD=\(.record | tojson) RALPH_LOG_LINE=\(.logLine // "" | nul_free) RALPH_TOOL_OUTPUT=\(.toolOutput // "" | nul_free)";
+# The envelope {record, logLine, toolOutput} as lines for lib/redact.pl:
+# "record.<key>\t<JSON value>" per record field, then "logLine\t<JSON string>"
+# and "toolOutput\t<JSON string>". tojson escapes tabs and newlines, so every
+# value stays on its line.
+def envelope_lines:
+  (.record | to_entries[] | "record.\(.key)\t\(.value | tojson)"),
+  "logLine\t\(.logLine // "" | tojson)",
+  "toolOutput\t\(.toolOutput // "" | tojson)";

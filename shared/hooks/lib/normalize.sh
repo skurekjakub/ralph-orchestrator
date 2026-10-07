@@ -20,7 +20,5 @@ if [[ ${3:-} == --failure ]]; then
 fi
 RALPH_INPUT=$(cat)
 ralph_now_ms
-if [[ $RALPH_CLI == copilot ]]; then
-  ralph_copilot_session
-fi
-ralph_adapt '.record | tojson' "$RALPH_HOOK_EVENT"
+ralph_normalize "$RALPH_HOOK_EVENT"
+printf '%s\n' "$RALPH_RECORD"

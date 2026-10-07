@@ -40,7 +40,6 @@ def response_text:
 
 def adapt:
   if type != "object" then error("payload is not a JSON object") else . end
-  | secret_values as $secrets
   | (.session_id | str_or("unknown")) as $sessionId
   | (.agent_type | str_or_null) as $agent
   | base_record("claude"; $event; $now; $sessionId; $agent; (.agent_id | str_or_null)) as $base
@@ -51,21 +50,21 @@ def adapt:
           logLine: "[RALPH] Session \($sessionId) started (source=\($source))"
         }
     elif $event == "prompt" then
-      {record: ($base + {prompt: (.prompt | str_or("") | redact($secrets))})}
+      {record: ($base + {prompt: (.prompt | str_or(""))})}
     elif $event == "pre_tool" or $event == "post_tool" then
       (.tool_name | str_or("unknown")) as $tool
       | (.tool_input // {}) as $input
-      | ($input | if type == "string" then . else tojson end | redact($secrets)) as $args
+      | ($input | if type == "string" then . else tojson end) as $args
       | ($base + tool_fields($tool; (.tool_use_id | str_or_null); ($tool | claude_tool_kind); $input; "subagent_type"; $args)) as $pre
       | if $event == "pre_tool" then
           {record: $pre}
         else
           (if $failure then "failure" else "success" end) as $resultType
-          | (if $failure then (.error | str_or("")) else (.tool_response | response_text) end | redact($secrets)) as $text
+          | (if $failure then (.error | str_or("")) else (.tool_response | response_text) end) as $text
           | {
               record: ($pre + {
                 resultType: $resultType,
-                resultText: ($text | truncate_text),
+                resultText: $text,
                 durationMs: ((.duration_ms | numbers) // null)
               }),
               toolOutput: tool_output_block($now; $tool; $resultType; $args; $text),
@@ -74,7 +73,7 @@ def adapt:
         end
     elif $event == "error" then
       (.error | str_or("UnknownError")) as $name
-      | (.last_assistant_message | str_or("") | redact($secrets)) as $message
+      | (.last_assistant_message | str_or("")) as $message
       | {
           record: ($base + {errorName: $name, errorMsg: $message, errorStack: ""}),
           logLine: "[RALPH] ERROR [\($name)]: \($message)"
@@ -94,7 +93,7 @@ def adapt:
       {
         record: ($base + {
           subagent: $agent,
-          lastMessage: (.last_assistant_message | str_or("") | redact($secrets) | truncate_text)
+          lastMessage: (.last_assistant_message | str_or(""))
         }),
         logLine: "[RALPH] Subagent \($agent // "unknown") stopped (id=\($base.agentId // "unknown"))"
       }

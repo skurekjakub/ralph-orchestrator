@@ -102,16 +102,19 @@ ralph_adapt() {
     "include \"record\"; include \"adapters/$RALPH_CLI\"; adapt | $1" <<<"$RALPH_INPUT"
 }
 
-# Normalises the payload for event $1 (optional extra record fields as JSON in $2)
-# and sets RALPH_RECORD, RALPH_LOG_LINE and RALPH_TOOL_OUTPUT.
+# Normalises the payload for event $1 (optional extra record fields as JSON in $2),
+# scrubs credentials through lib/redact.pl and sets RALPH_RECORD, RALPH_LOG_LINE
+# and RALPH_TOOL_OUTPUT.
 ralph_normalize() {
-  local assignments
+  local envelope assignments
   if [[ $RALPH_CLI == copilot ]]; then
     ralph_copilot_session
   fi
-  assignments=$(ralph_adapt shell_envelope "$1" "${2:-}") ||
+  envelope=$(ralph_adapt envelope_lines "$1" "${2:-}") ||
     ralph_fail "the $RALPH_CLI adapter rejected the payload (jq exit $?)"
-  [[ -n $assignments ]] || ralph_fail "empty payload"
+  [[ -n $envelope ]] || ralph_fail "empty payload"
+  assignments=$(perl "$RALPH_HOOKS_LIB/redact.pl" <<<"$envelope") ||
+    ralph_fail "redaction failed (perl exit $?)"
   eval "$assignments"
 }
 

@@ -9,8 +9,9 @@ Audit hooks for the agent CLIs and the Claude Code result gate. The security ove
 | `claude/result-gate.sh`            | Claude Code `Stop` hook that enforces the result block                                                              |
 | `ralph-audit.json`                 | Copilot CLI hook config, mounted at `/workspace/.github/hooks/ralph-audit.json`                                     |
 | `lib/common.sh`                    | Argument parsing, failure policy and the single audit writer                                                        |
-| `lib/adapters/{claude,copilot}.jq` | Raw payload → v2 audit record                                                                                       |
-| `lib/record.jq`                    | Helpers shared by the adapters: redaction, truncation, MCP name split, result-block detection                       |
+| `lib/adapters/{claude,copilot}.jq` | Raw payload → v2 audit record, `ralph.log` line and tool-output block, before redaction                             |
+| `lib/record.jq`                    | Helpers shared by the adapters: record layout, MCP name split, result-block detection, the envelope lines           |
+| `lib/redact.pl`                    | Scrubs credentials from every string of the envelope, cuts long audit text, prints the shell assignments            |
 | `lib/normalize.sh`                 | `normalize.sh <cli> <event> [--failure] < payload` prints the v2 record without writing logs (replay and debugging) |
 
 ## Contract for the Claude Code settings writer
@@ -19,7 +20,7 @@ Audit hooks for the agent CLIs and the Claude Code result gate. The security ove
 - Every command is an absolute container path under `/workspace/.ralph/hooks/`, so the `shared/hooks` mount must stay in place.
 - Per-exec environment read by the result gate: `RALPH_REQUIRE_RESULT_BLOCK` (`1` turns the gate on; unset or anything else allows every stop) and `RALPH_RESULT_GATE_MAX` (blocks allowed per session, default `2`, `0` never blocks).
 - `RALPH_LOG_DIR` (default `/workspace/.ralph/logs`) must be writable by the CLI user. Scripts create it when missing.
-- Image requirements: bash (5.x reads the clock without a `date` fork), jq ≥ 1.6 (tested on 1.6 and 1.7.1), coreutils. `flock` (util-linux) serialises appends from concurrent hooks; without it appends are unlocked.
+- Image requirements: bash (5.x reads the clock without a `date` fork), jq ≥ 1.6 (tested on 1.6 and 1.7.1), perl 5 with no extra modules (`perl-base`, present on every Debian and Ubuntu image), coreutils. `flock` (util-linux) serialises appends from concurrent hooks; without it appends are unlocked.
 - Host-side runs (`--settings <file>`): replace the `/workspace/.ralph/hooks/` prefix with the absolute host path of `shared/hooks/`, set `RALPH_LOG_DIR` in the CLI environment, and leave `RALPH_REQUIRE_RESULT_BLOCK` unset unless the stage must print a result block.
 - Copilot keeps using `ralph-audit.json`. Its commands pass no flag, so the scripts default to the Copilot adapter.
 
@@ -28,7 +29,7 @@ Audit hooks for the agent CLIs and the Claude Code result gate. The security ove
 - **Exit status is always 0.** Claude Code reads exit 2 as "block", and jq exits 2 on malformed input. A hook that fails reports the failure on stderr, in `ralph.log` and as a `hook_error` audit record, then exits 0.
 - **Stdout stays empty.** Claude Code adds `SessionStart` and `UserPromptSubmit` stdout to the model context. Only the result gate prints, and only its block decision.
 - **Arguments are strict.** An unknown flag, a stray word, `--failure` outside `log-post-tool.sh` or an event the CLI never emits becomes a `hook_error`, so a misspelt command is visible in the audit trail.
-- **Redaction.** Free text (`args`, `prompt`, `initialPrompt`, `resultText`, `errorMsg`, `errorStack`, `lastMessage`, tool-output blocks) is scrubbed of: the literal values of credential variables in the hook environment (names containing `TOKEN`, `SECRET`, `PASSWORD`, `API_KEY`, `PRIVATE_KEY`, `CREDENTIAL`, or a `PAT` segment), `sk-ant-…`, `gh[pousr]_…` and `github_pat_…` tokens, `Authorization: Bearer|Basic|token …` values, URL passwords, `*TOKEN=…`-style assignments and `"…token": "…"`-style JSON fields.
+- **Redaction.** `lib/redact.pl` scrubs every string of the record, the `ralph.log` line and the tool-output block of: the literal values of credential variables in the hook environment (names containing `TOKEN`, `SECRET`, `PASSWORD`, `API_KEY`, `PRIVATE_KEY`, `CREDENTIAL`, or a `PAT` segment), `sk-ant-…`, `gh[pousr]_…` and `github_pat_…` tokens, `Authorization: Bearer|Basic|token …` values, URL passwords, `*TOKEN=…`-style assignments and `"…token": "…"`-style JSON fields. Literal values are replaced longest first, so one that contains another goes whole. Each pattern is a single scan, so the cost grows with the text length and not with the number of matches. `resultText` and `lastMessage` are cut after scrubbing, so a secret across the cut leaves no prefix behind.
 
 Files written to `RALPH_LOG_DIR`:
 

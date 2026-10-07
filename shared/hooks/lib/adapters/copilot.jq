@@ -19,7 +19,6 @@ def copilot_tool_kind:
 
 def adapt:
   if type != "object" then error("payload is not a JSON object") else . end
-  | secret_values as $secrets
   | ((.timestamp | numbers) // (.timestamp | strings | tonumber?) // $now) as $ts
   | base_record("copilot"; $event; $ts; $session; null; null) as $base
   | if $event == "session_start" then
@@ -27,26 +26,26 @@ def adapt:
       | {
           record: ($base + {
             source: $source,
-            initialPrompt: (.initialPrompt | str_or("") | redact($secrets)),
+            initialPrompt: (.initialPrompt | str_or("")),
             cwd: (.cwd | str_or(""))
           }),
           logLine: "[RALPH] Session \($session) started (source=\($source))"
         }
     elif $event == "prompt" then
-      {record: ($base + {prompt: (.prompt | str_or("") | redact($secrets))})}
+      {record: ($base + {prompt: (.prompt | str_or(""))})}
     elif $event == "pre_tool" or $event == "post_tool" then
       (.toolName | str_or("unknown")) as $tool
       | (.toolArgs | if type == "string" then (fromjson? // null) else . end) as $input
-      | (.toolArgs | str_or("{}") | redact($secrets)) as $args
+      | (.toolArgs | str_or("{}")) as $args
       | ($base + tool_fields($tool; null; ($tool | copilot_tool_kind); $input; "agent_type"; $args)) as $pre
       | if $event == "pre_tool" then
           {record: $pre}
         else
           ((.toolResult | objects) // {}) as $result
           | ($result.resultType | str_or("unknown")) as $resultType
-          | ($result.textResultForLlm | str_or("") | redact($secrets)) as $text
+          | ($result.textResultForLlm | str_or("")) as $text
           | {
-              record: ($pre + {resultType: $resultType, resultText: ($text | truncate_text), durationMs: null}),
+              record: ($pre + {resultType: $resultType, resultText: $text, durationMs: null}),
               toolOutput: tool_output_block($ts; $tool; $resultType; $args; $text),
               logLine: (if $resultType == "failure" then "[RALPH] TOOL FAILURE: \($tool) — \($text)" else "" end)
             }
@@ -54,12 +53,12 @@ def adapt:
     elif $event == "error" then
       ((.error | objects) // {}) as $error
       | ($error.name | str_or("UnknownError")) as $name
-      | ($error.message | str_or("") | redact($secrets)) as $message
+      | ($error.message | str_or("")) as $message
       | {
           record: ($base + {
             errorName: $name,
             errorMsg: $message,
-            errorStack: ($error.stack | str_or("") | redact($secrets))
+            errorStack: ($error.stack | str_or(""))
           }),
           logLine: "[RALPH] ERROR [\($name)]: \($message)"
         }

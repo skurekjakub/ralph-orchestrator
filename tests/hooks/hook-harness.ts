@@ -81,6 +81,24 @@ export class HookSandbox {
     return this.run(script, args, JSON.stringify(payload), env);
   }
 
+  /**
+   * Runs a hook script on a JSON payload and returns the audit record it wrote.
+   * @throws Error when the script reports a failure or writes no record.
+   */
+  async recordOf(
+    script: string,
+    args: readonly string[],
+    payload: unknown,
+    env: Readonly<Record<string, string>> = {},
+  ): Promise<AuditRecord> {
+    const run = await this.runJson(script, args, payload, env);
+    const record = this.audit().at(-1);
+    if (run.exitCode !== 0 || run.stderr !== "" || record === undefined || record.event === "hook_error") {
+      throw new Error(`${script} wrote no record (exit ${run.exitCode}): ${run.stderr || JSON.stringify(record)}`);
+    }
+    return record;
+  }
+
   /** Contents of a file in the log directory, or "" when it does not exist. */
   read(name: string): string {
     const path = join(this.logDir, name);
