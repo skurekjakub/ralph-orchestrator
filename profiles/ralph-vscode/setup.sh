@@ -26,7 +26,7 @@ git config --global --add safe.directory "$WORKSPACE"
 git config --global credential.useHttpPath true
 git config --global push.autoSetupRemote true
 git config --global user.name "Ralph"
-git config --global user.email "Wiggum@kentico.com"
+git config --global user.email "ralph@noreply.dev"
 
 # ── Summary ───────────────────────────────────────────────
 echo ""
