@@ -8,7 +8,8 @@
     "clean": "rm -rf dist",
     "build": "rm -rf dist && esbuild src/index.ts --bundle --platform=node --format=esm --target=node24 --outfile=dist/bundle.mjs",
     "start": "node dist/bundle.mjs",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@modelcontextprotocol/node": "^2.1.1",
@@ -21,6 +22,7 @@
   "devDependencies": {
     "@types/node": "^24.19.1",
     "esbuild": "^0.28.2",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.3"
   }
 }

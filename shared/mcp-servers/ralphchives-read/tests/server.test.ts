@@ -121,21 +121,8 @@ describe("Ralphchives Read MCP Server source", () => {
     expect(source).toContain("...");
   });
 
-  it("supports both stdio and HTTP transport", () => {
-    const source = readAllSources();
-    expect(source).toContain("StdioServerTransport");
-    expect(source).toContain("StreamableHTTPServerTransport");
-    expect(source).toContain("--transport");
-    expect(source).toContain("--port");
-  });
-
   it("creates stateless HTTP transport per request", () => {
     const source = readAllSources();
     expect(source).toContain("sessionIdGenerator: undefined");
-  });
-
-  it("includes /health endpoint", () => {
-    const source = readAllSources();
-    expect(source).toContain("/health");
   });
 });

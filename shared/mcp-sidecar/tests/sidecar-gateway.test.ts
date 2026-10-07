@@ -5,7 +5,13 @@ import { ProtocolErrorCode } from "@modelcontextprotocol/client";
 import { parseGatewayConfig, UPSTREAM_PORT_OFFSET } from "../src/gateway-config";
 import { ServerStatus } from "../src/managed-server";
 import { SidecarGateway } from "../src/sidecar-gateway";
-import { DriftStatus, ExposureStatus } from "../src/upstream-monitor";
+import {
+  DriftStatus,
+  ExposureStatus,
+  findExposedAddresses,
+  listUpstreamToolNames,
+  nonLoopbackAddresses,
+} from "../src/upstream-monitor";
 import { createRecordingLogger } from "./helpers/logger";
 import { connectClient } from "./helpers/mcp-client";
 import { listen } from "./helpers/upstream";
@@ -116,14 +122,28 @@ describe("SidecarGateway", () => {
     });
   });
 
-  it("launches a filtered server on loopback at its upstream port", async () => {
-    const { gateway, logger, port } = await startGateway({ allowedTools: ["echo"] });
-    await gateway.start();
+  it.skipIf(nonLoopbackAddresses().length === 0)(
+    "runs a filtered server at its upstream port, reachable on loopback only",
+    async () => {
+      // Arrange
+      const { gateway, port } = await startGateway({ allowedTools: ["echo"] });
+      const upstreamPort = port + UPSTREAM_PORT_OFFSET;
 
-    expect(logger.messages("info")).toContain(
-      `[gateway] Starting fixture (custom) on 127.0.0.1:${port + UPSTREAM_PORT_OFFSET}: ${process.execPath} ${FIXTURE} --transport http --host 127.0.0.1 --port ${port + UPSTREAM_PORT_OFFSET}`,
-    );
-  });
+      // Act
+      await gateway.start();
+      await vi.waitFor(
+        () => expect(gateway.healthReport().servers.fixture.toolFilter?.drift.status).toBe(DriftStatus.Ok),
+        WAIT,
+      );
+
+      // Assert
+      expect(await listUpstreamToolNames(new URL(`http://127.0.0.1:${upstreamPort}/mcp`), 2000)).toEqual([
+        "echo",
+        "secret",
+      ]);
+      expect(await findExposedAddresses(upstreamPort, 2000)).toEqual([]);
+    },
+  );
 
   it("runs a server without an allowlist directly on its agent-facing port", async () => {
     const { gateway, url } = await startGateway({});
