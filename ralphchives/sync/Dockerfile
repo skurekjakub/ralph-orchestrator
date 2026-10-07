@@ -8,7 +8,7 @@ RUN npm install
 COPY tsconfig.json ./
 COPY src/ ./src/
 
-# Build TypeScript
+# Bundle src/sync-runner.ts into dist/sync-runner.js; npm packages stay external in node_modules/
 RUN npm run build
 
-CMD ["node", "dist/sync-runner.js"]
+CMD ["node", "--enable-source-maps", "dist/sync-runner.js"]

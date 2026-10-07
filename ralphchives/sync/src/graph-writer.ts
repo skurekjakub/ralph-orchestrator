@@ -4,7 +4,7 @@
  */
 
 import neo4j, { type Driver } from "neo4j-driver";
-import type { NodeBBCategory, NodeBBTopic, NodeBBPost, NodeBBUser } from "./nodebb-fetcher.js";
+import type { NodeBBCategory, NodeBBTopic, NodeBBPost, NodeBBUser } from "./nodebb-fetcher";
 
 const BATCH_SIZE = 500;
 

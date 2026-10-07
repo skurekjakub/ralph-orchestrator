@@ -25,7 +25,7 @@ vi.mock("neo4j-driver", () => ({
   },
 }));
 
-import { EntityExtractor } from "../src/entity-extractor.js";
+import { EntityExtractor } from "../src/entity-extractor";
 
 function makeExtractor(): EntityExtractor {
   return new EntityExtractor(mockDriver as never, "http://localhost:11434");

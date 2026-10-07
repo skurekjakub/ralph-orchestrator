@@ -82,7 +82,7 @@ jobs:
           fi
         working-directory: ${{ matrix.serverDir }}
 
-      - name: Build
+      - name: Build (esbuild)
         run: npm run build
         working-directory: ${{ matrix.serverDir }}
 
@@ -168,13 +168,13 @@ jobs:
         working-directory: ralphchives/sync
 
       - name: Type-check (tsc --noEmit)
-        run: npx tsc --noEmit
+        run: npm run lint
         working-directory: ralphchives/sync
 
       - name: Run tests
-        run: npx vitest run
+        run: npm test
         working-directory: ralphchives/sync
 
-      - name: Build
+      - name: Build (esbuild)
         run: npm run build
         working-directory: ralphchives/sync

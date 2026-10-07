@@ -17,7 +17,7 @@ const sharedRules = {
   "no-duplicate-imports": "error",
 };
 
-// The orchestrator is bundled by esbuild, which resolves relative imports without an extension.
+// esbuild bundles the orchestrator and every sub-project, and resolves relative imports without an extension.
 const SPECIFIER_WITH_EXTENSION = String.raw`/^\.\.?\/.*\.[cm]?[jt]sx?$/`;
 const extensionlessImportRules = {
   "no-restricted-syntax": [
@@ -98,6 +98,6 @@ export default [
   // Ralphchives — TypeScript (sync pipeline + tests)
   {
     files: ["ralphchives/**/*.ts"],
-    rules: { ...sharedRules },
+    rules: { ...sharedRules, ...extensionlessImportRules },
   },
 ];

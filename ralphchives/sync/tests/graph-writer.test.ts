@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { GraphWriter } from "../src/graph-writer.js";
+import { GraphWriter } from "../src/graph-writer";
 
 // Mock neo4j-driver — we only need to verify Cypher calls, not real DB
 vi.mock("neo4j-driver", () => {

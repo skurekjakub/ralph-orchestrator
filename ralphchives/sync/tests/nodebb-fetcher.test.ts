@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { NodeBBFetcher, type NodeBBTopic } from "../src/nodebb-fetcher.js";
+import { NodeBBFetcher, type NodeBBTopic } from "../src/nodebb-fetcher";
 
 const BASE_URL = "http://localhost:4567";
 const TOKEN = "test-token-abc";

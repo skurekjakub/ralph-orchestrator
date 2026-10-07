@@ -7,10 +7,10 @@
  */
 
 import neo4j from "neo4j-driver";
-import { NodeBBFetcher } from "./nodebb-fetcher.js";
-import { GraphWriter } from "./graph-writer.js";
-import { Embedder } from "./embedder.js";
-import { EntityExtractor } from "./entity-extractor.js";
+import { NodeBBFetcher } from "./nodebb-fetcher";
+import { GraphWriter } from "./graph-writer";
+import { Embedder } from "./embedder";
+import { EntityExtractor } from "./entity-extractor";
 
 // ---------------------------------------------------------------------------
 // Config from environment
