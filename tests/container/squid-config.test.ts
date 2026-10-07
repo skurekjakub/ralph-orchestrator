@@ -5,15 +5,13 @@ import { generateProfileSquidConf } from "../../src/container/setup/squid-config
 import { createTempDir } from "../helpers/mcp-fs";
 
 const BASELINE_CONTENT = [
-  "acl allowed_domains dstdomain .baseline.example",
-  "",
   "# {{PROFILE_DOMAINS}}",
   "",
   "http_access allow allowed_domains",
   "http_access deny all",
 ].join("\n");
 
-/** The `acl allowed_domains` domains of a squid.conf, in order. */
+/** The `acl allowed_domains` dstdomain domains of a squid.conf, in order. */
 function allowedDomains(conf: string): string[] {
   return conf
     .split("\n")
@@ -35,13 +33,14 @@ describe("generateProfileSquidConf", () => {
     rmSync(tempDir, { recursive: true, force: true });
   });
 
-  it("keeps the baseline and replaces the marker with a comment when there are no extra domains", () => {
+  it("defines a match-nothing allowed_domains ACL when there are no domains, so the baseline's allow rule parses", () => {
     // Act
     const result = generateProfileSquidConf(baselinePath, { cliDomains: [], profileDomains: [] });
 
     // Assert
-    expect(allowedDomains(result)).toEqual([".baseline.example"]);
-    expect(result).toContain("# (no extra domains)");
+    const aclLines = result.split("\n").filter((line) => line.startsWith("acl allowed_domains "));
+    expect(aclLines).toEqual(["acl allowed_domains src 0.0.0.0/32"]);
+    expect(allowedDomains(result)).toEqual([]);
     expect(result).not.toContain("{{PROFILE_DOMAINS}}");
   });
 
@@ -53,7 +52,7 @@ describe("generateProfileSquidConf", () => {
     });
 
     // Assert
-    expect(allowedDomains(result)).toEqual([".baseline.example", ".anthropic.com", ".npmjs.org", "dev.azure.com"]);
+    expect(allowedDomains(result)).toEqual([".anthropic.com", ".npmjs.org", "dev.azure.com"]);
     expect(result).toContain("# Agent CLI domains");
     expect(result).toContain("# Profile-specific domains");
   });
@@ -66,7 +65,7 @@ describe("generateProfileSquidConf", () => {
     });
 
     // Assert
-    expect(allowedDomains(result)).toEqual([".baseline.example", "github.com", ".anthropic.com", ".npmjs.org"]);
+    expect(allowedDomains(result)).toEqual(["github.com", ".anthropic.com", ".npmjs.org"]);
   });
 
   it("throws when the baseline is missing", () => {
