@@ -283,9 +283,9 @@ active  → completed | error
 
 Each stage runs one CLI: its `cli`, else the profile's `cli`, else `copilot`. Startup validation requires the credential of every CLI a stage runs (`GH_TOKEN` for Copilot; `CLAUDE_CODE_OAUTH_TOKEN`, or `ANTHROPIC_API_KEY` with `claudeAuth: "api-key"`, for Claude Code). There is no fallback to the other CLI.
 
-**Copilot CLI** runs, with `COPILOT_HOME=/workspace/.ralph`: `/usr/local/bin/copilot --additional-mcp-config @/workspace/.ralph/mcp-config.json --agent <agent> --model <model> --log-level debug --log-dir <dir> --allow-all-tools --allow-all-paths --share <transcript> -p <prompt>`
+**Copilot CLI** runs, with `COPILOT_HOME=/workspace/.ralph` and the prompt on stdin: `/usr/local/bin/copilot --additional-mcp-config @/workspace/.ralph/mcp-config.json --agent <agent> --model <model> --log-level debug --log-dir <dir> --allow-all-tools --allow-all-paths --share <transcript> [--continue]`
 
-**Claude Code CLI** runs, with `CLAUDE_CONFIG_DIR=/workspace/.ralph/claude` and the prompt on stdin: `/usr/local/bin/claude -p --output-format stream-json --verbose --agent <agent> [--model <model>] [--effort <effort>] --setting-sources user[,project] --mcp-config /workspace/.ralph/mcp-config.json --strict-mcp-config --permission-mode <mode> --tools <tools> --session-id <uuid> --debug-file <file>`
+**Claude Code CLI** runs, with `CLAUDE_CONFIG_DIR=/workspace/.ralph/claude` and the prompt on stdin: `/usr/local/bin/claude -p --output-format stream-json --verbose --agent <agent> [--model <model>] [--effort <effort>] --setting-sources user[,project] --mcp-config /workspace/.ralph/mcp-config.json --strict-mcp-config --permission-mode <mode> --tools <tools> (--session-id | --resume) <uuid> --debug-file <file>`
 
 Both CLIs share the same `mcp-config.json` (generated at startup from profile `mcpServers` declarations). Copilot CLI loads it via `--additional-mcp-config`; Claude Code loads it via `--mcp-config`.
 

@@ -8,7 +8,7 @@ import type { ICliExecutor } from "../cli-executor-factory";
 import type { IComposeClient } from "../compose-client";
 import { MCP_CONFIG_CONTAINER_PATH } from "../setup/compose-overlay";
 import type { ContainerExecResult } from "../types";
-import { executeCliCommand, killActiveProcess, writePromptFile } from "./shared-exec";
+import { executeCliCommand, killActiveProcess } from "./shared-exec";
 
 /** Permission mode of container sessions: the container, egress proxy, sidecar tool filter, `--tools` cap and managed hooks are the boundary. */
 const CONTAINER_PERMISSION_MODE = "bypassPermissions";
@@ -32,8 +32,7 @@ export interface ClaudeCodeExecutorDeps {
 /**
  * Runs one pipeline stage with Claude Code inside the running `app` container.
  *
- * The CLI runs headless (`-p`) as the `vscode` user, takes its prompt on stdin from the host prompt file and
- * prints stream-json, which the runtime's decoder turns into log lines and the agent's text. Each `run`
+ * The CLI runs headless (`-p`) as the `vscode` user, takes its prompt on stdin and prints stream-json, which the runtime's decoder turns into log lines and the agent's text. Each `run`
  * starts a session with a fresh id; `continueSession` resumes that exact session. The `--tools` list caps the
  * built-in tools, adding `Agent` and the spawn depth only for a stage root with subagents; the agents'
  * frontmatter narrows the tools per agent. With `requireResultBlock`, the managed `Stop` hook keeps the
@@ -80,7 +79,6 @@ export class ClaudeCodeExecutor implements ICliExecutor {
   }
 
   private async exec(prompt: string, sessionArgs: readonly string[]): Promise<ContainerExecResult> {
-    const promptPath = writePromptFile(this.profile.repoPath, prompt);
     const { model } = this.profile;
     const { effort, requireResultBlock } = this.stage;
     const spawnsSubagents = this.subagentDepth > 0;
@@ -125,7 +123,7 @@ export class ClaudeCodeExecutor implements ICliExecutor {
       tag: "claude",
       tracker: this,
       decoder: this.runtime.createOutputDecoder(),
-      inputFile: promptPath,
+      input: prompt,
     });
   }
 }

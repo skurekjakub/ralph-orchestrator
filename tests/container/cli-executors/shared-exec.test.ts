@@ -1,13 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
-import { join } from "node:path";
-import { tmpdir } from "node:os";
 import { PassThrough } from "node:stream";
 import { ExecaError, type ResultPromise } from "execa";
 import {
   executeCliCommand,
   killActiveProcess,
-  writePromptFile,
   type CliCommand,
 } from "../../../src/container/cli-executors/shared-exec";
 import { PlainTextDecoder } from "../../../src/cli/plain-text-decoder";
@@ -58,16 +54,16 @@ describe("executeCliCommand", () => {
     });
   });
 
-  it("passes the args, timeout and stdin file to compose exec", async () => {
+  it("passes the args, timeout and stdin input to compose exec", async () => {
     // Arrange
-    const cmd = command(fakeCliProcess(""), { inputFile: "/repo/.ralph/prompt.txt", timeoutMs: 42 });
+    const cmd = command(fakeCliProcess(""), { input: "the prompt", timeoutMs: 42 });
 
     // Act
     await executeCliCommand(cmd);
 
     // Assert
     expect(cmd.compose.execWithTimeout).toHaveBeenCalledWith(["--user", "vscode", "app", "cli"], 42, {
-      inputFile: "/repo/.ralph/prompt.txt",
+      input: "the prompt",
     });
   });
 
@@ -188,27 +184,6 @@ describe("executeCliCommand", () => {
       exit();
       await expect(pending).resolves.toMatchObject({ exitCode: 0 });
     });
-  });
-});
-
-describe("writePromptFile", () => {
-  let repoPath: string;
-
-  beforeEach(() => {
-    repoPath = mkdtempSync(join(tmpdir(), "prompt-file-"));
-  });
-
-  afterEach(() => {
-    rmSync(repoPath, { recursive: true, force: true });
-  });
-
-  it("writes the prompt to .ralph/prompt.txt, creating .ralph, and returns its path", () => {
-    // Act
-    const path = writePromptFile(repoPath, "the prompt");
-
-    // Assert
-    expect(path).toBe(join(repoPath, ".ralph", "prompt.txt"));
-    expect(readFileSync(path, "utf-8")).toBe("the prompt");
   });
 });
 

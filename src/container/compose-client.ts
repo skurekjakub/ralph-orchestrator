@@ -18,8 +18,8 @@ export interface ComposeEnvConfig {
 
 /** Stdin for a `docker compose exec` command. */
 export interface ExecInputOptions {
-  /** Host file streamed to the command's stdin. */
-  readonly inputFile?: string;
+  /** Text written to the command's stdin, which is then closed. */
+  readonly input?: string;
 }
 
 /** Public contract for Docker Compose process spawning. */
@@ -31,7 +31,7 @@ export interface IComposeClient {
   /**
    * Run `docker compose exec` with a timeout.
    *
-   * @param options.inputFile Host file streamed to the command's stdin; pass `-T` in `args` so compose forwards it.
+   * @param options.input Text written to the command's stdin; pass `-T` in `args` so compose forwards it.
    */
   execWithTimeout(args: string[], timeoutMs: number, options?: ExecInputOptions): ResultPromise;
   /** Run `docker compose -f <file...> logs --no-color --no-log-prefix <service>`. */
@@ -105,7 +105,7 @@ export class ComposeClient implements IComposeClient {
     return execa("docker", ["compose", ...this.fileArgs, "exec", ...args], {
       env: this.env,
       timeout: timeoutMs,
-      ...(options.inputFile === undefined ? {} : { inputFile: options.inputFile }),
+      ...(options.input === undefined ? {} : { input: options.input }),
     });
   }
 

@@ -72,18 +72,18 @@ describe("ComposeClient", () => {
     expect(opts.timeout).toBe(60000);
   });
 
-  it("execWithTimeout streams the given host file to the command's stdin", () => {
+  it("execWithTimeout writes the given input to the command's stdin", () => {
     // Arrange
     const client = new ComposeClient("/fake/compose.yml", testConfig);
 
     // Act
-    client.execWithTimeout(["-T", SVC_APP, "claude", "-p"], 60000, { inputFile: "/repo/.ralph/prompt.txt" });
+    client.execWithTimeout(["-T", SVC_APP, "claude", "-p"], 60000, { input: "the prompt" });
 
     // Assert
-    expect(mockExeca.mock.calls[0][2]).toMatchObject({ timeout: 60000, inputFile: "/repo/.ralph/prompt.txt" });
+    expect(mockExeca.mock.calls[0][2]).toMatchObject({ timeout: 60000, input: "the prompt" });
   });
 
-  it("execWithTimeout leaves stdin alone without an input file", () => {
+  it("execWithTimeout leaves stdin alone without input", () => {
     // Arrange
     const client = new ComposeClient("/fake/compose.yml", testConfig);
 
@@ -91,7 +91,7 @@ describe("ComposeClient", () => {
     client.execWithTimeout([SVC_APP, "echo"], 5000, {});
 
     // Assert
-    expect(mockExeca.mock.calls[0][2]).not.toHaveProperty("inputFile");
+    expect(mockExeca.mock.calls[0][2]).not.toHaveProperty("input");
   });
 
   it("uses same env for compose, exec, and execWithTimeout", () => {

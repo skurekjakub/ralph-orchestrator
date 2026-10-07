@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { ExecaError } from "execa";
@@ -153,7 +153,7 @@ describe("ClaudeCodeExecutor", () => {
       expect(timeoutMs).toBe(5000);
     });
 
-    it("streams the prompt on stdin from the repo's .ralph/prompt.txt", async () => {
+    it("passes the prompt on stdin, not on the command line or in a file", async () => {
       // Arrange
       const { executor, compose } = createExecutor();
 
@@ -161,10 +161,9 @@ describe("ClaudeCodeExecutor", () => {
       await executor.run("a prompt longer than any argument should carry");
 
       // Assert
-      const promptPath = join(repoPath, ".ralph", "prompt.txt");
-      expect(exec(compose).options).toEqual({ inputFile: promptPath });
-      expect(readFileSync(promptPath, "utf-8")).toBe("a prompt longer than any argument should carry");
+      expect(exec(compose).options).toEqual({ input: "a prompt longer than any argument should carry" });
       expect(exec(compose).args.join(" ")).not.toContain("a prompt longer");
+      expect(existsSync(join(repoPath, ".ralph"))).toBe(false);
     });
 
     it("passes the stage's model and effort only when set", async () => {
@@ -321,7 +320,7 @@ describe("ClaudeCodeExecutor", () => {
       const sessionId = first[first.indexOf("--session-id") + 1];
       expect(second[second.indexOf("--resume") + 1]).toBe(sessionId);
       expect(second).not.toContain("--session-id");
-      expect(readFileSync(join(repoPath, ".ralph", "prompt.txt"), "utf-8")).toBe("keep going");
+      expect(exec(compose, 1).options).toEqual({ input: "keep going" });
     });
 
     it("starts a new session when none was started", async () => {

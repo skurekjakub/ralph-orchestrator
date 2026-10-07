@@ -7,10 +7,7 @@ import type { ICliExecutor } from "../cli-executor-factory";
 import type { IComposeClient } from "../compose-client";
 import { MCP_CONFIG_CONTAINER_PATH } from "../setup/compose-overlay";
 import type { ContainerExecResult } from "../types";
-import { executeCliCommand, killActiveProcess, writePromptFile } from "./shared-exec";
-
-/** The prompt file inside the container, read with `$(cat …)` so the exec command line stays free of prompt text. */
-const PROMPT_FILE = "/workspace/.ralph/prompt.txt";
+import { executeCliCommand, killActiveProcess } from "./shared-exec";
 
 /** Dependencies of one stage's Copilot CLI executor. */
 export interface CopilotExecutorDeps {
@@ -65,35 +62,22 @@ export class CopilotExecutor implements ICliExecutor {
   }
 
   async run(prompt: string): Promise<ContainerExecResult> {
-    return this.exec(["-p"], prompt);
+    return this.exec([], prompt);
   }
 
-  /**
-   * Resume the previous Copilot CLI session with a continuation prompt.
-   *
-   * Uses `--continue` to resume the last session, preserving conversation
-   * context. The continuation prompt is passed via `--prompt`.
-   */
+  /** Resume the last Copilot CLI session (`--continue`) with a continuation prompt. */
   async continueSession(prompt: string): Promise<ContainerExecResult> {
-    return this.exec(["--continue", "--prompt"], prompt);
+    return this.exec(["--continue"], prompt);
   }
 
   /**
-   * Internal: build and execute a Copilot CLI command with shared flags.
+   * Runs Copilot CLI non-interactively with the shared flags, passing `prompt` on stdin.
    *
-   * The prompt is written to a file on the host and read inside the container
-   * via `$(cat /workspace/.ralph/prompt.txt)`, keeping the `docker compose exec`
-   * command line free of large, unescapable text.
-   *
-   * @param promptFlags Flag(s) preceding the prompt value (e.g. `["-p"]` or `["--continue", "--prompt"]`).
-   * @param prompt The full prompt text.
+   * @param sessionFlags Flags that pick the session, e.g. `["--continue"]`; none starts a new one.
    */
-  private async exec(promptFlags: string[], prompt: string): Promise<ContainerExecResult> {
-    writePromptFile(this.profile.repoPath, prompt);
+  private async exec(sessionFlags: string[], prompt: string): Promise<ContainerExecResult> {
     const { layout } = this.runtime;
-
-    const shellCmd = [
-      "exec",
+    const cliArgs = [
       layout.binary,
       "--additional-mcp-config",
       `@${MCP_CONFIG_CONTAINER_PATH}`,
@@ -109,18 +93,18 @@ export class CopilotExecutor implements ICliExecutor {
       "--allow-all-tools",
       "--allow-all-paths",
       ...(layout.transcriptPath === null ? [] : ["--share", layout.transcriptPath]),
-      ...promptFlags,
-      `"$(cat ${PROMPT_FILE})"`,
-    ].join(" ");
+      ...sessionFlags,
+    ];
 
     return executeCliCommand({
       compose: this.compose,
-      args: ["--user", "vscode", "app", "sh", "-c", shellCmd],
+      args: ["-T", "--user", "vscode", "app", ...cliArgs],
       timeoutMs: this.profile.timeoutMs,
       logger: this.logger,
       tag: "copilot",
       tracker: this,
       decoder: this.runtime.createOutputDecoder(),
+      input: prompt,
     });
   }
 }

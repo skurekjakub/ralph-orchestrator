@@ -1,5 +1,3 @@
-import { mkdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
 import { ExecaError, type ResultPromise } from "execa";
 import type { ICliOutputDecoder } from "../../cli/output-decoder";
 import type { Logger } from "../../logger";
@@ -30,22 +28,8 @@ export interface CliCommand {
   readonly tracker: ProcessTracker;
   /** Fresh decoder for this process's stdout. */
   readonly decoder: ICliOutputDecoder;
-  /** Host file streamed to the CLI's stdin. */
-  readonly inputFile?: string;
-}
-
-/**
- * Writes the prompt to `<repoPath>/.ralph/prompt.txt`, which the target-repo bind mount shows in the
- * container as `/workspace/.ralph/prompt.txt`.
- *
- * @returns The host path of the prompt file.
- */
-export function writePromptFile(repoPath: string, prompt: string): string {
-  const dir = join(repoPath, ".ralph");
-  mkdirSync(dir, { recursive: true });
-  const path = join(dir, "prompt.txt");
-  writeFileSync(path, prompt, "utf-8");
-  return path;
+  /** Text written to the CLI's stdin, which is then closed: the prompt. */
+  readonly input?: string;
 }
 
 /**
@@ -61,10 +45,10 @@ export function writePromptFile(repoPath: string, prompt: string): string {
  * @throws Error when the process cannot be spawned for a reason other than its own exit.
  */
 export async function executeCliCommand(command: CliCommand): Promise<ContainerExecResult> {
-  const { compose, args, timeoutMs, logger, tag, tracker, decoder, inputFile } = command;
+  const { compose, args, timeoutMs, logger, tag, tracker, decoder, input } = command;
   let capture: StreamCapture | undefined;
   try {
-    tracker.activeProcess = compose.execWithTimeout([...args], timeoutMs, { inputFile });
+    tracker.activeProcess = compose.execWithTimeout([...args], timeoutMs, { input });
     capture = new StreamCapture(tracker.activeProcess, logger, tag, decoder);
 
     // Auto-kill the CLI if it idles after printing the result block.

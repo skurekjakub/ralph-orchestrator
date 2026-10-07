@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { CopilotExecutor } from "../../../src/container/cli-executors/copilot-executor";
@@ -33,11 +33,10 @@ describe("CopilotExecutor", () => {
     return { executor, compose, profile };
   }
 
-  /** The `sh -c` command of the n-th exec. */
-  function shellCmd(compose: ReturnType<typeof createMockCompose>["compose"], call = 0): string {
-    const args = vi.mocked(compose.execWithTimeout).mock.calls[call][0];
-    expect(args.slice(0, 5)).toEqual(["--user", "vscode", "app", "sh", "-c"]);
-    return args[5];
+  /** The compose exec arguments, timeout and stdin options of the n-th exec. */
+  function exec(compose: ReturnType<typeof createMockCompose>["compose"], call = 0) {
+    const [args, timeoutMs, options] = vi.mocked(compose.execWithTimeout).mock.calls[call];
+    return { args, timeoutMs, options };
   }
 
   it("runs Copilot CLI", () => {
@@ -46,7 +45,7 @@ describe("CopilotExecutor", () => {
   });
 
   describe("run", () => {
-    it("runs the exact Copilot command line", async () => {
+    it("runs the exact Copilot command line, without a shell, with the prompt on stdin", async () => {
       // Arrange
       const { executor, compose } = createExecutor({ model: "claude-opus-4.6", timeoutMs: 1234 });
 
@@ -54,14 +53,31 @@ describe("CopilotExecutor", () => {
       await executor.run("test prompt");
 
       // Assert
-      expect(shellCmd(compose)).toBe(
-        "exec /usr/local/bin/copilot --additional-mcp-config @/workspace/.ralph/mcp-config.json " +
-          "--agent ralph.ralph --model claude-opus-4.6 --disable-builtin-mcps --log-level debug " +
-          "--log-dir /workspace/.ralph/logs/cli-debug --allow-all-tools --allow-all-paths " +
-          '--share /workspace/.ralph/logs/session-transcript.md -p "$(cat /workspace/.ralph/prompt.txt)"',
-      );
-      expect(vi.mocked(compose.execWithTimeout).mock.calls[0][1]).toBe(1234);
-      expect(vi.mocked(compose.execWithTimeout).mock.calls[0][2]).toEqual({ inputFile: undefined });
+      const { args, timeoutMs, options } = exec(compose);
+      expect(args).toEqual([
+        "-T",
+        "--user",
+        "vscode",
+        "app",
+        "/usr/local/bin/copilot",
+        "--additional-mcp-config",
+        "@/workspace/.ralph/mcp-config.json",
+        "--agent",
+        "ralph.ralph",
+        "--model",
+        "claude-opus-4.6",
+        "--disable-builtin-mcps",
+        "--log-level",
+        "debug",
+        "--log-dir",
+        "/workspace/.ralph/logs/cli-debug",
+        "--allow-all-tools",
+        "--allow-all-paths",
+        "--share",
+        "/workspace/.ralph/logs/session-transcript.md",
+      ]);
+      expect(timeoutMs).toBe(1234);
+      expect(options).toEqual({ input: "test prompt" });
     });
 
     it("passes --add-github-mcp-tool for each declared tool instead of disabling the built-in server", async () => {
@@ -72,7 +88,7 @@ describe("CopilotExecutor", () => {
       await executor.run("test prompt");
 
       // Assert
-      const cmd = shellCmd(compose);
+      const cmd = exec(compose).args.join(" ");
       expect(cmd).not.toContain("--disable-builtin-mcps");
       expect(cmd).toContain("--add-github-mcp-tool get_file_contents --add-github-mcp-tool search_code");
     });
@@ -85,10 +101,10 @@ describe("CopilotExecutor", () => {
       await executor.run("prompt");
 
       // Assert
-      expect(shellCmd(compose)).toContain(`--model ${DEFAULT_COPILOT_MODEL}`);
+      expect(exec(compose).args.join(" ")).toContain(`--model ${DEFAULT_COPILOT_MODEL}`);
     });
 
-    it("writes the prompt to the repo's .ralph/prompt.txt", async () => {
+    it("writes no prompt file into the target repo", async () => {
       // Arrange
       const { executor } = createExecutor();
 
@@ -96,7 +112,7 @@ describe("CopilotExecutor", () => {
       await executor.run("test prompt");
 
       // Assert
-      expect(readFileSync(join(repoPath, ".ralph", "prompt.txt"), "utf-8")).toBe("test prompt");
+      expect(existsSync(join(repoPath, ".ralph"))).toBe(false);
     });
 
     it("returns its stdout as the agent text", async () => {
@@ -113,18 +129,18 @@ describe("CopilotExecutor", () => {
   });
 
   describe("continueSession", () => {
-    it("resumes with --continue --prompt and the same flags as run", async () => {
+    it("resumes with --continue, the same flags as run and the continuation prompt on stdin", async () => {
       // Arrange
       const { executor, compose } = createExecutor();
+      await executor.run("first");
 
       // Act
       await executor.continueSession("continue working");
 
       // Assert
-      const cmd = shellCmd(compose);
-      expect(cmd).toContain('--share /workspace/.ralph/logs/session-transcript.md --continue --prompt "$(cat ');
-      expect(cmd).not.toMatch(/ -p /);
-      expect(readFileSync(join(repoPath, ".ralph", "prompt.txt"), "utf-8")).toBe("continue working");
+      const { args, options } = exec(compose, 1);
+      expect(args).toEqual([...exec(compose, 0).args, "--continue"]);
+      expect(options).toEqual({ input: "continue working" });
     });
   });
 });
