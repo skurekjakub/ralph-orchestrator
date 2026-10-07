@@ -52,19 +52,14 @@
 
 4. **Post task report to Ralphchives** — follow the `ralph-ralphchives` skill's "After Completing Work" section: search for an existing task topic, reply or create a new task report summarizing what was done and any patterns/gotchas discovered.
 
-5. **Print the exit block** — this signals the orchestrator that you're done:
-
-   ```
-   ===RALPH_RESULT_START===
-   STATUS: <completed|partial|blocked>
-   PR_URL: <PR URL or none>
-   SUMMARY: <one-line summary>
-   ===RALPH_RESULT_END===
-   ```
+5. **Return your result**, as `<result-contract>` describes — this signals the orchestrator that you're done:
+   - `STATUS`: `completed`, `partial` or `blocked`
+   - `PR_URL`: the PR URL; leave it out when there is none
+   - `SUMMARY`: one line on the outcome
 
 ## Completion
 
-This is the final phase. After printing the exit block, your session ends. The orchestrator picks up the result and transitions the JIRA issue.
+This is the final phase. After returning your result, your session ends. The orchestrator picks up the result and transitions the JIRA issue.
 
 {% endraw %}
 {%- else %}

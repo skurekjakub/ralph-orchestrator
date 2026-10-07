@@ -76,7 +76,7 @@ Dispatch `ralph-coder` BEFORE `ralph-researcher`. The coder bootstraps the .NET 
 
 Read the coder's `status.json` after dispatch:
 - `bootstrapped` → proceed to `ralph-researcher`
-- `failed` → read the `summary` field for the failure reason, write a `===RALPH_RESULT_START===` block with `status: "error"` including the coder's summary, and exit immediately. Do NOT proceed to researcher — the project is in an unknown state.
+- `failed` → read the `summary` field for the failure reason and end the run at once with your result (see `<result-contract>`): `STATUS` `blocked`, the coder's summary as `SUMMARY`. Do NOT proceed to researcher — the project is in an unknown state.
 {%- endif %}
 
 ### Routing Rules
@@ -87,7 +87,7 @@ After each subagent completes, read its `status.json` at `.ralph/tasks/{{ taskId
 |---|---|---|
 {%- if triggerParams.codesamples and triggerParams.xpversion %}
 | `ralph-coder` | `bootstrapped` | Proceed to dispatch `ralph-researcher` |
-| `ralph-coder` | `failed` | Write error result block with coder's summary, exit immediately |
+| `ralph-coder` | `failed` | End the run at once with a `blocked` result carrying the coder's summary |
 {%- endif %}
 | `ralph-researcher` | `researched` | Dispatch `ralph-planner` |
 | `ralph-researcher` | `blocked` | Set overall status to `blocked`, exit |
@@ -98,8 +98,8 @@ After each subagent completes, read its `status.json` at `.ralph/tasks/{{ taskId
 | Any `ralph-reviewer-*` | `approved` | Record approval, check remaining reviewers |
 | Any `ralph-reviewer-*` | `needs-revision` | If any reviewer rejects and the current task is below the retry cap, increment the current task `attempt` in `tasks.json` and re-dispatch `ralph-writer` for the same task |
 | Any subagent | `failed` | Log failure, set overall status to `partial` or `blocked`, skip to handoff |
-| `ralph-scribe` | `delivered` | Use `state.md` and scribe `status.json` to print the exit block |
-| `ralph-scribe` | `partial` | Note the delivery gap from `summary`, then print the exit block with partial status |
+| `ralph-scribe` | `delivered` | Use `state.md` and scribe `status.json` to return your result |
+| `ralph-scribe` | `partial` | Note the delivery gap from `summary`, then return your result with `partial` status |
 
 ### Review Gate
 
@@ -111,7 +111,7 @@ All three reviewers (`ralph-reviewer-technical`, `ralph-reviewer-style`, `ralph-
 - **Push**: via `ado_push_progress` MCP tool
 - **PR**: via `ado_create_pull_request` MCP tool
 - **JIRA greeting**: post ack comment at task start
-- **Exit block**: print the `===RALPH_RESULT_START===` block
+- **Result**: end the run with your result, as `<result-contract>` describes
 
 ### What you NEVER do
 
@@ -168,11 +168,17 @@ Before starting any work, use the todo tool to break the task into phases per th
 
 ---
 
+{% section "result-contract" %}
+{% render 'result-contract' %}
+{% endsection %}
+
+---
+
 {% section "error-handling" %}
 ## Error Handling
 
 {%- if triggerParams.codesamples and triggerParams.xpversion %}
-- **Coder failed:** If `ralph-coder` returns `status: failed`, read its `summary` for the reason. Write a `===RALPH_RESULT_START===` block with `status: "error"` and include the coder's summary. Do NOT proceed to researcher — the project is in an unknown state.
+- **Coder failed:** If `ralph-coder` returns `status: failed`, read its `summary` for the reason and end the run with your result: `STATUS` `blocked`, the coder's summary as `SUMMARY`. Do NOT proceed to researcher — the project is in an unknown state.
 {%- endif %}
 - **Researcher blocked:** If `ralph-researcher` returns `status: blocked`, stop and record the blocker in `state.md` for the scribe
 - **Planner blocked:** If `ralph-planner` returns `status: blocked`, stop and record the blocker in `state.md` for the scribe

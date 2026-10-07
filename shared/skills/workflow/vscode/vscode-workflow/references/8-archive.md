@@ -33,14 +33,10 @@ Update `state.md`:
 
 ⚠️ **This is mandatory.** Every prior phase also requires a `state.md` update — if you skipped any transitions since Phase 4, backfill them now before exiting. The completed `state.md` is the audit trail for this task.
 
-### 4. Print exit block
+### 4. Return your result
 
-Output the result block — this is **mandatory** for orchestrator detection:
+**This is mandatory.** End the run with your result, as `<result-contract>` describes:
 
-```
-===RALPH_RESULT_START===
-STATUS: completed | partial | blocked
-PR_URL: <url or none>
-SUMMARY: <one-line summary>
-===RALPH_RESULT_END===
-```
+- `STATUS`: `completed`, `partial` or `blocked`
+- `PR_URL`: the PR URL; leave it out when there is none
+- `SUMMARY`: one line on the outcome

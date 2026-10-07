@@ -142,7 +142,7 @@ These are your responsibilities — never delegate them to a subagent:
 - **JIRA**: greeting comment, completion comment, handoff attachment
 - **Handoff file**: write the final handoff document
 - **Scribe dispatch**: dispatch `ralph-scribe` after handoff to archive to Ralphchives
-- **Exit block**: print the `===RALPH_RESULT_START===` block
+- **Result**: end the run with your result, as `<result-contract>` describes
 
 ### Administrative utilities
 
@@ -156,7 +156,7 @@ These are your responsibilities — never delegate them to a subagent:
 {%- unless triggerParams.skip_planner %}
 - Never break analysis into execution tasks yourself — dispatch `ralph-planner`
 {%- endunless %}
-- **Never emit an empty response or stop after a `{{ cliTools.subagent }}` tool returns.** After EVERY `{{ cliTools.subagent }}` tool return, you MUST immediately read the subagent's `status.json` and route to the next step per the routing table. The workflow is not complete until you print the `===RALPH_RESULT_START===` exit block.
+- **Never emit an empty response or stop after a `{{ cliTools.subagent }}` tool returns.** After EVERY `{{ cliTools.subagent }}` tool return, you MUST immediately read the subagent's `status.json` and route to the next step per the routing table. The workflow is not complete until you return your result.
 {% endsection %}
 
 {% section "task-approach" %}
@@ -173,6 +173,12 @@ Before starting any work, use the todo tool to break the task into phases per th
 {% else %}
 {% render 'ralph-vscode/ralph-standard-workflow' %}
 {% endif %}
+{% endsection %}
+
+---
+
+{% section "result-contract" %}
+{% render 'result-contract' %}
 {% endsection %}
 
 ---

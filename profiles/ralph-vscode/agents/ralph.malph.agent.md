@@ -87,7 +87,7 @@ These are your responsibilities — never delegate them to a subagent:
 - **JIRA**: greeting comment, unified review verdict comment (aggregated from all reviewers)
 - **Handoff file**: write the final review handoff document
 - **Scribe dispatch**: dispatch `ralph-scribe` after handoff to archive to Ralphchives
-- **Exit block**: print the `===RALPH_RESULT_START===` block
+- **Result**: end the run with your result, as `<result-contract>` describes
 
 ### What you NEVER do
 
@@ -161,6 +161,12 @@ See `.github/copilot-instructions.md` inside the repository for full architectur
 
 {% section "workflow" %}
 {% render 'ralph-vscode/malph-review-workflow' %}
+{% endsection %}
+
+---
+
+{% section "result-contract" %}
+{% render 'result-contract' %}
 {% endsection %}
 
 ---

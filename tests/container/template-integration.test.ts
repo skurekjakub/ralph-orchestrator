@@ -8,10 +8,12 @@ import { renderSkills } from "../../src/container/setup/skill-includes";
 import { readProfileFile, resolveProfileVariants } from "../../src/config/profile-variants";
 import { createCliRuntimeRegistry } from "../../src/cli/supported-runtimes";
 import { claudeAgentFileName } from "../../src/cli/claude/claude-agent-writer";
+import { CLAUDE_STRUCTURED_OUTPUT_TOOL } from "../../src/cli/claude/claude-tools";
 import { copilotAgentFileName } from "../../src/cli/copilot/copilot-agent-writer";
 import { AgentCatalog } from "../../src/cli/agent-catalog";
 import { ClaudeAuthMode, CliType } from "../../src/config/types";
-import { makeTemplateContext } from "../helpers/factories";
+import { agentResultSchema } from "../../src/container/agent-result";
+import { makeAgentSource, makeTemplateContext } from "../helpers/factories";
 
 /**
  * Integration tests that render real agent templates, shared includes,
@@ -294,6 +296,77 @@ describe("agent template rendering (real files)", () => {
       });
     });
   }
+});
+
+// ── Result contract ─────────────────────────────────────────────────────────
+
+describe("result contract (real partial)", () => {
+  /** A test-owned agent that renders the shipped `result-contract` partial, rendered for `cli`. */
+  async function renderContract(cli: CliType): Promise<string> {
+    const outDir = await mkdtemp(join(outRoot, `result-contract-${cli}-`));
+    const runtime = RUNTIMES.get(cli);
+    const catalog = new AgentCatalog([
+      makeAgentSource("ralph.contract", { name: "contract" }, "{% render 'result-contract' %}\n"),
+    ]);
+    await renderAgents({
+      catalog,
+      includesDir: INCLUDES_DIR,
+      context: makeTemplateContext({ cli, cliTools: runtime.toolNames, taskId: "DOC-100" }),
+      target: { cli, rootAgentFileId: "ralph.contract", outDir, prune: true, returnsResult: true },
+      writer: runtime.agentWriter,
+      mcpTools: {},
+    });
+    return readFile(join(outDir, renderedFileName(cli, "ralph.contract", "contract")), "utf-8");
+  }
+
+  it("tells a Claude Code agent to return its result with the structured output tool, not a text block", async () => {
+    // Act
+    const rendered = await renderContract(CliType.Claude);
+
+    // Assert
+    expect(rendered).toContain(`\`${CLAUDE_STRUCTURED_OUTPUT_TOOL}\``);
+    expect(rendered).not.toContain("===RALPH_RESULT");
+  });
+
+  it("tells a Copilot agent to print its result between the markers the result parser reads", async () => {
+    // Act
+    const rendered = await renderContract(CliType.Copilot);
+
+    // Assert
+    expect(rendered).toContain("===RALPH_RESULT_START===");
+    expect(rendered).toContain("===RALPH_RESULT_END===");
+    expect(rendered).not.toContain(CLAUDE_STRUCTURED_OUTPUT_TOOL);
+  });
+
+  it.each([CliType.Claude, CliType.Copilot])("names every field of the result schema for %s", async (cli) => {
+    // Act
+    const rendered = await renderContract(cli);
+
+    // Assert
+    expect(Object.keys(agentResultSchema.shape).filter((field) => !rendered.includes(`\`${field}\``))).toEqual([]);
+  });
+
+  it.each(PROFILES)("is rendered by every root of a %s stage that requires a result", async (profileId) => {
+    // Arrange
+    const variants = resolveProfileVariants(
+      readProfileFile(join(ROOT, "profiles", profileId, "profile.json")),
+      profileId,
+    );
+    const roots = [
+      ...new Set(variants.flatMap((v) => v.stages.filter((s) => s.requireResultBlock).map((s) => s.agent))),
+    ];
+
+    // Act
+    const missing: string[] = [];
+    for (const root of roots) {
+      const rendered = await renderStage(profileId, root, CliType.Claude, standardContext(profileId));
+      if (!rendered.get(root)!.includes("<result-contract>")) missing.push(root);
+    }
+
+    // Assert
+    expect(roots).not.toEqual([]);
+    expect(missing).toEqual([]);
+  });
 });
 
 // ── Skill template tests ────────────────────────────────────────────────────

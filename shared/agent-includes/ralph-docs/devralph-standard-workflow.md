@@ -14,7 +14,7 @@ Execute the following phases **in order**. Before each phase, read the correspon
 | 6. Review | `references/6-review.md` | Code review gate (stacky-reviewer + stacky-bug-auditor) |
 | 7. Commit | `references/7-commit.md` | Pre-commit checks, commit, push |
 | 8. PR | `references/8-pr.md` | Create ADO pull request |
-| 9. Handoff & Exit | `references/9-handoff.md` | Write handoff, report to JIRA, print exit block |
+| 9. Handoff & Exit | `references/9-handoff.md` | Write handoff, report to JIRA, return the result |
 
 **Before entering each phase:**
 1. Read `state.md`

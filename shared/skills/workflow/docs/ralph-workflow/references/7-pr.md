@@ -17,7 +17,7 @@ Use the Azure DevOps REST API to create a draft PR for this branch.
 - Target branch: `{%- if triggerParams.source_branch %}{{ triggerParams.source_branch }}{%- else %}main{%- endif %}`
 - Title: `{{ taskId }} - {{ taskTitle }}`
 
-If the API returns an unrecoverable error, note it in the handoff and set the PR URL to "none" in the exit block.
+If the API returns an unrecoverable error, note it in the handoff and leave `PR_URL` out of your result.
 
 ## Before moving to Phase 8
 

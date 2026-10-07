@@ -1,6 +1,6 @@
 ---
 name: malph-workflow-handoff
-description: "Malph review workflow Phase 6 — the final phase. Read this skill after dispatching the verdict agent. Covers attaching the review handoff to JIRA, posting to ralphchives, and printing the ralph-result exit block."
+description: "Malph review workflow Phase 6 — the final phase. Read this skill after dispatching the verdict agent. Covers attaching the review handoff to JIRA, posting to ralphchives, and returning the result."
 ---
 
 # Phase 6: Handoff & Exit
@@ -8,7 +8,7 @@ description: "Malph review workflow Phase 6 — the final phase. Read this skill
 ## Before you begin
 
 1. **Read `state.md`** at `.ralph/tasks/{{ taskId }}/state.md`
-2. This skill is for **Phase 6: Handoff & Exit**. If you've already completed this phase, you should have already printed the exit block.
+2. This skill is for **Phase 6: Handoff & Exit**. If you've already completed this phase, you should have already returned your result.
 3. **Check the verdict** in `state.md` — confirm Phase 5 is complete and `malph-verdict` has returned.
 
 ## Instructions
@@ -29,15 +29,11 @@ Use the verdict summary from `malph-verdict`'s `status.json` to report:
 
 Keep the ralphchives report brief — the verdict and issue count from `status.json` is sufficient.
 
-### 3. Return result
+### 3. Return your result
 
-Output your result in this exact format:
+End the run with your result, as `<result-contract>` describes:
 
-```
-<ralph-result>
-status: completed
-summary: Reviewed PR for {{ taskId }}. Verdict: APPROVED | NEEDS REVISION (N issues found).
-</ralph-result>
-```
+- `STATUS`: `completed`
+- `SUMMARY`: `Reviewed PR for {{ taskId }}. Verdict: APPROVED | NEEDS REVISION (N issues found).`
 
 Use `completed` for both approvals and revision requests — Malph always completes successfully. Derive the verdict and issue count from the `malph-verdict` status.json `result` and `summary` fields.

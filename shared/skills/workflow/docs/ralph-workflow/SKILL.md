@@ -28,7 +28,7 @@ When the planner loop is active, `ralph-planner/tasks.json` is the task-level co
 | 3. Fix | `references/r3-fix.md` | Dispatch ralph-planner, then ralph-writer for the active `in_progress` fix task from `tasks.json` |
 | 4. Review | `references/4-review.md` | Review the current task, revise it if needed, then advance to the next task |
 | 5. Commit | `references/r5-commit.md` | Commit, push, respond to PR threads |
-| 6. Handoff & Exit | `references/r6-handoff.md` | Dispatch ralph-scribe, deliver revision handoff, print exit block |
+| 6. Handoff & Exit | `references/r6-handoff.md` | Dispatch ralph-scribe, deliver revision handoff, return the result |
 
 {%- else %}
 
@@ -45,7 +45,7 @@ When the planner loop is active, `ralph-planner/tasks.json` is the task-level co
 | 4–5. Review | `references/4-review.md` | Review the current task, revise it if needed, then advance to the next task |
 | 6. Commit | `references/6-commit.md` | Pre-commit checks, commit, push |
 | 7. PR | `references/7-pr.md` | Create ADO pull request |
-| 8. Handoff & Exit | `references/8-handoff.md` | Dispatch ralph-scribe, deliver to JIRA, print exit block |
+| 8. Handoff & Exit | `references/8-handoff.md` | Dispatch ralph-scribe, deliver to JIRA, return the result |
 
 {%- endif %}
 

@@ -11,7 +11,7 @@ Execute the following phases **in order**. Before each phase, read the correspon
 | 3. Review Panel | malph-vscode-workflow-review-panel | Dispatch 3 independent reviewers sequentially |
 | 4. Aggregate & Deliver | malph-vscode-workflow-aggregate | Aggregate verdicts, post unified JIRA comment |
 | 5. Handoff | malph-vscode-workflow-handoff | Write review handoff, attach to JIRA |
-| 6. Archive & Exit | malph-vscode-workflow-archive | Dispatch ralph-scribe, print exit block |
+| 6. Archive & Exit | malph-vscode-workflow-archive | Dispatch ralph-scribe, return the result |
 
 **Before entering each phase:**
 1. Read `state.md`

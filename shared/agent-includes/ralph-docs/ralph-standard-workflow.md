@@ -15,7 +15,7 @@ Execute the following phases **in order**. Before each phase, read the **ralph-w
 | 4–5. Review | `references/4-review.md` | Review the current task, revise it if needed, then advance to the next task |
 | 6. Commit | `references/6-commit.md` | Pre-commit checks, commit, push |
 | 7. PR | `references/7-pr.md` | Create ADO pull request |
-| 8. Handoff & Exit | `references/8-handoff.md` | Dispatch ralph-scribe, deliver to JIRA, print exit block |
+| 8. Handoff & Exit | `references/8-handoff.md` | Dispatch ralph-scribe, deliver to JIRA, return the result |
 
 **Before entering each phase:**
 1. Read `state.md`

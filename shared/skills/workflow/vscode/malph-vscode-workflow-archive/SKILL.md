@@ -1,6 +1,6 @@
 ---
 name: malph-vscode-workflow-archive
-description: "VS Code extension review orchestrator Phase 6 — the final phase. Dispatch the scribe subagent to archive review knowledge to Ralphchives, then print the exit block."
+description: "VS Code extension review orchestrator Phase 6 — the final phase. Dispatch the scribe subagent to archive review knowledge to Ralphchives, then return the result."
 ---
 
 # Phase 6: Archive & Exit
@@ -30,15 +30,11 @@ Read `.ralph/tasks/{{ taskId }}/artifacts/ralph-scribe/status.json`.
 | `skipped` | Proceed to exit (nothing worth archiving) |
 | Any failure | Log it, proceed to exit anyway — archival is non-blocking |
 
-### 3. Print exit block
+### 3. Return your result
 
-Output the result block — this is **mandatory** for orchestrator detection:
+**This is mandatory.** End the run with your result, as `<result-contract>` describes:
 
-```
-===RALPH_RESULT_START===
-STATUS: completed
-SUMMARY: Review panel for {{ taskId }}. Verdict: APPROVED | NEEDS REVISION (N total findings across 3 reviewers).
-===RALPH_RESULT_END===
-```
+- `STATUS`: `completed`
+- `SUMMARY`: `Review panel for {{ taskId }}. Verdict: APPROVED | NEEDS REVISION (N total findings across 3 reviewers).`
 
 Use `completed` for both approvals and revision requests — Malph always completes successfully.

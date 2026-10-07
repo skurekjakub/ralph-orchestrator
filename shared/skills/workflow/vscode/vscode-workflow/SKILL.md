@@ -24,7 +24,7 @@ All subagent communication follows the **agent-as-function** pattern:
 
 **Purity rule**: The orchestrator routes on `status.json` fields, with `ralph-planner/tasks.json` as the explicit control-file exception for task bookkeeping. Never read subagent `output.md` files for routing — downstream subagents read each other's artifacts directly.
 
-**Anti-halt rule**: After every subagent dispatch (`{{ cliTools.subagent }}` tool return), the orchestrator MUST immediately read `status.json` and route to the next step. Never emit an empty response or stop mid-workflow — the workflow is not complete until the `===RALPH_RESULT_START===` exit block is printed.
+**Anti-halt rule**: After every subagent dispatch (`{{ cliTools.subagent }}` tool return), the orchestrator MUST immediately read `status.json` and route to the next step. Never emit an empty response or stop mid-workflow — the workflow is not complete until the result is returned.
 
 {%- if isRevision %}
 
@@ -40,7 +40,7 @@ Execute the following phases **in order**. Before each phase, read the correspon
 | 4. Package | `references/4-package.md` | Bump patch version, update CHANGELOG, build .vsix |
 | 5. Commit & Respond | `references/r5-commit.md` | Commit, push, reply to PR threads |
 | 6. Handoff | `references/r6-handoff.md` | Update handoff, report to JIRA |
-| 7. Archive & Exit | `references/8-archive.md` | Dispatch scribe, print exit block |
+| 7. Archive & Exit | `references/8-archive.md` | Dispatch scribe, return the result |
 
 {%- else %}
 
@@ -57,7 +57,7 @@ Execute the following phases **in order**. Before each phase, read the correspon
 | 5. Commit & Push | `references/5-commit.md` | Pre-commit build, commit, push via MCP |
 | 6. PR | `references/6-pr.md` | Create ADO pull request |
 | 7. Handoff | `references/7-handoff.md` | Write handoff, report to JIRA |
-| 8. Archive & Exit | `references/8-archive.md` | Dispatch scribe, print exit block |
+| 8. Archive & Exit | `references/8-archive.md` | Dispatch scribe, return the result |
 
 {%- endif %}
 

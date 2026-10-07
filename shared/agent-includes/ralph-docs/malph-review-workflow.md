@@ -11,7 +11,7 @@ Execute the following phases **in order**. Before each phase, read the correspon
 | 3. Verify | malph-workflow-verify | Dispatch technical reviewer, read status.json |
 | 4. Review | malph-workflow-review | Dispatch style + IA reviewers, determine panel verdict from status.json |
 | 5. Deliver | malph-workflow-deliver | Dispatch malph-verdict to aggregate findings and deliver |
-| 6. Handoff & Exit | malph-workflow-handoff | Attach review handoff, report to ralphchives, print exit block |
+| 6. Handoff & Exit | malph-workflow-handoff | Attach review handoff, report to ralphchives, return the result |
 
 **Before entering each phase:**
 1. Read `state.md`

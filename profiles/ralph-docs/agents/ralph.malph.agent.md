@@ -72,7 +72,7 @@ After each subagent completes, read its `status.json` at `.ralph/tasks/{{ taskId
 
 - **Handoff attachment** — attach the review handoff file to JIRA
 - **Ralphchives** — report findings to the knowledge base
-- **Exit block** — print the `===RALPH_RESULT_START===` block
+- **Result** — end the run with your result, as `<result-contract>` describes
 
 ### What you NEVER do
 
@@ -133,6 +133,12 @@ This task was scoped to: **`{{ triggerParams.scope }}`**. Your review should foc
 
 {% section "workflow" %}
 {% render 'ralph-docs/malph-review-workflow' %}
+{% endsection %}
+
+---
+
+{% section "result-contract" %}
+{% render 'result-contract' %}
 {% endsection %}
 
 ---

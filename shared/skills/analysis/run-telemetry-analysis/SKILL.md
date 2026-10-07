@@ -14,7 +14,7 @@ ls <task-log-dir>/*-run-telemetry.json <task-log-dir>/*-audit.jsonl <task-log-di
 | File                         | Present for          | Holds                                                                                          |
 | ---------------------------- | -------------------- | ---------------------------------------------------------------------------------------------- |
 | `*-claude-run-telemetry.json` | Claude Code runs     | **Primary source.** One span per main thread and subagent: tool calls, errors, compactions     |
-| `*-audit.jsonl`              | every run            | One record per hook event: tool arguments, results, subagent start and stop, the result gate    |
+| `*-audit.jsonl`              | every run            | One record per hook event: tool arguments, results, subagent start and stop                    |
 | `*-summary.json`             | every run            | Status, failure reason, duration, exit code, session ids                                       |
 | `*-cli-debug.log`            | Copilot CLI runs     | Copilot's debug stream; see [references/copilot-debug-log.md](references/copilot-debug-log.md) |
 | `*-claude-cli-debug.log`     | Claude Code runs     | Claude Code's own debug log: startup, settings, hook and API diagnostics, not spans            |
@@ -49,7 +49,7 @@ Each span:
 | `toolCalls[]`          | `toolUseId`, `tool`, `ts`, `durationMs`, `isError` (a denied call counts as an error), `spawnedSpanId` |
 | `apiErrors[]`          | `ts`, `kind` (for example `authentication_failed`, `rate_limit`)                         |
 | `compactions[]`        | `ts`, `trigger` (`auto` or `manual`)                                                     |
-| `hookFeedback[]`       | `ts`, `hook`: feedback a blocking hook gave the model, by hook event (`Stop` for Ralph's result gate) |
+| `hookFeedback[]`       | `ts`, `hook`: feedback a blocking hook gave the model, by hook event                      |
 
 ## Recipes
 
@@ -103,7 +103,7 @@ The audit log holds the error text of each one (recipe 9).
 jq '[.spans[] | select((.apiErrors | length) > 0 or (.compactions | length) > 0 or (.hookFeedback | length) > 0) | {agent, apiErrors, compactions, hookFeedback}]' <telemetry>
 ```
 
-A compaction means the agent's context filled up; correlate its `ts` with the tool sequence to see what work it interrupted. Hook feedback on `Stop` means Ralph's result gate sent the agent back because it tried to end without a result block; the audit log's `result_gate_block` and `result_gate_exhausted` records (recipe 9) say how often and whether it gave up.
+A compaction means the agent's context filled up; correlate its `ts` with the tool sequence to see what work it interrupted. Ralph's own hooks never block, so hook feedback comes from the target repository's hooks, which load only when the profile sets `claude.loadRepoInstructions`; feedback on `Stop` means such a hook sent the agent back to work.
 
 ### 8. Slowest tool calls
 
@@ -121,7 +121,7 @@ jq -c 'select(.toolUseId == "<tool-use-id>") | {event, tool, args, resultType, r
 jq -c 'select(.event == "pre_tool" and .agent == "<agent-name>") | {tool, args}' <audit>
 jq -c 'select(.event == "post_tool" and .resultType == "failure") | {agent, tool, resultText}' <audit>
 jq -c 'select(.event == "subagent_start" or .event == "subagent_stop") | {event, agent, subagent, timestamp}' <audit>
-jq -c 'select(.event == "result_gate_block" or .event == "result_gate_exhausted" or .event == "error" or .event == "hook_error")' <audit>
+jq -c 'select(.event == "error" or .event == "hook_error")' <audit>
 ```
 
 ## Analysis patterns

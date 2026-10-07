@@ -16,7 +16,7 @@ Use the `ado_create_pull_request` MCP tool to create a draft PR.
 - Target branch: `main`
 - Title: `{{ taskId }} - {{ taskTitle }}`
 
-If the API returns an unrecoverable error, note it in the handoff and set the PR URL to "none" in the exit block.
+If the API returns an unrecoverable error, note it in the handoff and leave `PR_URL` out of your result.
 
 ## Before moving to Phase 7
 

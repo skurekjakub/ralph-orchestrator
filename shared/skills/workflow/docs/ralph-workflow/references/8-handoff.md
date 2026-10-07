@@ -31,23 +31,19 @@ Dispatch the `ralph-scribe` sub-agent with a one-line directive (e.g. "Compose a
 
 After the scribe completes, read only its `status.json`.
 
-- `result: delivered` — proceed to the exit block.
-- `result: partial` — proceed to the exit block, but use partial status and carry the scribe `summary` into `state.md`.
+- `result: delivered` — proceed to your result.
+- `result: partial` — proceed to your result, but use `partial` status and carry the scribe `summary` into `state.md`.
 
 ### 2. Exit
 
-Print a final summary to stdout in this **exact format** — the orchestrator parses it:
+End the run with your result, as `<result-contract>` describes, even on failure:
 
-===RALPH_RESULT_START===
-JIRA_KEY: {{ taskId }}
-STATUS: <completed|partial|blocked>
-BRANCH: ralph/{{ taskId }}-<short-slug>
-PR_URL: <full ADO PR URL, or "none" if PR creation failed>
-HANDOFF: /tmp/mcp-attachments/handoff-{{ taskId }}.md
-SUMMARY: <one-line description of what was done>
-===RALPH_RESULT_END===
-
-Always include this block as the very last thing you print, even on failure.
+- `STATUS`: `completed`, `partial` or `blocked`
+- `JIRA_KEY`: `{{ taskId }}`
+- `BRANCH`: `ralph/{{ taskId }}-<short-slug>`
+- `PR_URL`: the full ADO PR URL; leave it out if PR creation failed
+- `HANDOFF`: `/tmp/mcp-attachments/handoff-{{ taskId }}.md`
+- `SUMMARY`: one line on what was done
 {%- else %}
 <!-- This file is for the standard workflow. You are running a revision workflow — this file is intentionally empty. -->
 {%- endunless %}

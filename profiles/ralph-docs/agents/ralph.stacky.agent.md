@@ -90,7 +90,7 @@ Analyst runs once. Coder owns the implementation loop. The test/review/audit sta
 - **PR**: via `ado_create_pull_request` MCP tool
 - **JIRA**: greeting comment, completion comment, handoff attachment
 - **Handoff file**: write the final handoff document
-- **Exit block**: print the `===RALPH_RESULT_START===` block
+- **Result**: end the run with your result, as `<result-contract>` describes
 
 ### What you NEVER do
 
@@ -181,6 +181,12 @@ git diff origin/main...origin/{{ triggerParams.source_branch }}
 {% else %}
 {% render 'ralph-docs/devralph-standard-workflow' %}
 {% endif %}
+{% endsection %}
+
+---
+
+{% section "result-contract" %}
+{% render 'result-contract' %}
 {% endsection %}
 
 ---

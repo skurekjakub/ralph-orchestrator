@@ -22,7 +22,7 @@ Execute the following phases **in order**. Before each phase, read the correspon
 | 1. Setup | `references/r1-setup.md` | Review previous handoff, extract defects, plan fixes |
 | 2. Fix & Verify | `references/r2-fix.md` | Dispatch stacky-coder for fixes, full verification gauntlet |
 | 3. Commit | `references/r3-commit.md` | Commit with `fix(TASKID)` prefix, push to update PR |
-| 4. Handoff & Exit | `references/r4-handoff.md` | Update handoff, report to JIRA, print exit block |
+| 4. Handoff & Exit | `references/r4-handoff.md` | Update handoff, report to JIRA, return the result |
 
 {%- else %}
 
@@ -40,7 +40,7 @@ Execute the following phases **in order**. Before each phase, read the correspon
 | 6. Review | `references/6-review.md` | Code review gate (stacky-reviewer + stacky-bug-auditor) |
 | 7. Commit | `references/7-commit.md` | Pre-commit checks, commit, push |
 | 8. PR | `references/8-pr.md` | Create ADO pull request |
-| 9. Handoff & Exit | `references/9-handoff.md` | Write handoff, report to JIRA, print exit block |
+| 9. Handoff & Exit | `references/9-handoff.md` | Write handoff, report to JIRA, return the result |
 
 {%- endif %}
 
