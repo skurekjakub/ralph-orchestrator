@@ -1,5 +1,4 @@
 {%- unless isRevision %}
-{% raw %}
 
 # Phase 6: Review
 
@@ -49,7 +48,6 @@ Update `state.md`:
 - Set "Reference file for this phase" to `references/7-commit.md`
 - Add Phase 6 to "Completed Phases" with review findings addressed
 
-{% endraw %}
 {%- else %}
 <!-- This file is for the standard workflow. You are running a revision workflow — this file is intentionally empty. -->
 {%- endunless %}

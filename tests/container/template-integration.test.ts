@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -416,6 +416,28 @@ describe("skill template rendering (real files)", () => {
       }
     });
   }
+
+  it.each([
+    ["standard", standardContext],
+    ["revision", revisionContext],
+  ])("fills the task variables into every file of every declared skill (%s context)", async (_label, makeContext) => {
+    // Arrange
+    const allSkills = collectAllSkillNames();
+
+    // Act
+    const outDir = await renderSkillsTo(allSkills, makeContext("ralph-docs"));
+
+    // Assert
+    const files = (await readdir(outDir, { recursive: true })).filter((file) => file.endsWith(".md"));
+    const unrendered: string[] = [];
+    for (const file of files) {
+      const content = await readFile(join(outDir, file), "utf-8");
+      expectNoUnresolvedTags(content, file);
+      if (/\{\{-?\s*taskId\b/.test(content)) unrendered.push(file);
+    }
+    expect(files.length).toBeGreaterThan(allSkills.length);
+    expect(unrendered).toEqual([]);
+  });
 
   it("interpolates task variables into skills", async () => {
     // Act

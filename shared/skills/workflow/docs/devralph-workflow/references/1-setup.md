@@ -1,5 +1,4 @@
 {%- unless isRevision %}
-{% raw %}
 
 # Phase 1: Setup
 
@@ -81,7 +80,6 @@ Update `state.md`:
 - Add Phase 1 to "Completed Phases" with branch name and setup outcomes
 - Record ralphchives findings and affected components
 
-{% endraw %}
 {%- else %}
 <!-- This file is for the standard workflow. You are running a revision workflow — this file is intentionally empty. -->
 {%- endunless %}

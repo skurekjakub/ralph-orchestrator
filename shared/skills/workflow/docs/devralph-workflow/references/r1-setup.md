@@ -1,5 +1,4 @@
 {%- if isRevision %}
-{% raw %}
 
 # Revision Phase 1: Setup
 
@@ -42,7 +41,6 @@ Update `state.md`:
 - Set "Reference file for this phase" to `references/r2-fix.md`
   - Also list domain skills for affected components
 
-{% endraw %}
 {%- else %}
 <!-- This file is for the revision workflow. You are running a standard workflow — this file is intentionally empty. -->
 {%- endif %}

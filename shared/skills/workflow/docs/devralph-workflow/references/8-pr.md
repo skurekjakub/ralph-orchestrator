@@ -1,5 +1,4 @@
 {%- unless isRevision %}
-{% raw %}
 
 # Phase 8: Pull Request
 
@@ -61,7 +60,6 @@ Update `state.md`:
 - Set "Reference file for this phase" to `references/9-handoff.md`
 - Add Phase 8 to "Completed Phases" with PR URL
 
-{% endraw %}
 {%- else %}
 <!-- This file is for the standard workflow. You are running a revision workflow — this file is intentionally empty. -->
 {%- endunless %}

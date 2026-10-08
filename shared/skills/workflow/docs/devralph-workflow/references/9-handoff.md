@@ -1,5 +1,4 @@
 {%- unless isRevision %}
-{% raw %}
 
 # Phase 9: Handoff & Exit
 
@@ -61,7 +60,6 @@
 
 This is the final phase. After returning your result, your session ends. The orchestrator picks up the result and transitions the JIRA issue.
 
-{% endraw %}
 {%- else %}
 <!-- This file is for the standard workflow. You are running a revision workflow — this file is intentionally empty. -->
 {%- endunless %}

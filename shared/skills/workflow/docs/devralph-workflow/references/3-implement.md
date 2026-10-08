@@ -1,5 +1,4 @@
 {%- unless isRevision %}
-{% raw %}
 
 # Phase 3: Implement
 
@@ -25,7 +24,6 @@ Update `state.md`:
 - Set "Reference file for this phase" to `references/4-test.md`
 - Add Phase 3 to "Completed Phases" with the coder's `result` and `summary` from `status.json`
 
-{% endraw %}
 {%- else %}
 <!-- This file is for the standard workflow. You are running a revision workflow — this file is intentionally empty. -->
 {%- endunless %}

@@ -1,5 +1,4 @@
 {%- if isRevision %}
-{% raw %}
 
 # Revision Phase 2: Fix
 
@@ -35,7 +34,6 @@ Update `state.md`:
 - Add Revision Phase 2 to "Completed Phases" with summary of fixes
 - Confirm all builds and tests pass
 
-{% endraw %}
 {%- else %}
 <!-- This file is for the revision workflow. You are running a standard workflow — this file is intentionally empty. -->
 {%- endif %}

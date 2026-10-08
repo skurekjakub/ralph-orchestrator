@@ -1,5 +1,4 @@
 {%- unless isRevision %}
-{% raw %}
 
 # Phase 7: Commit
 
@@ -52,7 +51,6 @@ Update `state.md`:
 - Set "Reference file for this phase" to `references/8-pr.md`
 - Add Phase 7 to "Completed Phases" with commit hash
 
-{% endraw %}
 {%- else %}
 <!-- This file is for the standard workflow. You are running a revision workflow — this file is intentionally empty. -->
 {%- endunless %}

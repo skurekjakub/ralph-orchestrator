@@ -1,5 +1,4 @@
 {%- unless isRevision %}
-{% raw %}
 
 # Phase 4: Test
 
@@ -42,7 +41,6 @@ Update `state.md`:
 - Add Phase 4 to "Completed Phases" with test results (passed/failed counts)
 - List test files created
 
-{% endraw %}
 {%- else %}
 <!-- This file is for the standard workflow. You are running a revision workflow — this file is intentionally empty. -->
 {%- endunless %}

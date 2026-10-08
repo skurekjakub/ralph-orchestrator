@@ -1,5 +1,4 @@
 {%- unless isRevision %}
-{% raw %}
 
 # Phase 2: Research
 
@@ -28,7 +27,6 @@ Update `state.md`:
   - Also list domain skills for the affected components
 - Add Phase 2 to "Completed Phases" with key findings
 
-{% endraw %}
 {%- else %}
 <!-- This file is for the standard workflow. You are running a revision workflow — this file is intentionally empty. -->
 {%- endunless %}
