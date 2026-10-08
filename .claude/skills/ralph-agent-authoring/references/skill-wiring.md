@@ -11,7 +11,7 @@ Keep orchestrators pure. They reference only their workflow router skill; domain
 ## 0. Create the skill (if new)
 
 - Pick a category under `shared/skills/`: `domain/` (product knowledge, coding/testing/review rules), `integrations/` (external services: ADO, Ralphchives, code graph, screenshots), `tasks/` (task-specific guidance: code samples, release notes, training modules), `workflow/<docs|vscode>/` (phase and router skills), or a product router like `xperience/`. Propose a new category only if none fits.
-- The folder name must equal the frontmatter `name:`. Lookup is by folder name anywhere under `shared/skills/` (`findSkillDir` in `src/container/setup/skill-includes.ts`), so names must be unique across categories.
+- The folder name must equal the frontmatter `name:`. Lookup is by folder name anywhere under `shared/skills/` (`discoverSkills` in `src/container/setup/skill-includes.ts`), so names must be unique across categories.
 - Write a concise SKILL.md with heavy material in `references/`. The `skill-creator` skill covers authoring and evals.
 - Every `.md` in the skill is Liquid-rendered with `TemplateContext`. Partials resolve from both `shared/skills/` and `shared/agent-includes/`. Wrap literal `{{ … }}` / `{% … %}` (e.g. Jekyll or Liquid examples for the target repo) in `{% raw %}…{% endraw %}`.
 
